@@ -98,9 +98,11 @@ class CPlayer : public Base::CSingleton<CPlayer>
     void ReapBackgroundTasks();
     /// Periodic log line from the render thread: its absence is the hang signal.
     void LogHeartbeat();
+    void UpdateDisplayFps(const DisplayOutput::spCDisplayOutput& display);
     std::chrono::steady_clock::time_point m_HeartbeatLastTick{};
     std::chrono::steady_clock::time_point m_HeartbeatLastLog{};
     double m_HeartbeatMaxTickMs = 0.0;
+    double m_HeartbeatSumTickMs = 0.0;
     uint32_t m_HeartbeatTicks = 0;
     uint32_t m_HeartbeatLateTicks = 0;
     uint32_t m_HeartbeatClampedTicks = 0;

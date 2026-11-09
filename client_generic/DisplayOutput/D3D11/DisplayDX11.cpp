@@ -9,9 +9,11 @@
 #include <cstdlib>
 #include <mutex>
 #include <string>
+#include <vector>
 
 #if defined(WIN32) || defined(_WIN32) || defined(_WIN64)
 #include <d3d11_4.h>
+#include <dxgi1_3.h>
 #endif
 
 #ifdef WIN32
@@ -30,6 +32,11 @@ extern void ESShowPreferences();
 namespace DisplayOutput {
 
 namespace {
+
+// Every live DX11 display, so that with several (the /s saver opens one per monitor, all
+// drawn in turn from one thread) only one of them waits for a vblank (issue #749).
+static std::mutex g_displaysMutex;
+static std::vector<CDisplayDX11*> g_displays;
 
 #ifdef WIN32
 // Shared D3D11 device/context across all DX11 windows so decoded textures
@@ -358,7 +365,7 @@ static void ReclaimForegroundFocus(HWND hwnd)
         AttachThreadInput(myThread, fgThread, FALSE);
 }
 
-static void LayoutFullscreenSaverWindow(HWND hwnd, IDXGISwapChain* swapChain)
+static void LayoutFullscreenSaverWindow(HWND hwnd)
 {
     if (!hwnd)
         return;
@@ -377,13 +384,6 @@ static void LayoutFullscreenSaverWindow(HWND hwnd, IDXGISwapChain* swapChain)
                  mi.rcMonitor.right - mi.rcMonitor.left,
                  mi.rcMonitor.bottom - mi.rcMonitor.top,
                  SWP_FRAMECHANGED | SWP_SHOWWINDOW | SWP_NOOWNERZORDER);
-
-    if (swapChain)
-    {
-        const HRESULT hr = swapChain->SetFullscreenState(TRUE, nullptr);
-        if (FAILED(hr))
-            g_Log->Warning("SetFullscreenState(TRUE) after layout failed: %08X", hr);
-    }
 }
 
 struct MonitorInfoByIndex
@@ -576,6 +576,10 @@ CDisplayDX11::CDisplayDX11()
       m_bMenuRenderInProgress(false) {
     m_windowedRect = {0, 0, 0, 0};
     g_Log->Info("CDisplayDX11()");
+    {
+        std::lock_guard<std::mutex> lock(g_displaysMutex);
+        g_displays.push_back(this);
+    }
 
 #ifdef WIN32
     m_customTitlebarHeightPx = GetSystemTitlebarHeightPx(GetDpiForSystem());
@@ -632,6 +636,13 @@ bool CDisplayDX11::EnsureWindowClassRegistered(HINSTANCE hInstance)
 
 CDisplayDX11::~CDisplayDX11() {
     g_Log->Info("~CDisplayDX11()");
+    {
+        std::lock_guard<std::mutex> lock(g_displaysMutex);
+        g_displays.erase(std::remove(g_displays.begin(), g_displays.end(), this),
+                         g_displays.end());
+    }
+    if (m_frameLatencyWaitable)
+        CloseHandle(m_frameLatencyWaitable);
 }
 
 #ifdef WIN32
@@ -922,6 +933,12 @@ LRESULT CALLBACK CDisplayDX11::WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARA
     case WM_EXITMENULOOP:
         KillTimer(hWnd, kMenuLoopTimerId);
         return 0;
+
+    case WM_DISPLAYCHANGE:
+        // A mode change can change the refresh rate; re-detect it on the next frame.
+        if (self)
+            self->m_refreshDirty = true;
+        return DefWindowProc(hWnd, msg, wParam, lParam);
 
     case WM_SIZE:
         if (self && wParam != SIZE_MINIMIZED)
@@ -1443,7 +1460,7 @@ bool CDisplayDX11::ResizeSwapChain(uint32_t width, uint32_t height)
 
     m_renderTargetView.Reset();
 
-    HRESULT hr = m_swapChain->ResizeBuffers(0, width, height, DXGI_FORMAT_UNKNOWN, 0);
+    HRESULT hr = m_swapChain->ResizeBuffers(0, width, height, DXGI_FORMAT_UNKNOWN, m_swapChainFlags);
     if (FAILED(hr))
     {
         g_Log->Error("ResizeBuffers failed: %08X", hr);
@@ -1489,21 +1506,6 @@ bool CDisplayDX11::ResizeSwapChain(uint32_t width, uint32_t height)
 }
 
 bool CDisplayDX11::CreateDeviceAndSwapChain() {
-    DXGI_SWAP_CHAIN_DESC sd = {};
-    sd.BufferCount = 2;
-    sd.BufferDesc.Width = m_Width;
-    sd.BufferDesc.Height = m_Height;
-    sd.BufferDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
-    sd.BufferDesc.RefreshRate.Numerator = 60;
-    sd.BufferDesc.RefreshRate.Denominator = 1;
-    sd.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT;
-    sd.OutputWindow = m_WindowHandle;
-    sd.SampleDesc.Count = 1;
-    sd.SampleDesc.Quality = 0;
-
-    const bool wantExclusiveFullscreen = m_bFullScreen && !m_disableExclusiveFullscreen;
-    sd.Windowed = !wantExclusiveFullscreen;
-
     // D3D11_CREATE_DEVICE_VIDEO_SUPPORT is REQUIRED because this same ID3D11Device
     // is shared with FFmpeg's D3D11VA decoder (see CContentDecoder::Open).  Without
     // it, the driver's ID3D11VideoDevice/ID3D11VideoContext interfaces sit on
@@ -1601,12 +1603,57 @@ bool CDisplayDX11::CreateDeviceAndSwapChain() {
             return false;
         }
 
-        hr = factory->CreateSwapChain(m_device.Get(), &sd, &m_swapChain);
-        if (FAILED(hr) || !m_swapChain)
+        // Issue #749: flip model with a frame-latency waitable object. The old bitblt model
+        // (DXGI_SWAP_EFFECT_DISCARD) doesn't give one present per refresh in a window: on a
+        // 30 Hz display the loop ran 43-60 times a second. WaitForNextFrame() holds the loop
+        // to one frame per refresh of the window's monitor (its vblank, falling back to the
+        // waitable object). This is the only swap chain: fullscreen is a borderless
+        // window (issue #617), since the waitable object doesn't support exclusive mode.
+        m_swapChain.Reset();
+        if (m_frameLatencyWaitable)
+        {
+            CloseHandle(m_frameLatencyWaitable);
+            m_frameLatencyWaitable = nullptr;
+        }
+        ComPtr<IDXGIFactory2> factory2;
+        hr = factory.As(&factory2);
+        if (FAILED(hr) || !factory2)
+        {
+            g_Log->Error("IDXGIFactory2 unavailable: %08X", hr);
+            return false;
+        }
+
+        DXGI_SWAP_CHAIN_DESC1 sd = {};
+        sd.Width = m_Width;
+        sd.Height = m_Height;
+        sd.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
+        sd.SampleDesc.Count = 1;
+        sd.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT;
+        sd.BufferCount = 2;
+        sd.Scaling = DXGI_SCALING_STRETCH;
+        sd.SwapEffect = DXGI_SWAP_EFFECT_FLIP_DISCARD;
+        sd.AlphaMode = DXGI_ALPHA_MODE_UNSPECIFIED;
+        sd.Flags = DXGI_SWAP_CHAIN_FLAG_FRAME_LATENCY_WAITABLE_OBJECT;
+
+        ComPtr<IDXGISwapChain1> swapChain1;
+        hr = factory2->CreateSwapChainForHwnd(m_device.Get(), m_WindowHandle, &sd, nullptr,
+                                              nullptr, &swapChain1);
+        ComPtr<IDXGISwapChain2> swapChain2;
+        if (FAILED(hr) || !swapChain1 || FAILED(swapChain1.As(&swapChain2)) || !swapChain2)
         {
             g_Log->Error("Failed to create swap chain for window: %08X", hr);
             return false;
         }
+        swapChain2->SetMaximumFrameLatency(1);
+        m_frameLatencyWaitable = swapChain2->GetFrameLatencyWaitableObject();
+        m_swapChainFlags = sd.Flags;
+        m_frameWaitOwed = true; // wait once before the first frame
+        m_vblankOutput.Reset(); // re-query the output for the new swap chain
+        m_pacedOnVblank = false;
+        m_swapChain = swapChain1;
+        // DXGI's own Alt+Enter would switch to exclusive fullscreen, which this swap chain
+        // doesn't support.
+        factory2->MakeWindowAssociation(m_WindowHandle, DXGI_MWA_NO_ALT_ENTER);
     }
 
     // Create render target view
@@ -1732,10 +1779,7 @@ HWND CDisplayDX11::Initialize(uint32_t width, uint32_t height, bool fullscreen) 
     {
         // Screensaver mode prefers borderless windowed fullscreen to avoid
         // DXGI exclusive fullscreen issues on multi-monitor setups.
-        if (m_disableExclusiveFullscreen)
-            LayoutFullscreenSaverWindow(m_WindowHandle, nullptr);
-        else
-            LayoutFullscreenSaverWindow(m_WindowHandle, m_swapChain.Get());
+        LayoutFullscreenSaverWindow(m_WindowHandle);
         SetForegroundWindow(m_WindowHandle);
         SetFocus(m_WindowHandle);
 
@@ -1881,9 +1925,9 @@ void CDisplayDX11::SwapBuffers()
     if (m_deviceLost)
         return;
 
-    // /p preview child: avoid vsync Present(1) stalling on the tiny HWND.
-    const UINT syncInterval = m_bEmbeddedSaverPreview ? 0u : 1u;
-    HRESULT hr = m_swapChain->Present(syncInterval, 0);
+    // When WaitForNextFrame() already waited for this monitor's vblank, don't also wait on
+    // the compositor; flip-model presents through the compositor don't tear at interval 0.
+    HRESULT hr = m_swapChain->Present(m_pacedOnVblank ? 0 : 1, 0);
     if (FAILED(hr))
     {
         g_Log->Error("Present failed: %08X", hr);
@@ -1896,8 +1940,195 @@ void CDisplayDX11::SwapBuffers()
         }
         return;
     }
+    m_frameWaitOwed = true;
 
     // Custom titlebar is drawn in the DX11 renderer overlay (stable, no GDI flashing).
+}
+
+bool CDisplayDX11::IsPacingDisplay()
+{
+    std::lock_guard<std::mutex> lock(g_displaysMutex);
+    if (g_displays.size() <= 1)
+        return true;
+    // The display on the monitor with the highest refresh rate; the first one on a tie.
+    CDisplayDX11* best = nullptr;
+    double bestHz = -1.0;
+    for (CDisplayDX11* d : g_displays)
+    {
+        const double hz = d->RefreshRateHz();
+        if (hz > bestHz)
+        {
+            best = d;
+            bestHz = hz;
+        }
+    }
+    return best == this;
+}
+
+bool CDisplayDX11::WaitForNextFrame()
+{
+    // Wait only once per Present: the waitable object is a semaphore released once per
+    // retired frame, so waiting on a frame that was never presented would block until the
+    // timeout.
+    if (!m_frameLatencyWaitable || !m_frameWaitOwed || m_deviceLost)
+        return true;
+
+    // Pace on the vblank of the monitor the window is on. With monitors at different rates
+    // the compositor's clock hops between them, and the waitable object follows that clock:
+    // on a 29.97 Hz screen next to a 60 Hz one the loop ran ~60/s and PresentMon showed 45%
+    // of frames never displayed; with this wait it runs at 30 and 3% (issue #749).
+    m_pacedOnVblank = false;
+
+    // With several displays drawn in turn from one loop, waiting for each one's vblank would
+    // miss beats: one pass waits for every monitor's refresh in a row, and the /s saver on a
+    // 60 Hz + 29.97 Hz pair ran at 30. Only the display on the fastest monitor waits. The
+    // others draw only when their swap chain can take a frame and skip the pass otherwise:
+    // drawing every pass into a slower monitor's swap chain backs up the GPU and stalls the
+    // whole loop (the saver dropped to 10-30 ticks/s with 200 ms stalls).
+    if (!IsPacingDisplay())
+    {
+        if (WaitForSingleObjectEx(m_frameLatencyWaitable, 0, FALSE) != WAIT_OBJECT_0)
+            return false; // still owed; try again next pass
+        m_frameWaitOwed = false;
+        m_pacedOnVblank = true;
+        return true;
+    }
+    m_frameWaitOwed = false;
+
+    // WM_CLOSE destroys the window before the loop's last pass; there is nothing left to
+    // pace, and querying its output would fail (DXGI_ERROR_UNSUPPORTED).
+    if (!IsWindow(m_WindowHandle))
+        return true;
+
+    if (m_swapChain)
+    {
+        const HMONITOR monitor = MonitorFromWindow(m_WindowHandle, MONITOR_DEFAULTTONEAREST);
+        if (!m_vblankOutput || monitor != m_vblankMonitor)
+        {
+            m_vblankOutput.Reset();
+            m_vblankMonitor = monitor;
+            HRESULT hr = m_swapChain->GetContainingOutput(&m_vblankOutput);
+            DXGI_OUTPUT_DESC od = {};
+            if (SUCCEEDED(hr) && m_vblankOutput)
+            {
+                m_vblankOutput->GetDesc(&od);
+                g_Log->Info("Pacing on vblank of %ls", od.DeviceName);
+            }
+            else
+            {
+                m_vblankOutput.Reset();
+                static bool s_loggedNoOutput = false;
+                if (!s_loggedNoOutput)
+                {
+                    g_Log->Warning("No output to pace on (%08X); using the frame-latency wait",
+                                   hr);
+                    s_loggedNoOutput = true;
+                }
+            }
+        }
+        if (m_vblankOutput && SUCCEEDED(m_vblankOutput->WaitForVBlank()))
+        {
+            // Frames presented at interval 0 still release the latency semaphore; drain it
+            // without blocking so a later fallback wait doesn't return early.
+            while (WaitForSingleObjectEx(m_frameLatencyWaitable, 0, FALSE) == WAIT_OBJECT_0)
+            {
+            }
+            m_pacedOnVblank = true;
+            return true;
+        }
+    }
+    // Fallback: the compositor-driven wait, with Present at interval 1.
+    // A refresh is at most ~42 ms (24 Hz); the timeout only guards against a stuck queue.
+    const DWORD result = WaitForSingleObjectEx(m_frameLatencyWaitable, 250, FALSE);
+    if (result != WAIT_OBJECT_0)
+    {
+        static bool s_logged = false;
+        if (!s_logged)
+        {
+            g_Log->Warning("Frame-latency wait returned %lu", static_cast<unsigned long>(result));
+            s_logged = true;
+        }
+    }
+    return true;
+}
+
+// The refresh rate of the monitor's current mode, as an exact rational where possible
+// (29.97 Hz rather than 29). DwmGetCompositionTimingInfo failed on some machines (#749).
+static double QueryMonitorRefreshHz(HMONITOR monitor)
+{
+    MONITORINFOEXW mi = {};
+    mi.cbSize = sizeof(mi);
+    if (!monitor || !GetMonitorInfoW(monitor, &mi))
+        return 0.0;
+
+    std::vector<DISPLAYCONFIG_PATH_INFO> paths;
+    std::vector<DISPLAYCONFIG_MODE_INFO> modes;
+    LONG rc = ERROR_SUCCESS;
+    do
+    {
+        UINT32 numPaths = 0, numModes = 0;
+        rc = GetDisplayConfigBufferSizes(QDC_ONLY_ACTIVE_PATHS, &numPaths, &numModes);
+        if (rc != ERROR_SUCCESS)
+            break;
+        paths.resize(numPaths);
+        modes.resize(numModes);
+        rc = QueryDisplayConfig(QDC_ONLY_ACTIVE_PATHS, &numPaths, paths.data(), &numModes,
+                                modes.data(), nullptr);
+        paths.resize(numPaths);
+        modes.resize(numModes);
+    } while (rc == ERROR_INSUFFICIENT_BUFFER);
+
+    if (rc == ERROR_SUCCESS)
+    {
+        for (const auto& path : paths)
+        {
+            DISPLAYCONFIG_SOURCE_DEVICE_NAME source = {};
+            source.header.type = DISPLAYCONFIG_DEVICE_INFO_GET_SOURCE_NAME;
+            source.header.size = sizeof(source);
+            source.header.adapterId = path.sourceInfo.adapterId;
+            source.header.id = path.sourceInfo.id;
+            if (DisplayConfigGetDeviceInfo(&source.header) != ERROR_SUCCESS ||
+                wcscmp(source.viewGdiDeviceName, mi.szDevice) != 0)
+                continue;
+
+            const UINT32 modeIdx = path.targetInfo.modeInfoIdx;
+            if (modeIdx != DISPLAYCONFIG_PATH_MODE_IDX_INVALID && modeIdx < modes.size() &&
+                modes[modeIdx].infoType == DISPLAYCONFIG_MODE_INFO_TYPE_TARGET)
+            {
+                const auto& vsync = modes[modeIdx].targetMode.targetVideoSignalInfo.vSyncFreq;
+                if (vsync.Numerator && vsync.Denominator)
+                    return static_cast<double>(vsync.Numerator) / vsync.Denominator;
+            }
+            const auto& rate = path.targetInfo.refreshRate;
+            if (rate.Numerator && rate.Denominator)
+                return static_cast<double>(rate.Numerator) / rate.Denominator;
+        }
+    }
+
+    DEVMODEW dm = {};
+    dm.dmSize = sizeof(dm);
+    if (EnumDisplaySettingsW(mi.szDevice, ENUM_CURRENT_SETTINGS, &dm) && dm.dmDisplayFrequency > 1)
+        return static_cast<double>(dm.dmDisplayFrequency);
+    return 0.0;
+}
+
+double CDisplayDX11::RefreshRateHz()
+{
+    if (!m_WindowHandle)
+        return 0.0;
+    // Cheap enough to call every frame; re-query only when the window has moved to another
+    // monitor or the display mode changed.
+    const HMONITOR monitor = MonitorFromWindow(m_WindowHandle, MONITOR_DEFAULTTONEAREST);
+    if (monitor != m_refreshMonitor || m_refreshDirty)
+    {
+        const double hz = QueryMonitorRefreshHz(monitor);
+        if (monitor != m_refreshMonitor || hz != m_refreshHz)
+            g_Log->Info("Display refresh rate %.3f Hz", hz);
+        m_refreshMonitor = monitor;
+        m_refreshHz = hz;
+        m_refreshDirty = false;
+    }
+    return m_refreshHz;
 }
 
 bool CDisplayDX11::SetFullscreen(const bool fullscreen)
@@ -1914,12 +2145,6 @@ bool CDisplayDX11::SetFullscreen(const bool fullscreen)
         if (GetWindowRect(m_WindowHandle, &m_windowedRect))
             m_hasWindowedRect = true;
 
-        if (!m_disableExclusiveFullscreen)
-        {
-            const HRESULT fsHr = m_swapChain->SetFullscreenState(TRUE, nullptr);
-            if (FAILED(fsHr))
-                g_Log->Warning("SetFullscreenState(TRUE) failed: %08X", fsHr);
-        }
 
         HMONITOR monitor = MonitorFromWindow(m_WindowHandle, MONITOR_DEFAULTTONEAREST);
         MONITORINFO mi = {};
@@ -1942,13 +2167,6 @@ bool CDisplayDX11::SetFullscreen(const bool fullscreen)
         m_bFullScreen = true;
         ReclaimForegroundFocus(m_WindowHandle);
         return true;
-    }
-
-    if (!m_disableExclusiveFullscreen)
-    {
-        const HRESULT wsHr = m_swapChain->SetFullscreenState(FALSE, nullptr);
-        if (FAILED(wsHr))
-            g_Log->Warning("SetFullscreenState(FALSE) failed: %08X", wsHr);
     }
 
     DWORD restoreStyle = m_windowedStyle ? m_windowedStyle : GetDefaultWindowedStyle(m_useCustomWindowChrome);

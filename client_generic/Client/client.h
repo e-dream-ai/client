@@ -1183,7 +1183,9 @@ class CElectricSheep
             // (content) rate. Capping at m_PerceptualFPS throttled the whole
             // loop to the dream animation rate (often 2-20 fps), making motion
             // choppy and defeating frame blending. FIFO present already gates
-            // on vblank; this cap is a safety net. 0 = uncapped (let vsync pace).
+            // on vblank; this cap is a safety net. The rate is the detected refresh
+            // rate of the window's monitor (issue #749), so a 144 Hz display is no
+            // longer held to 60. 0 = uncapped (let vsync pace).
             double displayFps = g_Player().GetDisplayFps();
             if (displayFps > 0.0)
                 g_Player().FpsCap(displayFps);

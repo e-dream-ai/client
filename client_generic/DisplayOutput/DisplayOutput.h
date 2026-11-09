@@ -256,6 +256,10 @@ class CDisplayOutput
     virtual bool SetFullscreen(const bool _fullscreen) { (void)_fullscreen; return false; }
     virtual bool IsFullscreen() const { return m_bFullScreen; }
 
+    /// Refresh rate of the monitor this display is on, in Hz, detected from the OS. 0 when
+    /// unknown. Can change when the window moves to another monitor or the mode changes.
+    virtual double RefreshRateHz() { return 0.0; }
+
     bool GetEvent(spCEvent& _event);
     void AppendEvent(spCEvent _event);
     void ClearEvents();
