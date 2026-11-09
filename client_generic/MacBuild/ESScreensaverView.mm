@@ -1127,7 +1127,11 @@ static void hideSkipButtonInView(NSView *view)
 {
     if (m_isStopped || !m_bStarted || !view)
         return NO;
+    // Full-rate occluded clock is only for live Syphon receivers; otherwise
+    // let MTKView's display link drop while covered.
     if (!ESScreensaver_GetBoolSetting("settings.player.syphon_output", false))
+        return NO;
+    if (!SyphonOutput_HasClients())
         return NO;
     NSWindow* window = self.window;
     if (!window)

@@ -65,6 +65,11 @@ void SyphonOutput_PublishIfEnabled(id<MTLTexture> texture,
     if (!EnsureServer(device))
         return;
 
+    // Keep the server alive for discovery; only copy frames when someone is
+    // listening (SyphonMetalServer guidance for display-rate publishers).
+    if (!g_syphonServer.hasClients)
+        return;
+
     const NSRect region =
         NSMakeRect(0, 0, (CGFloat)texture.width, (CGFloat)texture.height);
     // Metal framebuffer origin is top-left; Syphon clients expect bottom-left
@@ -73,6 +78,11 @@ void SyphonOutput_PublishIfEnabled(id<MTLTexture> texture,
                         onCommandBuffer:commandBuffer
                             imageRegion:region
                                 flipped:YES];
+}
+
+bool SyphonOutput_HasClients(void)
+{
+    return g_syphonServer != nil && g_syphonServer.hasClients;
 }
 
 void SyphonOutput_Stop(void)
