@@ -2,6 +2,7 @@
 #import <Metal/Metal.h>
 #import <MetalKit/MetalKit.h>
 #import <CoreText/CoreText.h>
+#import <AppKit/AppKit.h>
 
 #include <atomic>
 #include <chrono>
@@ -15,6 +16,7 @@
 #include "TextMetal.h"
 #include "TextureFlatMetal.h"
 #ifndef SCREEN_SAVER
+#include "Settings.h"
 #include "SyphonOutput.h"
 #endif
 
@@ -53,6 +55,14 @@ static const NSUInteger MaxFramesInFlight = 3;
     std::atomic<uint8_t> framesFinished;
   @public
     std::atomic<float> avgGpuFrameTimeMs;
+#ifndef SCREEN_SAVER
+  @public
+    // Offscreen target used when the window is occluded but Syphon still needs
+    // frames. Avoids CAMetalLayer nextDrawable stalls (~3Hz) behind other apps.
+    id<MTLTexture> syphonOffscreenTexture;
+  @public
+    BOOL renderedToSyphonOffscreen;
+#endif
 }
 @end
 
@@ -225,6 +235,38 @@ Base::Math::CVector2 CRendererMetal::GetTextExtent(spCBaseFont /*_spFont*/,
     return Base::Math::CVector2(0, 0.05f);
 }
 
+#ifndef SCREEN_SAVER
+static bool WindowIsFullyOccluded(NSWindow* window)
+{
+    if (!window)
+        return true;
+    return (window.occlusionState & NSWindowOcclusionStateVisible) == 0;
+}
+
+static id<MTLTexture> EnsureSyphonOffscreenTexture(RendererContext* ctx,
+                                                   NSUInteger width,
+                                                   NSUInteger height)
+{
+    if (width == 0 || height == 0)
+        return nil;
+
+    id<MTLTexture> existing = ctx->syphonOffscreenTexture;
+    if (existing && existing.width == width && existing.height == height)
+        return existing;
+
+    MTLTextureDescriptor* desc = [MTLTextureDescriptor
+        texture2DDescriptorWithPixelFormat:ctx->metalView.colorPixelFormat
+                                     width:width
+                                    height:height
+                                 mipmapped:NO];
+    desc.usage = MTLTextureUsageRenderTarget | MTLTextureUsageShaderRead;
+    desc.storageMode = MTLStorageModePrivate;
+    ctx->syphonOffscreenTexture =
+        [ctx->metalView.device newTextureWithDescriptor:desc];
+    return ctx->syphonOffscreenTexture;
+}
+#endif
+
 bool CRendererMetal::BeginFrame(void)
 {
     RendererContext* rendererContext =
@@ -236,17 +278,61 @@ bool CRendererMetal::BeginFrame(void)
     PROFILER_BEGIN_F("Metal Frame", "%d", rendererContext->frameCounter);
     id<MTLCommandQueue> commandQueue = rendererContext->commandQueue;
     rendererContext->currentCommandBuffer = [commandQueue commandBuffer];
+#ifndef SCREEN_SAVER
+    rendererContext->renderedToSyphonOffscreen = NO;
+#endif
 
     // Single render pass for the entire frame: clear once, draw everything,
     // end in EndFrame(). This avoids per-DrawQuad render passes which each
     // force a full framebuffer load/store on Apple's tile-based GPU.
     @autoreleasepool
     {
-        id<CAMetalDrawable> drawable =
-            rendererContext->metalView.currentDrawable;
+        id<MTLTexture> colorTexture = nil;
+#ifndef SCREEN_SAVER
+        // Behind other apps, nextDrawable blocks / throttles (~3Hz). When Syphon
+        // is publishing, render to a private texture instead of the layer.
+        const bool syphonOn =
+            g_Settings()->Get("settings.player.syphon_output", false);
+        const bool useSyphonOffscreen =
+            syphonOn &&
+            WindowIsFullyOccluded(rendererContext->metalView.window);
+        if (useSyphonOffscreen)
+        {
+            CGSize drawableSize = rendererContext->metalView.drawableSize;
+            colorTexture = EnsureSyphonOffscreenTexture(
+                rendererContext, (NSUInteger)drawableSize.width,
+                (NSUInteger)drawableSize.height);
+            if (colorTexture)
+            {
+                rendererContext->renderedToSyphonOffscreen = YES;
+            }
+            else
+            {
+                // Stay off the CAMetalLayer path while occluded — a drawable
+                // acquire here is what tanks the Syphon rate.
+                dispatch_semaphore_signal(rendererContext->inFlightSemaphore);
+                rendererContext->currentCommandBuffer = nil;
+                return false;
+            }
+        }
+        else
+#endif
+        {
+            id<CAMetalDrawable> drawable =
+                rendererContext->metalView.currentDrawable;
+            colorTexture = drawable.texture;
+        }
+        if (!colorTexture)
+        {
+            // Drawable timeout / unavailable — skip this frame.
+            dispatch_semaphore_signal(rendererContext->inFlightSemaphore);
+            rendererContext->currentCommandBuffer = nil;
+            return false;
+        }
+
         MTLRenderPassDescriptor* passDescriptor =
             [MTLRenderPassDescriptor renderPassDescriptor];
-        passDescriptor.colorAttachments[0].texture = drawable.texture;
+        passDescriptor.colorAttachments[0].texture = colorTexture;
         passDescriptor.colorAttachments[0].loadAction = MTLLoadActionClear;
         passDescriptor.colorAttachments[0].storeAction = MTLStoreActionStore;
 
@@ -262,6 +348,16 @@ bool CRendererMetal::EndFrame(bool drawn)
     CRenderer::EndFrame(drawn);
     RendererContext* rendererContext =
         (__bridge RendererContext*)m_pRendererContext;
+
+    if (!rendererContext->currentCommandBuffer ||
+        !rendererContext->currentRenderEncoder)
+    {
+        m_syphonPublishThisFrame = false;
+#ifndef SCREEN_SAVER
+        rendererContext->renderedToSyphonOffscreen = NO;
+#endif
+        return false;
+    }
 
     // End the frame's single render pass.
     [rendererContext->currentRenderEncoder endEncoding];
@@ -304,21 +400,40 @@ bool CRendererMetal::EndFrame(bool drawn)
 
     @autoreleasepool
     {
-        auto drawable = rendererContext->metalView.currentDrawable;
-        if (drawable)
-        {
 #ifndef SCREEN_SAVER
+        if (rendererContext->renderedToSyphonOffscreen)
+        {
+            // Occluded + Syphon: publish the private texture, never present.
             if (m_syphonPublishThisFrame)
             {
                 SyphonOutput_PublishIfEnabled(
-                    drawable.texture, rendererContext->currentCommandBuffer,
+                    rendererContext->syphonOffscreenTexture,
+                    rendererContext->currentCommandBuffer,
                     rendererContext->metalView.device);
             }
+        }
+        else
 #endif
-            [rendererContext->currentCommandBuffer presentDrawable:drawable];
+        {
+            auto drawable = rendererContext->metalView.currentDrawable;
+            if (drawable)
+            {
+#ifndef SCREEN_SAVER
+                if (m_syphonPublishThisFrame)
+                {
+                    SyphonOutput_PublishIfEnabled(
+                        drawable.texture, rendererContext->currentCommandBuffer,
+                        rendererContext->metalView.device);
+                }
+#endif
+                [rendererContext->currentCommandBuffer presentDrawable:drawable];
+            }
         }
     }
     m_syphonPublishThisFrame = false;
+#ifndef SCREEN_SAVER
+    rendererContext->renderedToSyphonOffscreen = NO;
+#endif
     [rendererContext->currentCommandBuffer commit];
     PROFILER_END_F("Metal Frame", "%d", rendererContext->frameCounter);
     return true;

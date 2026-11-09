@@ -29,6 +29,13 @@ static std::atomic<int> s_activeEngineViews{0};
     BOOL m_graphicsContextAdded;  // AddGraphicsContext once per view (startAnimation may re-enter)
     NSTimer *m_screenCheckTimer;  // Fallback when macOS never calls stopAnimation
     BOOL m_forceExiting;          // Guard against re-entrant force-exit
+#else
+    // Syphon needs full-rate frames while the window is fully occluded. MTKView's
+    // display link + nextDrawable drop to ~3Hz behind other apps, so we pause the
+    // view and drive DoFrame ourselves, and hold an App Nap activity.
+    dispatch_source_t m_occlusionFrameTimer;
+    id<NSObject> m_syphonOcclusionActivity;
+    BOOL m_observingOcclusion;
 #endif
 }
 
@@ -328,6 +335,11 @@ static BOOL ESWindowIsKnownOffscreen(NSWindow *win)
         [self _startScreenConnectionMonitor];
 #endif
     }
+
+#ifndef SCREEN_SAVER
+    [self _startOcclusionObserving];
+    [self _updateOcclusionDrivenRendering];
+#endif
     
 #ifdef SCREEN_SAVER
     [super startAnimation];
@@ -340,6 +352,9 @@ static BOOL ESWindowIsKnownOffscreen(NSWindow *win)
     [self _stopScreenConnectionMonitor];
     [NSCursor unhide];
     [self _stopRedrawTimer];
+#else
+    [self _stopOcclusionDrivenRendering];
+    [self _stopOcclusionObserving];
 #endif
     m_bPausedForSheet = NO;
     if (m_bStarted)
@@ -389,6 +404,8 @@ static BOOL ESWindowIsKnownOffscreen(NSWindow *win)
 {
 #ifdef SCREEN_SAVER
     [self _stopScreenConnectionMonitor];
+#else
+    [self _stopOcclusionDrivenRendering];
 #endif
     if (!m_bStarted || m_bPausedForSheet)
         return;
@@ -409,6 +426,8 @@ static BOOL ESWindowIsKnownOffscreen(NSWindow *win)
 #ifdef SCREEN_SAVER
     [self _startScreenConnectionMonitor];
     [super startAnimation];
+#else
+    [self _updateOcclusionDrivenRendering];
 #endif
     return YES;  // Caller must NOT call startAnimation (would re-add display and retrigger full startup)
 }
@@ -1047,6 +1066,10 @@ static void hideSkipButtonInView(NSView *view)
 #endif
 {
     DEBUG_LOG("DRAW_IN_METAL_VIEW");
+#ifndef SCREEN_SAVER
+    // Pick up Syphon toggle while already occluded (no occlusion notification).
+    [self _updateOcclusionDrivenRendering];
+#endif
     if (!m_isStopped)
     {
         @autoreleasepool
@@ -1062,5 +1085,121 @@ static void hideSkipButtonInView(NSView *view)
         }
     }
 }
+
+#ifndef SCREEN_SAVER
+- (void)_startOcclusionObserving
+{
+    if (m_observingOcclusion)
+        return;
+    m_observingOcclusion = YES;
+    [[NSNotificationCenter defaultCenter]
+        addObserver:self
+           selector:@selector(_windowOcclusionStateDidChange:)
+               name:NSWindowDidChangeOcclusionStateNotification
+             object:nil];
+}
+
+- (void)_stopOcclusionObserving
+{
+    if (!m_observingOcclusion)
+        return;
+    m_observingOcclusion = NO;
+    [[NSNotificationCenter defaultCenter] removeObserver:self
+                                                     name:NSWindowDidChangeOcclusionStateNotification
+                                                   object:nil];
+}
+
+- (void)_windowOcclusionStateDidChange:(NSNotification*)notification
+{
+    NSWindow* window = self.window;
+    if (!window || notification.object != window)
+        return;
+    [self _updateOcclusionDrivenRendering];
+}
+
+- (BOOL)_needsOcclusionDrivenRendering
+{
+    if (m_isStopped || !m_bStarted || !view)
+        return NO;
+    if (!ESScreensaver_GetBoolSetting("settings.player.syphon_output", false))
+        return NO;
+    NSWindow* window = self.window;
+    if (!window)
+        return YES;
+    return (window.occlusionState & NSWindowOcclusionStateVisible) == 0;
+}
+
+- (void)_updateOcclusionDrivenRendering
+{
+    if ([self _needsOcclusionDrivenRendering])
+        [self _startOcclusionDrivenRendering];
+    else
+        [self _stopOcclusionDrivenRendering];
+}
+
+- (void)_startOcclusionDrivenRendering
+{
+    if (m_occlusionFrameTimer)
+        return;
+
+    // Stop MTKView's display link so we don't race nextDrawable while occluded.
+    view.paused = YES;
+
+    if (!m_syphonOcclusionActivity)
+    {
+        m_syphonOcclusionActivity = [[NSProcessInfo processInfo]
+            beginActivityWithOptions:NSActivityUserInitiatedAllowingIdleSystemSleep
+                              reason:@"Syphon output while window occluded"];
+    }
+
+    __weak ESScreensaverView* weakSelf = self;
+    dispatch_source_t timer =
+        dispatch_source_create(DISPATCH_SOURCE_TYPE_TIMER, 0, 0,
+                               dispatch_get_main_queue());
+    // Zero leeway — App Nap still coalesces NSTimers; this keeps ~60Hz for Syphon.
+    dispatch_source_set_timer(timer, DISPATCH_TIME_NOW, NSEC_PER_SEC / 60, 0);
+    dispatch_source_set_event_handler(timer, ^{
+        ESScreensaverView* strongSelf = weakSelf;
+        if (!strongSelf)
+            return;
+        [strongSelf _occlusionDrivenFrame];
+    });
+    m_occlusionFrameTimer = timer;
+    dispatch_resume(timer);
+    g_Log->Info("Syphon occlusion clock started (offscreen Metal path)");
+}
+
+- (void)_stopOcclusionDrivenRendering
+{
+    if (m_occlusionFrameTimer)
+    {
+        dispatch_source_cancel(m_occlusionFrameTimer);
+        m_occlusionFrameTimer = nil;
+        g_Log->Info("Syphon occlusion clock stopped");
+    }
+    if (m_syphonOcclusionActivity)
+    {
+        [[NSProcessInfo processInfo] endActivity:m_syphonOcclusionActivity];
+        m_syphonOcclusionActivity = nil;
+    }
+    if (view)
+        view.paused = NO;
+}
+
+- (void)_occlusionDrivenFrame
+{
+    if (![self _needsOcclusionDrivenRendering])
+    {
+        [self _stopOcclusionDrivenRendering];
+        return;
+    }
+    if (m_isStopped)
+        return;
+    @autoreleasepool
+    {
+        ESScreensaver_DoFrame(m_displayIdx);
+    }
+}
+#endif
 
 @end
