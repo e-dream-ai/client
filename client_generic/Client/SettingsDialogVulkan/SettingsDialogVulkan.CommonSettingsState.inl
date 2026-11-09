@@ -18,8 +18,6 @@ static void LoadSettingsForShow()
     g_versionText = PlatformUtils::GetAppVersion();
 
     g_playerFps = g_Settings()->Get("settings.player.player_fps", 23.0);
-    g_displayFps = g_Settings()->Get("settings.player.display_fps", 60.0);
-    g_vsync = g_Settings()->Get("settings.player.vbl_sync", false);
     g_preserveAR = g_Settings()->Get("settings.player.preserve_AR", false);
     g_quietMode = g_Settings()->Get("settings.player.quiet_mode", true);
     g_showAttribution = g_Settings()->Get("settings.app.attributionpng", false);
@@ -47,13 +45,10 @@ static void LoadSettingsForShow()
 static void SaveSettings()
 {
     if (g_playerFps < 0.1) g_playerFps = 20.0;
-    if (g_displayFps < 0.1) g_displayFps = 60.0;
     if (g_cacheSizeGb < 1) g_cacheSizeGb = 1;
 
     g_Settings()->Set("settings.player.player_fps", g_playerFps);
-    g_Settings()->Set("settings.player.display_fps", g_displayFps);
     g_Settings()->Set("settings.player.DisplayMode", 2);
-    g_Settings()->Set("settings.player.vbl_sync", g_vsync);
     g_Settings()->Set("settings.player.preserve_AR", g_preserveAR);
     g_Settings()->Set("settings.player.quiet_mode", g_quietMode);
     g_Settings()->Set("settings.app.attributionpng", g_showAttribution);

@@ -6,7 +6,6 @@
     // IBOutlet NSMatrix* displayMode;
 
     IBOutlet NSTextField* playerFPS;
-    IBOutlet NSTextField* displayFPS;
     IBOutlet NSButton* synchronizeVBL;
     IBOutlet NSButton* blackoutMonitors;
     IBOutlet NSButton* silentMode;

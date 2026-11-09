@@ -27,7 +27,7 @@ MAX_HEARTBEAT_GAP = 3.0  # seconds; heartbeats come every second
 
 BEAT = re.compile(
     r"\[(?P<time>\d{4}-\d\d-\d\d \d\d:\d\d:\d\d\.\d+) - info\]: Heartbeat ticks=(?P<ticks>\d+) "
-    r"tick_ms=[\d.]+ max_tick_ms=(?P<max_tick>[\d.]+) late_ticks=(?P<late>\d+) "
+    r"tick_ms=[\d.]+ avg_tick_ms=[\d.]+ max_tick_ms=(?P<max_tick>[\d.]+) late_ticks=(?P<late>\d+) "
     r"clamped_ticks=(?P<clamped>\d+) lost_ms=(?P<lost>\d+) .*?paused=(?P<paused>\d) "
     r"buffering_pause=(?P<buffering>\d) .*?current=(?P<current>\S+) frame=(?P<frame>\d+)/\d+ "
     r"queue=(?P<queue>\d+) (?P<state>\w+) discarded=(?P<discarded>\d+) short=(?P<short>\d+) "
