@@ -426,6 +426,33 @@ def step0_resign_sparkle(config: BuildConfig) -> None:
         sys.exit(1)
 
 
+def step0_resign_syphon(config: BuildConfig) -> None:
+    """Re-sign Syphon.framework for distribution (Release builds only)."""
+    if not config.release:
+        return
+
+    print()
+    print("========================================")
+    print("STEP 0b: Re-signing Syphon.framework")
+    print("========================================")
+
+    syphon_path = Path("Frameworks/Syphon.framework")
+
+    if not syphon_path.exists():
+        print_yellow(f"Warning: Syphon.framework not found at {syphon_path} - skipping re-sign")
+        return
+
+    print_yellow("Re-signing Syphon.framework with Developer ID certificate...")
+    sign_component(str(syphon_path), config.developer_id_cert)
+
+    print_yellow("Verifying Syphon.framework signature...")
+    if verify_signature(str(syphon_path)):
+        print_green("Syphon.framework signed successfully")
+    else:
+        print_red("Syphon.framework signature verification failed")
+        sys.exit(1)
+
+
 def step1_build_screensaver(config: BuildConfig) -> Path:
     """Build the screensaver. Returns path to built screensaver."""
     print()
@@ -1215,6 +1242,7 @@ Environment variables (optional overrides):
 
     # Step 0: Re-sign Sparkle.framework
     step0_resign_sparkle(config)
+    step0_resign_syphon(config)
 
     # Step 1: Build screensaver
     screensaver_path = step1_build_screensaver(config)
