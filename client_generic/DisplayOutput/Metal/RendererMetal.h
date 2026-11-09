@@ -27,6 +27,7 @@ class CRendererMetal : public CRenderer
     std::map<std::string, spCBaseFont> m_fontPool;
     bool* m_pIsAlive;
     bool m_syphonPublishThisFrame = false;
+    bool m_syphonCaptureThisFrame = false;
 #ifdef __OBJC__
     bool
     CreateMetalTextureFromDecoderFrame(CVPixelBufferRef pixelBuffer,
@@ -47,6 +48,7 @@ class CRendererMetal : public CRenderer
     void Defaults();
     bool BeginFrame(void);
     bool EndFrame(bool drawn = true);
+    void CaptureExternalOutputBeforeOverlay() override;
     void Apply();
     void Reset(const uint32_t _flags);
     spCTextureFlat NewTextureFlat(const uint32_t flags = 0);
@@ -71,6 +73,11 @@ class CRendererMetal : public CRenderer
     void SetSyphonPublishThisFrame(bool publish)
     {
         m_syphonPublishThisFrame = publish;
+    }
+    // Primary display only: render video to offscreen and publish before HUD.
+    void SetSyphonCaptureThisFrame(bool capture)
+    {
+        m_syphonCaptureThisFrame = capture;
     }
 
 };

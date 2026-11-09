@@ -57,11 +57,16 @@ static const NSUInteger MaxFramesInFlight = 3;
     std::atomic<float> avgGpuFrameTimeMs;
 #ifndef SCREEN_SAVER
   @public
-    // Offscreen target used when the window is occluded but Syphon still needs
-    // frames. Avoids CAMetalLayer nextDrawable stalls (~3Hz) behind other apps.
+    // Offscreen video target when Syphon is on: published before HUD overlays
+    // so OSD icons/indicators never appear in the Syphon feed. Also avoids
+    // CAMetalLayer nextDrawable stalls (~3Hz) when the window is occluded.
     id<MTLTexture> syphonOffscreenTexture;
   @public
     BOOL renderedToSyphonOffscreen;
+  @public
+    BOOL syphonPublishedThisFrame;
+  @public
+    BOOL presentingToDrawable;
 #endif
 }
 @end
@@ -280,6 +285,8 @@ bool CRendererMetal::BeginFrame(void)
     rendererContext->currentCommandBuffer = [commandQueue commandBuffer];
 #ifndef SCREEN_SAVER
     rendererContext->renderedToSyphonOffscreen = NO;
+    rendererContext->syphonPublishedThisFrame = NO;
+    rendererContext->presentingToDrawable = NO;
 #endif
 
     // Single render pass for the entire frame: clear once, draw everything,
@@ -289,14 +296,9 @@ bool CRendererMetal::BeginFrame(void)
     {
         id<MTLTexture> colorTexture = nil;
 #ifndef SCREEN_SAVER
-        // Behind other apps, nextDrawable blocks / throttles (~3Hz). When Syphon
-        // is publishing, render to a private texture instead of the layer.
-        const bool syphonOn =
-            g_Settings()->Get("settings.player.syphon_output", false);
-        const bool useSyphonOffscreen =
-            syphonOn &&
-            WindowIsFullyOccluded(rendererContext->metalView.window);
-        if (useSyphonOffscreen)
+        // Primary-display Syphon: render video offscreen so we can publish a
+        // HUD-free frame, and avoid nextDrawable stalls when occluded.
+        if (m_syphonCaptureThisFrame)
         {
             CGSize drawableSize = rendererContext->metalView.drawableSize;
             colorTexture = EnsureSyphonOffscreenTexture(
@@ -308,8 +310,6 @@ bool CRendererMetal::BeginFrame(void)
             }
             else
             {
-                // Stay off the CAMetalLayer path while occluded — a drawable
-                // acquire here is what tanks the Syphon rate.
                 dispatch_semaphore_signal(rendererContext->inFlightSemaphore);
                 rendererContext->currentCommandBuffer = nil;
                 return false;
@@ -321,6 +321,9 @@ bool CRendererMetal::BeginFrame(void)
             id<CAMetalDrawable> drawable =
                 rendererContext->metalView.currentDrawable;
             colorTexture = drawable.texture;
+#ifndef SCREEN_SAVER
+            rendererContext->presentingToDrawable = (colorTexture != nil);
+#endif
         }
         if (!colorTexture)
         {
@@ -343,6 +346,83 @@ bool CRendererMetal::BeginFrame(void)
     return true;
 }
 
+#ifndef SCREEN_SAVER
+void CRendererMetal::CaptureExternalOutputBeforeOverlay()
+{
+    RendererContext* rendererContext =
+        (__bridge RendererContext*)m_pRendererContext;
+    if (!rendererContext->currentCommandBuffer ||
+        !rendererContext->currentRenderEncoder)
+        return;
+    if (!m_syphonCaptureThisFrame ||
+        !rendererContext->renderedToSyphonOffscreen ||
+        !rendererContext->syphonOffscreenTexture)
+        return;
+
+    // Finish the video pass, publish a HUD-free frame, then continue on the
+    // window drawable (when visible) so OSD/icons only affect the local view.
+    [rendererContext->currentRenderEncoder endEncoding];
+    rendererContext->currentRenderEncoder = nil;
+
+    SyphonOutput_PublishIfEnabled(rendererContext->syphonOffscreenTexture,
+                                  rendererContext->currentCommandBuffer,
+                                  rendererContext->metalView.device);
+    rendererContext->syphonPublishedThisFrame = YES;
+    rendererContext->renderedToSyphonOffscreen = NO;
+
+    const bool occluded =
+        WindowIsFullyOccluded(rendererContext->metalView.window);
+    id<CAMetalDrawable> drawable =
+        occluded ? nil : rendererContext->metalView.currentDrawable;
+
+    if (drawable)
+    {
+        id<MTLBlitCommandEncoder> blit =
+            [rendererContext->currentCommandBuffer blitCommandEncoder];
+        const MTLSize size =
+            MTLSizeMake(rendererContext->syphonOffscreenTexture.width,
+                        rendererContext->syphonOffscreenTexture.height, 1);
+        [blit copyFromTexture:rendererContext->syphonOffscreenTexture
+                  sourceSlice:0
+                  sourceLevel:0
+                 sourceOrigin:MTLOriginMake(0, 0, 0)
+                   sourceSize:size
+                    toTexture:drawable.texture
+             destinationSlice:0
+             destinationLevel:0
+            destinationOrigin:MTLOriginMake(0, 0, 0)];
+        [blit endEncoding];
+
+        MTLRenderPassDescriptor* passDescriptor =
+            [MTLRenderPassDescriptor renderPassDescriptor];
+        passDescriptor.colorAttachments[0].texture = drawable.texture;
+        passDescriptor.colorAttachments[0].loadAction = MTLLoadActionLoad;
+        passDescriptor.colorAttachments[0].storeAction = MTLStoreActionStore;
+        rendererContext->currentRenderEncoder =
+            [rendererContext->currentCommandBuffer
+                renderCommandEncoderWithDescriptor:passDescriptor];
+        rendererContext->presentingToDrawable = YES;
+    }
+    else
+    {
+        // Occluded: keep an encoder on the offscreen target so HUD draws after
+        // publish are harmless (Syphon blit already encoded above).
+        MTLRenderPassDescriptor* passDescriptor =
+            [MTLRenderPassDescriptor renderPassDescriptor];
+        passDescriptor.colorAttachments[0].texture =
+            rendererContext->syphonOffscreenTexture;
+        passDescriptor.colorAttachments[0].loadAction = MTLLoadActionLoad;
+        passDescriptor.colorAttachments[0].storeAction = MTLStoreActionStore;
+        rendererContext->currentRenderEncoder =
+            [rendererContext->currentCommandBuffer
+                renderCommandEncoderWithDescriptor:passDescriptor];
+        rendererContext->presentingToDrawable = NO;
+    }
+}
+#else
+void CRendererMetal::CaptureExternalOutputBeforeOverlay() {}
+#endif
+
 bool CRendererMetal::EndFrame(bool drawn)
 {
     CRenderer::EndFrame(drawn);
@@ -353,8 +433,11 @@ bool CRendererMetal::EndFrame(bool drawn)
         !rendererContext->currentRenderEncoder)
     {
         m_syphonPublishThisFrame = false;
+        m_syphonCaptureThisFrame = false;
 #ifndef SCREEN_SAVER
         rendererContext->renderedToSyphonOffscreen = NO;
+        rendererContext->syphonPublishedThisFrame = NO;
+        rendererContext->presentingToDrawable = NO;
 #endif
         return false;
     }
@@ -401,9 +484,22 @@ bool CRendererMetal::EndFrame(bool drawn)
     @autoreleasepool
     {
 #ifndef SCREEN_SAVER
-        if (rendererContext->renderedToSyphonOffscreen)
+        if (rendererContext->syphonPublishedThisFrame)
         {
-            // Occluded + Syphon: publish the private texture, never present.
+            // Video already published pre-HUD. Present only when we blitted to
+            // the window drawable.
+            if (rendererContext->presentingToDrawable)
+            {
+                auto drawable = rendererContext->metalView.currentDrawable;
+                if (drawable)
+                    [rendererContext->currentCommandBuffer
+                        presentDrawable:drawable];
+            }
+        }
+        else if (rendererContext->renderedToSyphonOffscreen)
+        {
+            // Syphon on but CaptureExternalOutputBeforeOverlay wasn't called
+            // (e.g. early exit) — publish the offscreen video as a fallback.
             if (m_syphonPublishThisFrame)
             {
                 SyphonOutput_PublishIfEnabled(
@@ -431,8 +527,11 @@ bool CRendererMetal::EndFrame(bool drawn)
         }
     }
     m_syphonPublishThisFrame = false;
+    m_syphonCaptureThisFrame = false;
 #ifndef SCREEN_SAVER
     rendererContext->renderedToSyphonOffscreen = NO;
+    rendererContext->syphonPublishedThisFrame = NO;
+    rendererContext->presentingToDrawable = NO;
 #endif
     [rendererContext->currentCommandBuffer commit];
     PROFILER_END_F("Metal Frame", "%d", rendererContext->frameCounter);
