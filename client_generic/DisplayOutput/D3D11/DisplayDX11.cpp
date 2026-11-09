@@ -1995,6 +1995,11 @@ bool CDisplayDX11::WaitForNextFrame()
     }
     m_frameWaitOwed = false;
 
+    // WM_CLOSE destroys the window before the loop's last pass; there is nothing left to
+    // pace, and querying its output would fail (DXGI_ERROR_UNSUPPORTED).
+    if (!IsWindow(m_WindowHandle))
+        return true;
+
     if (m_swapChain)
     {
         const HMONITOR monitor = MonitorFromWindow(m_WindowHandle, MONITOR_DEFAULTTONEAREST);
