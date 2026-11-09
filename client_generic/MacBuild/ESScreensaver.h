@@ -10,6 +10,9 @@ int ESScreenSaver_AddGraphicsContext(void* _graphicsContext);
 
 bool ESScreensaver_Start(bool _bPreview, uint32_t _width, uint32_t _height);
 bool ESScreensaver_DoFrame(int _displayIdx);
+/// Tell the display its screen's refresh rate. Returns 1 if it changed, 0 if not,
+/// -1 if the display doesn't exist yet.
+int ESScreensaver_SetRefreshRate(int _displayIdx, double _hz);
 void ESScreensaver_Stop(void);
 void ESScreensaver_Resume(void);
 bool ESScreensaver_Stopped(void);
