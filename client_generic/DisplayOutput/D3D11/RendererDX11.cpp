@@ -1366,8 +1366,11 @@ bool CRendererDX11::EnsureMdl2ChromeGlyphTextures(int sizePx)
 bool CRendererDX11::BeginFrame() {
     // Pace the loop to the display: wait for the swap chain to take another frame before
     // rendering it (issue #749). Not under the context lock, which the decoder also takes.
+    // With several displays, the ones not pacing the loop skip passes their swap chain
+    // can't take yet; returning false skips this display's frame without EndFrame.
     if (auto* display = dynamic_cast<CDisplayDX11*>(m_spDisplay.get()))
-        display->WaitForNextFrame();
+        if (!display->WaitForNextFrame())
+            return false;
 
     std::lock_guard<std::recursive_mutex> d3dLock(GetD3D11ImmediateContextMutex());
     m_pendingTextDraws.clear();

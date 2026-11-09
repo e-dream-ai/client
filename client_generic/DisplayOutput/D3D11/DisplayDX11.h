@@ -104,7 +104,12 @@ private:
     double RefreshRateHz() override;
     // Block until the swap chain can take another frame (flip model only). Call before
     // rendering each frame, without holding the D3D11 context lock.
-    void WaitForNextFrame();
+    // Returns false when this display should skip the frame (not the pacing display, and
+    // its swap chain can't take another frame yet).
+    bool WaitForNextFrame();
+    // True for the one display that should wait for a vblank: the only display, or with
+    // several, the one on the monitor with the highest refresh rate.
+    bool IsPacingDisplay();
     bool IsEmbeddedSaverPreview() const { return m_bEmbeddedSaverPreview; }
 
 #ifdef WIN32

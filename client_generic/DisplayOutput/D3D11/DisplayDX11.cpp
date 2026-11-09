@@ -33,6 +33,11 @@ namespace DisplayOutput {
 
 namespace {
 
+// Every live DX11 display, so that with several (the /s saver opens one per monitor, all
+// drawn in turn from one thread) only one of them waits for a vblank (issue #749).
+static std::mutex g_displaysMutex;
+static std::vector<CDisplayDX11*> g_displays;
+
 #ifdef WIN32
 // Shared D3D11 device/context across all DX11 windows so decoded textures
 // can be rendered into multiple swapchains (one per monitor window).
@@ -571,6 +576,10 @@ CDisplayDX11::CDisplayDX11()
       m_bMenuRenderInProgress(false) {
     m_windowedRect = {0, 0, 0, 0};
     g_Log->Info("CDisplayDX11()");
+    {
+        std::lock_guard<std::mutex> lock(g_displaysMutex);
+        g_displays.push_back(this);
+    }
 
 #ifdef WIN32
     m_customTitlebarHeightPx = GetSystemTitlebarHeightPx(GetDpiForSystem());
@@ -627,6 +636,11 @@ bool CDisplayDX11::EnsureWindowClassRegistered(HINSTANCE hInstance)
 
 CDisplayDX11::~CDisplayDX11() {
     g_Log->Info("~CDisplayDX11()");
+    {
+        std::lock_guard<std::mutex> lock(g_displaysMutex);
+        g_displays.erase(std::remove(g_displays.begin(), g_displays.end(), this),
+                         g_displays.end());
+    }
     if (m_frameLatencyWaitable)
         CloseHandle(m_frameLatencyWaitable);
 }
@@ -1931,20 +1945,56 @@ void CDisplayDX11::SwapBuffers()
     // Custom titlebar is drawn in the DX11 renderer overlay (stable, no GDI flashing).
 }
 
-void CDisplayDX11::WaitForNextFrame()
+bool CDisplayDX11::IsPacingDisplay()
+{
+    std::lock_guard<std::mutex> lock(g_displaysMutex);
+    if (g_displays.size() <= 1)
+        return true;
+    // The display on the monitor with the highest refresh rate; the first one on a tie.
+    CDisplayDX11* best = nullptr;
+    double bestHz = -1.0;
+    for (CDisplayDX11* d : g_displays)
+    {
+        const double hz = d->RefreshRateHz();
+        if (hz > bestHz)
+        {
+            best = d;
+            bestHz = hz;
+        }
+    }
+    return best == this;
+}
+
+bool CDisplayDX11::WaitForNextFrame()
 {
     // Wait only once per Present: the waitable object is a semaphore released once per
     // retired frame, so waiting on a frame that was never presented would block until the
     // timeout.
     if (!m_frameLatencyWaitable || !m_frameWaitOwed || m_deviceLost)
-        return;
-    m_frameWaitOwed = false;
+        return true;
 
     // Pace on the vblank of the monitor the window is on. With monitors at different rates
     // the compositor's clock hops between them, and the waitable object follows that clock:
     // on a 29.97 Hz screen next to a 60 Hz one the loop ran ~60/s and PresentMon showed 45%
     // of frames never displayed; with this wait it runs at 30 and 3% (issue #749).
     m_pacedOnVblank = false;
+
+    // With several displays drawn in turn from one loop, waiting for each one's vblank would
+    // miss beats: one pass waits for every monitor's refresh in a row, and the /s saver on a
+    // 60 Hz + 29.97 Hz pair ran at 30. Only the display on the fastest monitor waits. The
+    // others draw only when their swap chain can take a frame and skip the pass otherwise:
+    // drawing every pass into a slower monitor's swap chain backs up the GPU and stalls the
+    // whole loop (the saver dropped to 10-30 ticks/s with 200 ms stalls).
+    if (!IsPacingDisplay())
+    {
+        if (WaitForSingleObjectEx(m_frameLatencyWaitable, 0, FALSE) != WAIT_OBJECT_0)
+            return false; // still owed; try again next pass
+        m_frameWaitOwed = false;
+        m_pacedOnVblank = true;
+        return true;
+    }
+    m_frameWaitOwed = false;
+
     if (m_swapChain)
     {
         const HMONITOR monitor = MonitorFromWindow(m_WindowHandle, MONITOR_DEFAULTTONEAREST);
@@ -1979,7 +2029,7 @@ void CDisplayDX11::WaitForNextFrame()
             {
             }
             m_pacedOnVblank = true;
-            return;
+            return true;
         }
     }
     // Fallback: the compositor-driven wait, with Present at interval 1.
@@ -1994,6 +2044,7 @@ void CDisplayDX11::WaitForNextFrame()
             s_logged = true;
         }
     }
+    return true;
 }
 
 // The refresh rate of the monitor's current mode, as an exact rational where possible
