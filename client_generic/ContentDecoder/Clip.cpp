@@ -268,6 +268,7 @@ void CClip::DiscardFrames(int count)
             g_Log->Info("DiscardFrames: only discarded %d of %d requested (queue empty)", i, count);
             break;
         }
+        ++m_FramesDiscarded;
         // Frame is automatically released when shared_ptr goes out of scope
     }
 }
@@ -353,6 +354,7 @@ bool CClip::Update(double _timelineTime, bool isPaused)
                       m_spDecoder->QueueLength(), m_ClipMetadata.dreamData.uuid.c_str());
             m_BufferingState = BufferingState::Rebuffering;
             m_RebufferingStartTime = _timelineTime;
+            ++m_RebufferCount;
             return true;
         }
     }
@@ -374,7 +376,9 @@ bool CClip::Update(double _timelineTime, bool isPaused)
             uint32_t queueLength = m_spDecoder->QueueLength();
             if (framesToDiscard >= static_cast<int>(queueLength)) {
                 // We're very far behind - discard all but one frame
-                framesToDiscard = std::max(0, static_cast<int>(queueLength) - 1);
+                const int available = std::max(0, static_cast<int>(queueLength) - 1);
+                m_FramesShort += static_cast<uint32_t>(framesToDiscard - available);
+                framesToDiscard = available;
             }
             
             if (framesToDiscard > 0) {

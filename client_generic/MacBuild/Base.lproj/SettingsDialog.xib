@@ -16,7 +16,6 @@
                 <outlet property="debugLog" destination="921" id="923"/>
                 <outlet property="digitCodeLabel" destination="712" id="pEF-OY-jg9"/>
                 <outlet property="digitCodeTextField" destination="4IA-ih-tPf" id="03L-gJ-tFt"/>
-                <outlet property="displayFPS" destination="1041" id="1051"/>
                 <outlet property="emailLabel" destination="697" id="VZf-MQ-2QT"/>
                 <outlet property="emailTextField" destination="696" id="759"/>
                 <outlet property="flockSizeText" destination="B6q-XX-CjP" id="Nhm-yF-ewS"/>
@@ -532,33 +531,6 @@ room for new ones</string>
                                     <rect key="frame" x="10" y="33" width="495" height="298"/>
                                     <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
                                     <subviews>
-                                        <textField hidden="YES" focusRingType="none" verticalHuggingPriority="750" horizontalCompressionResistancePriority="250" translatesAutoresizingMaskIntoConstraints="NO" id="1040">
-                                            <rect key="frame" x="99" y="260" width="95" height="16"/>
-                                            <textFieldCell key="cell" sendsActionOnEndEditing="YES" alignment="right" title="Display Speed:" id="1045">
-                                                <font key="font" metaFont="system"/>
-                                                <color key="textColor" name="controlTextColor" catalog="System" colorSpace="catalog"/>
-                                                <color key="backgroundColor" name="controlColor" catalog="System" colorSpace="catalog"/>
-                                            </textFieldCell>
-                                        </textField>
-                                        <textField hidden="YES" focusRingType="none" verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="1041">
-                                            <rect key="frame" x="200" y="257" width="40" height="21"/>
-                                            <constraints>
-                                                <constraint firstAttribute="width" constant="40" id="0uF-zA-7yQ"/>
-                                            </constraints>
-                                            <textFieldCell key="cell" scrollable="YES" lineBreakMode="clipping" selectable="YES" editable="YES" sendsActionOnEndEditing="YES" state="on" borderStyle="bezel" drawsBackground="YES" id="1044">
-                                                <font key="font" metaFont="system"/>
-                                                <color key="textColor" name="controlTextColor" catalog="System" colorSpace="catalog"/>
-                                                <color key="backgroundColor" name="textBackgroundColor" catalog="System" colorSpace="catalog"/>
-                                            </textFieldCell>
-                                        </textField>
-                                        <textField hidden="YES" focusRingType="none" verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="1042">
-                                            <rect key="frame" x="246" y="260" width="28" height="16"/>
-                                            <textFieldCell key="cell" scrollable="YES" lineBreakMode="clipping" sendsActionOnEndEditing="YES" title="FPS" id="1043">
-                                                <font key="font" metaFont="system"/>
-                                                <color key="textColor" name="controlTextColor" catalog="System" colorSpace="catalog"/>
-                                                <color key="backgroundColor" name="controlColor" catalog="System" colorSpace="catalog"/>
-                                            </textFieldCell>
-                                        </textField>
                                         <button hidden="YES" translatesAutoresizingMaskIntoConstraints="NO" id="933">
                                             <rect key="frame" x="198" y="168" width="173" height="18"/>
                                             <string key="toolTip">When selected each frame will be rendered in sync with Vertical Blank Line (display refresh rate). This option can cause significant drop of FPS when using multiple display.</string>
@@ -597,13 +569,9 @@ room for new ones</string>
                                         </button>
                                     </subviews>
                                     <constraints>
-                                        <constraint firstItem="1041" firstAttribute="leading" secondItem="1040" secondAttribute="trailing" constant="8" symbolic="YES" id="EFn-CA-1Gv"/>
                                         <constraint firstItem="933" firstAttribute="leading" secondItem="1185" secondAttribute="leading" id="Mn2-NU-Vah"/>
-                                        <constraint firstItem="1042" firstAttribute="firstBaseline" secondItem="1040" secondAttribute="firstBaseline" id="Nlx-ot-duM"/>
-                                        <constraint firstItem="1041" firstAttribute="leading" secondItem="324" secondAttribute="leading" constant="200" id="VGU-mb-A73"/>
-                                        <constraint firstItem="1041" firstAttribute="firstBaseline" secondItem="1040" secondAttribute="firstBaseline" id="ctL-e2-R5i"/>
                                         <constraint firstItem="1191" firstAttribute="leading" secondItem="324" secondAttribute="leading" constant="160" id="m1n-dn-ySm"/>
-                                        <constraint firstItem="1185" firstAttribute="top" secondItem="1041" secondAttribute="bottom" constant="24" id="m7d-8w-pdm"/>
+                                        <constraint firstItem="1185" firstAttribute="top" secondItem="324" secondAttribute="top" constant="65" id="m7d-8w-pdm"/>
                                         <constraint firstItem="933" firstAttribute="top" secondItem="Sy1-bt-n01" secondAttribute="bottom" constant="8" id="mYm-6P-5kG"/>
                                         <constraint firstItem="Rp1-bt-n01" firstAttribute="top" secondItem="1191" secondAttribute="bottom" constant="8" id="Rp4-tp-n04"/>
                                         <constraint firstItem="Rp1-bt-n01" firstAttribute="leading" secondItem="324" secondAttribute="leading" constant="160" id="Rp5-ld-n05"/>
@@ -611,8 +579,6 @@ room for new ones</string>
                                         <constraint firstItem="Sy1-bt-n01" firstAttribute="leading" secondItem="324" secondAttribute="leading" constant="160" id="Sy5-ld-n05"/>
                                         <constraint firstItem="1191" firstAttribute="top" secondItem="1185" secondAttribute="bottom" constant="8" id="pGU-aw-jVg"/>
                                         <constraint firstItem="1185" firstAttribute="leading" secondItem="324" secondAttribute="leading" constant="200" id="pOq-Gj-AEO"/>
-                                        <constraint firstItem="1041" firstAttribute="top" secondItem="324" secondAttribute="top" constant="20" symbolic="YES" id="s1g-o7-r9g"/>
-                                        <constraint firstItem="1042" firstAttribute="leading" secondItem="1041" secondAttribute="trailing" constant="8" symbolic="YES" id="w17-ko-z5a"/>
                                     </constraints>
                                 </view>
                             </tabViewItem>

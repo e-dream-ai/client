@@ -67,9 +67,6 @@ constexpr float kMinFadeSeconds = 0.05f;
 #include <boost/filesystem.hpp>
 
 #include "boost/filesystem.hpp"
-#if defined(MAC) || defined(WIN32)
-#define HONOR_VBL_SYNC
-#endif
 
 #ifdef DEBUG
 #define PRINTQUEUE(x, y, z, w) PrintQueue(x, y, z, w)
@@ -398,13 +395,9 @@ int CPlayer::AddDisplay([[maybe_unused]] uint32_t screen,
     if (auto* dx11 = dynamic_cast<DisplayOutput::CDisplayDX11*>(spDisplay.get()))
     {
         dx11->SetTargetMonitorIndex(screen);
-        // Issue #617: always use borderless windowed fullscreen (never DXGI
-        // exclusive fullscreen). Exclusive fullscreen on a secondary monitor breaks
-        // Win32 foreground/keyboard-focus recovery — once focus moves to the primary
-        // monitor, even clicking the fullscreen window failed to deliver key events.
-        // Borderless windowed restores normal click-to-focus activation. The
-        // screensaver already ran this way; this extends it to the app window.
-        dx11->SetDisableExclusiveFullscreen(true);
+        // Fullscreen is always a borderless window, never DXGI exclusive fullscreen:
+        // exclusive mode on a secondary monitor broke Win32 focus recovery (issue #617),
+        // and the flip-model swap chain doesn't support it (issue #749).
     }
 
 
@@ -491,14 +484,8 @@ int CPlayer::AddDisplay([[maybe_unused]] uint32_t screen,
  */
 bool CPlayer::Startup()
 {
-    m_DisplayFps = g_Settings()->Get("settings.player.display_fps", 60.);
-
-#ifdef HONOR_VBL_SYNC
-    if (g_Settings()->Get("settings.player.vbl_sync", false))
-    {
-        m_DisplayFps = 0.0;
-    }
-#endif
+    // m_DisplayFps is detected from the display every frame (issue #749); the old
+    // settings.player.display_fps setting is no longer read.
     //	Grab some paths for the decoder.
     std::string content = g_Settings()->Root() + "content/";
 
@@ -804,12 +791,19 @@ bool CPlayer::BeginFrameUpdate()
     if (m_bPaused || IsFirstRunWizardPlaybackHold())
         return true;
 
+    MaybeTestStall();
+
     double newTime = m_Timer.Time();
     if (m_LastFrameRealTime == 0.0)
         m_LastFrameRealTime = newTime;
     double delta = newTime - m_LastFrameRealTime;
     //Avoid huge timesteps when debugging
     constexpr double SLOWEST_FRAMES_PER_SECOND = 10.0;
+    if (delta > 1.0 / SLOWEST_FRAMES_PER_SECOND)
+    {
+        ++m_HeartbeatClampedTicks;
+        m_HeartbeatLostMs += (delta - 1.0 / SLOWEST_FRAMES_PER_SECOND) * 1000.0;
+    }
     delta = std::fmin(delta, 1.0 / SLOWEST_FRAMES_PER_SECOND);
     m_LastFrameRealTime = newTime;
     m_TimelineTime += delta;
@@ -1000,7 +994,10 @@ bool CPlayer::Update(uint32_t displayUnit)
     }
 
     if (displayUnit == 0)
+    {
         ProcessPendingCommands();
+        UpdateDisplayFps(du->spDisplay);
+    }
 
     du->spRenderer->Reset(eEverything);
     du->spRenderer->Orthographic();
@@ -1188,6 +1185,40 @@ bool CPlayer::Update(uint32_t displayUnit)
     return drew;
 }
 
+void CPlayer::MaybeTestStall()
+{
+    using clock = std::chrono::steady_clock;
+    static const int stallMs = []() {
+        const char* env = std::getenv("INFINIDREAM_TEST_STALL_MS");
+        return env ? std::atoi(env) : 0;
+    }();
+    if (stallMs <= 0)
+        return;
+    static const std::chrono::milliseconds every = []() {
+        const char* env = std::getenv("INFINIDREAM_TEST_STALL_EVERY_MS");
+        const int value = env ? std::atoi(env) : 0;
+        return std::chrono::milliseconds(value > 0 ? value : 5000);
+    }();
+    static auto next = clock::now() + every;
+    const auto now = clock::now();
+    if (now < next)
+        return;
+    next = now + every;
+    const auto end = now + std::chrono::milliseconds(stallMs);
+    while (clock::now() < end)
+    {
+    }
+    g_Log->Info("TestStall ms=%d", stallMs);
+}
+
+void CPlayer::UpdateDisplayFps(const DisplayOutput::spCDisplayOutput& display)
+{
+    // Detected refresh rate of the first display's monitor; 60 if it can't be detected
+    // (e.g. no XRandR). Used for the late-tick threshold and Linux's FpsCap.
+    const double hz = display ? display->RefreshRateHz() : 0.0;
+    m_DisplayFps = hz > 0.0 ? hz : 60.0;
+}
+
 void CPlayer::LogHeartbeat()
 {
     using clock = std::chrono::steady_clock;
@@ -1200,7 +1231,11 @@ void CPlayer::LogHeartbeat()
     if (firstTick)
         m_HeartbeatLastLog = now;
     ++m_HeartbeatTicks;
+    m_HeartbeatSumTickMs += tickMs;
     m_HeartbeatMaxTickMs = std::max(m_HeartbeatMaxTickMs, tickMs);
+    // A tick over 1.5 display intervals means at least one vsync was missed.
+    if (m_DisplayFps > 0.0 && tickMs > 1500.0 / m_DisplayFps)
+        ++m_HeartbeatLateTicks;
 
     // Every 60 s normally; the test harness (client#733) asks for 1 s to catch hangs quickly.
     static const std::chrono::seconds interval = []() {
@@ -1218,21 +1253,29 @@ void CPlayer::LogHeartbeat()
         const char* state = clip->IsRebuffering() ? "rebuffering"
                             : clip->IsBuffering() ? "buffering"
                                                   : "playing";
-        return string_format("%s frame=%u/%u queue=%u %s",
+        return string_format("%s frame=%u/%u queue=%u %s discarded=%u short=%u rebuffers=%u",
                              clip->GetClipMetadata().dreamData.uuid.c_str(),
                              clip->GetCurrentFrameIdx(), clip->GetFrameCount(),
-                             decoder ? decoder->QueueLength() : 0, state);
+                             decoder ? decoder->QueueLength() : 0, state,
+                             clip->GetFramesDiscarded(), clip->GetFramesShort(),
+                             clip->GetRebufferCount());
     };
 
-    g_Log->Info("Heartbeat ticks=%u tick_ms=%.1f max_tick_ms=%.1f timeline=%.3f paused=%d "
+    g_Log->Info("Heartbeat ticks=%u tick_ms=%.1f avg_tick_ms=%.1f max_tick_ms=%.1f late_ticks=%u clamped_ticks=%u lost_ms=%.0f display_fps=%.1f timeline=%.3f paused=%d "
                 "buffering_pause=%d transitioning=%d pending_seek_crossfade=%d preloading=%d current=%s next=%s",
-                m_HeartbeatTicks, tickMs, m_HeartbeatMaxTickMs, m_TimelineTime, m_bPaused ? 1 : 0,
+                m_HeartbeatTicks, tickMs, m_HeartbeatTicks ? m_HeartbeatSumTickMs / m_HeartbeatTicks : 0.0,
+                m_HeartbeatMaxTickMs, m_HeartbeatLateTicks, m_HeartbeatClampedTicks,
+                m_HeartbeatLostMs, m_DisplayFps, m_TimelineTime, m_bPaused ? 1 : 0,
                 m_PausedForBuffering ? 1 : 0, m_isTransitioning ? 1 : 0, m_pendingSeekCrossfade ? 1 : 0, IsPreloading() ? 1 : 0,
                 describeClip(m_currentClip).c_str(), describeClip(m_nextClip).c_str());
 
     m_HeartbeatLastLog = now;
     m_HeartbeatTicks = 0;
+    m_HeartbeatSumTickMs = 0.0;
     m_HeartbeatMaxTickMs = 0.0;
+    m_HeartbeatLateTicks = 0;
+    m_HeartbeatClampedTicks = 0;
+    m_HeartbeatLostMs = 0.0;
 }
 
 bool CPlayer::RenderFrame(DisplayOutput::spCRenderer renderer) {

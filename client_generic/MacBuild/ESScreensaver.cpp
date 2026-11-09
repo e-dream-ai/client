@@ -121,6 +121,17 @@ bool ESScreensaver_DoFrame(int _displayIdx)
     return gClient.Update(_displayIdx);
 }
 
+int ESScreensaver_SetRefreshRate(int _displayIdx, double _hz)
+{
+    auto display = std::dynamic_pointer_cast<DisplayOutput::CDisplayMetal>(
+        g_Player().Display((uint32_t)_displayIdx));
+    if (!display)
+        return -1;
+    const bool changed = display->RefreshRateHz() != _hz;
+    display->SetRefreshRateHz(_hz);
+    return changed ? 1 : 0;
+}
+
 void ESScreensaver_Stop(void) { g_Player().Stop(); }
 
 void ESScreensaver_Resume(void) { g_Player().ResumeAfterPause(); }
