@@ -2,6 +2,7 @@
 #include <boost/asio.hpp>
 #include <boost/asio/ssl.hpp>
 #include <cstdio>
+#include <cstdlib>
 #include <future>
 #include <iomanip>
 #include <iostream>
@@ -126,6 +127,21 @@ void EDreamClient::EnsureIOContext()
         io_context = std::make_unique<boost::asio::io_context>();
         ping_timer = std::make_unique<boost::asio::steady_timer>(*io_context);
         quota_timer = std::make_unique<boost::asio::steady_timer>(*io_context);
+
+        // Never destroy these at process exit. Detached threads may still be
+        // running io_context->run() then, and ~io_context waits for operations
+        // that will never complete, so the exit hung forever. Registered after
+        // the statics were constructed, this runs before their destructors and
+        // leaves them nothing to destroy. The OS frees the memory.
+        static bool s_leakAtExitRegistered = false;
+        if (!s_leakAtExitRegistered) {
+            s_leakAtExitRegistered = true;
+            std::atexit([]() {
+                (void)ping_timer.release();
+                (void)quota_timer.release();
+                (void)io_context.release();
+            });
+        }
     }
 }
 
