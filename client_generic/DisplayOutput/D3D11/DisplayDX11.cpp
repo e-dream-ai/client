@@ -1592,7 +1592,8 @@ bool CDisplayDX11::CreateDeviceAndSwapChain() {
         // Issue #749: flip model with a frame-latency waitable object. The old bitblt model
         // (DXGI_SWAP_EFFECT_DISCARD) doesn't give one present per refresh in a window: on a
         // 30 Hz display the loop ran 43-60 times a second. WaitForNextFrame() holds the loop
-        // to one frame per refresh. This is the only swap chain: fullscreen is a borderless
+        // to one frame per refresh of the window's monitor (its vblank, falling back to the
+        // waitable object). This is the only swap chain: fullscreen is a borderless
         // window (issue #617), since the waitable object doesn't support exclusive mode.
         m_swapChain.Reset();
         if (m_frameLatencyWaitable)
@@ -1633,6 +1634,8 @@ bool CDisplayDX11::CreateDeviceAndSwapChain() {
         m_frameLatencyWaitable = swapChain2->GetFrameLatencyWaitableObject();
         m_swapChainFlags = sd.Flags;
         m_frameWaitOwed = true; // wait once before the first frame
+        m_vblankOutput.Reset(); // re-query the output for the new swap chain
+        m_pacedOnVblank = false;
         m_swapChain = swapChain1;
         // DXGI's own Alt+Enter would switch to exclusive fullscreen, which this swap chain
         // doesn't support.
@@ -1908,7 +1911,9 @@ void CDisplayDX11::SwapBuffers()
     if (m_deviceLost)
         return;
 
-    HRESULT hr = m_swapChain->Present(1, 0);
+    // When WaitForNextFrame() already waited for this monitor's vblank, don't also wait on
+    // the compositor; flip-model presents through the compositor don't tear at interval 0.
+    HRESULT hr = m_swapChain->Present(m_pacedOnVblank ? 0 : 1, 0);
     if (FAILED(hr))
     {
         g_Log->Error("Present failed: %08X", hr);
@@ -1934,6 +1939,50 @@ void CDisplayDX11::WaitForNextFrame()
     if (!m_frameLatencyWaitable || !m_frameWaitOwed || m_deviceLost)
         return;
     m_frameWaitOwed = false;
+
+    // Pace on the vblank of the monitor the window is on. With monitors at different rates
+    // the compositor's clock hops between them, and the waitable object follows that clock:
+    // on a 29.97 Hz screen next to a 60 Hz one the loop ran ~60/s and PresentMon showed 45%
+    // of frames never displayed; with this wait it runs at 30 and 3% (issue #749).
+    m_pacedOnVblank = false;
+    if (m_swapChain)
+    {
+        const HMONITOR monitor = MonitorFromWindow(m_WindowHandle, MONITOR_DEFAULTTONEAREST);
+        if (!m_vblankOutput || monitor != m_vblankMonitor)
+        {
+            m_vblankOutput.Reset();
+            m_vblankMonitor = monitor;
+            HRESULT hr = m_swapChain->GetContainingOutput(&m_vblankOutput);
+            DXGI_OUTPUT_DESC od = {};
+            if (SUCCEEDED(hr) && m_vblankOutput)
+            {
+                m_vblankOutput->GetDesc(&od);
+                g_Log->Info("Pacing on vblank of %ls", od.DeviceName);
+            }
+            else
+            {
+                m_vblankOutput.Reset();
+                static bool s_loggedNoOutput = false;
+                if (!s_loggedNoOutput)
+                {
+                    g_Log->Warning("No output to pace on (%08X); using the frame-latency wait",
+                                   hr);
+                    s_loggedNoOutput = true;
+                }
+            }
+        }
+        if (m_vblankOutput && SUCCEEDED(m_vblankOutput->WaitForVBlank()))
+        {
+            // Frames presented at interval 0 still release the latency semaphore; drain it
+            // without blocking so a later fallback wait doesn't return early.
+            while (WaitForSingleObjectEx(m_frameLatencyWaitable, 0, FALSE) == WAIT_OBJECT_0)
+            {
+            }
+            m_pacedOnVblank = true;
+            return;
+        }
+    }
+    // Fallback: the compositor-driven wait, with Present at interval 1.
     // A refresh is at most ~42 ms (24 Hz); the timeout only guards against a stuck queue.
     const DWORD result = WaitForSingleObjectEx(m_frameLatencyWaitable, 250, FALSE);
     if (result != WAIT_OBJECT_0)

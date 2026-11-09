@@ -23,10 +23,16 @@ private:
     ComPtr<IDXGISwapChain> m_swapChain;
     ComPtr<ID3D11RenderTargetView> m_renderTargetView;
     // Flip-model pacing (issue #749). The waitable object is signaled when the swap chain
-    // can take another frame; waiting on it before rendering gives one frame per refresh.
+    // can take another frame; it's the fallback when the monitor's vblank can't be waited on.
     UINT m_swapChainFlags = 0;
     HANDLE m_frameLatencyWaitable = nullptr;
     bool m_frameWaitOwed = false; // a Present happened since the last wait
+    // The loop waits for the vblank of the monitor the window is on (m_vblankOutput, cached
+    // per monitor) rather than on the waitable, which follows the compositor's clock; see
+    // WaitForNextFrame(). m_pacedOnVblank says the last wait did, so Present needn't.
+    ComPtr<IDXGIOutput> m_vblankOutput;
+    bool m_pacedOnVblank = false;
+    HMONITOR m_vblankMonitor = nullptr;
     // Detected refresh rate, cached per monitor; m_refreshDirty forces a re-query.
     HMONITOR m_refreshMonitor = nullptr;
     double m_refreshHz = 0.0;
