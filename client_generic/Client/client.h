@@ -12,6 +12,7 @@
 #include <cstdlib>   // for exit()
 #if defined(_WIN32) || defined(_WIN64)
 #include <stdlib.h>  // _exit() on Windows
+#include <windows.h> // TerminateProcess()
 #else
 #include <unistd.h>  // for _exit()
 #endif
@@ -52,6 +53,24 @@
 
 // Flag to cancel the shutdown watchdog when restarting (e.g., after wizard)
 static std::atomic<bool> s_shutdownCancelled{false};
+
+// Ends the process at once, for the shutdown watchdog and the offline fast exit.
+// On Windows, _exit() takes the CRT's exit lock. If the main thread has already
+// returned from main and is running atexit destructors, it holds that lock, and a
+// destructor that blocks (e.g. an io_context waiting on its operations) would
+// leave the watchdog waiting on the lock forever. TerminateProcess() needs no CRT
+// lock. The macOS screensaver keeps exit(0) so atexit/destructors run.
+[[noreturn]] static inline void ForceExitProcess()
+{
+#if defined(_WIN32) || defined(_WIN64)
+    TerminateProcess(GetCurrentProcess(), 0);
+    _exit(0); // not reached
+#elif defined(SCREEN_SAVER)
+    exit(0);
+#else
+    _exit(0);
+#endif
+}
 
 #if defined(WIN32) && defined(_MSC_VER)
 #include "../msvc/cpu_usage_win32.h"
@@ -1088,7 +1107,7 @@ class CElectricSheep
             // The watchdog checks s_shutdownCancelled before exiting, so if
             // Startup() is called (e.g., when restarting after wizard), it
             // will cancel the watchdog by setting s_shutdownCancelled = true.
-            // On macOS screensaver use exit(0) so atexit/destructors run; standalone app uses _exit(0).
+            // See ForceExitProcess() for how each platform exits.
             std::thread([]() {
                 std::this_thread::sleep_for(std::chrono::milliseconds(200));
                 if (s_shutdownCancelled.load()) {
@@ -1096,22 +1115,14 @@ class CElectricSheep
                     return;
                 }
                 printf("Force exiting after shutdown timeout\n");
-                #ifdef SCREEN_SAVER
-                exit(0);
-                #else
-                _exit(0);
-                #endif
+                ForceExitProcess();
             }).detach();
 
             // FAST EXIT: If network is unreachable, exit immediately without waiting
             g_NetworkManager->Abort();
             if (!PlatformUtils::IsInternetReachable()) {
                 printf("Network unreachable - forcing immediate exit\n");
-                #ifdef SCREEN_SAVER
-                exit(0);
-                #else
-                _exit(0);
-                #endif
+                ForceExitProcess();
             }
         }
         else
