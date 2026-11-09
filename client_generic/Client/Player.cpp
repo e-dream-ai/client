@@ -1193,8 +1193,8 @@ void CPlayer::MaybeTestStall()
 
 void CPlayer::UpdateDisplayFps(const DisplayOutput::spCDisplayOutput& display)
 {
-    // Detected refresh rate of the first display's monitor; 60 where a platform can't
-    // detect it yet. Used for the late-tick threshold and Linux's FpsCap.
+    // Detected refresh rate of the first display's monitor; 60 if it can't be detected
+    // (e.g. no XRandR). Used for the late-tick threshold and Linux's FpsCap.
     const double hz = display ? display->RefreshRateHz() : 0.0;
     m_DisplayFps = hz > 0.0 ? hz : 60.0;
 }
