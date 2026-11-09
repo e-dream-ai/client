@@ -26,6 +26,7 @@ class CRendererMetal : public CRenderer
     std::shared_mutex m_textureMutex;
     std::map<std::string, spCBaseFont> m_fontPool;
     bool* m_pIsAlive;
+    bool m_syphonPublishThisFrame = false;
 #ifdef __OBJC__
     bool
     CreateMetalTextureFromDecoderFrame(CVPixelBufferRef pixelBuffer,
@@ -66,6 +67,11 @@ class CRendererMetal : public CRenderer
                   const Base::Math::CRect& _uvRect);
     float GetGPUFrameTimeMs();
     float GetGPUUtilization();
+    // App-only Syphon: mark this renderer to publish the next EndFrame.
+    void SetSyphonPublishThisFrame(bool publish)
+    {
+        m_syphonPublishThisFrame = publish;
+    }
 
 };
 

@@ -949,6 +949,15 @@ bool CPlayer::EndDisplayFrame(uint32_t displayUnit, bool drawn)
         du = m_displayUnits[displayUnit];
     }
 
+#if defined(MAC) && !defined(SCREEN_SAVER)
+    // Syphon publishes only the primary display (unit 0).
+    if (auto* metal =
+            dynamic_cast<CRendererMetal*>(du->spRenderer.get()))
+    {
+        metal->SetSyphonPublishThisFrame(displayUnit == 0);
+    }
+#endif
+
     return du->spRenderer->EndFrame(drawn);
 }
 

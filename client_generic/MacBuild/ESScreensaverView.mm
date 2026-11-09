@@ -270,6 +270,9 @@ static BOOL ESWindowIsKnownOffscreen(NSWindow *win)
         MTKView* metalView =
 
             [[MTKView alloc] initWithFrame:theRect device:selectedDevice];
+        // Allow Syphon (and any blit/sample of the drawable) to read the
+        // framebuffer. Default YES blocks publishFrameTexture.
+        metalView.framebufferOnly = NO;
 #endif
         metalView.delegate = self;
         metalView.preferredFramesPerSecond = 60;

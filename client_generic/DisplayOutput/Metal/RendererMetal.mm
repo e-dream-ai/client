@@ -14,6 +14,9 @@
 #include "ShaderUniforms.h"
 #include "TextMetal.h"
 #include "TextureFlatMetal.h"
+#ifndef SCREEN_SAVER
+#include "SyphonOutput.h"
+#endif
 
 static const NSUInteger MaxFramesInFlight = 3;
 @interface RendererContext : NSObject
@@ -241,7 +244,6 @@ bool CRendererMetal::BeginFrame(void)
     {
         id<CAMetalDrawable> drawable =
             rendererContext->metalView.currentDrawable;
-        id<MTLTexture> mainTex = drawable.texture;
         MTLRenderPassDescriptor* passDescriptor =
             [MTLRenderPassDescriptor renderPassDescriptor];
         passDescriptor.colorAttachments[0].texture = drawable.texture;
@@ -305,9 +307,18 @@ bool CRendererMetal::EndFrame(bool drawn)
         auto drawable = rendererContext->metalView.currentDrawable;
         if (drawable)
         {
+#ifndef SCREEN_SAVER
+            if (m_syphonPublishThisFrame)
+            {
+                SyphonOutput_PublishIfEnabled(
+                    drawable.texture, rendererContext->currentCommandBuffer,
+                    rendererContext->metalView.device);
+            }
+#endif
             [rendererContext->currentCommandBuffer presentDrawable:drawable];
         }
     }
+    m_syphonPublishThisFrame = false;
     [rendererContext->currentCommandBuffer commit];
     PROFILER_END_F("Metal Frame", "%d", rendererContext->frameCounter);
     return true;
