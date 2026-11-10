@@ -67,8 +67,8 @@ def ringed(name, size, dx=0.0):
     return doc(ring, glyph(name, 50 - size / 2 + dx, 50 - size / 2, size, STROKE_IN_RING))
 
 
-def plain(name, pad=0.0, stroke=None):
-    return doc(glyph(name, pad, pad, 100 - 2 * pad, stroke))
+def plain(name, pad=0.0):
+    return doc(glyph(name, pad, pad, 100 - 2 * pad))
 
 
 def pill():
@@ -94,9 +94,7 @@ def icons():
         "osd-turtle": (plain("LuTurtle"), animal, animal),
         "osd-rabbit": (plain("LuRabbit"), animal, animal),
         "osd-snail": (plain("LuSnail"), animal, animal),
-        # The bird's strokes reach the very edge of its 24-unit grid (the Lucide animals
-        # stop ~1 unit short), so inset it to match them, keeping their line weight.
-        "osd-bird": (plain("FlyingBird", pad=4, stroke=200 / 24), animal, animal),
+        "osd-bird": (plain("FlyingBird"), animal, animal),
         "osd-brightness": (plain("LuSun"), symbol, symbol),
         "network": (plain("LuGlobe"), 121, 121),
         "osd-pill": (pill(), 16, 45),
