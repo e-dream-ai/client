@@ -217,6 +217,7 @@ INFINIDREAM_NO_HW_DECODE=1 ./infinidream
 ### Prerequisites
 - Xcode 14.0 or later
 - macOS 12.4 or later
+- Python packages for `build.py` (it uses dmgbuild to lay out the DMG window): `cd client_generic/MacBuild && python3 -m pip install -r requirements.txt`
 
 ### Quick Build for Debugging
 
@@ -239,7 +240,7 @@ cd client_generic/MacBuild
 - `-r` : Build in Release mode (default: Debug)
 - `-s` : Build stage version (default: production)
 - `-n` : Enable notarization (requires `-r`)
-- `-v VERSION` : Set version string (e.g., `0.12.0`) for zip naming and GitHub release
+- `-v VERSION` : Set version string (e.g., `0.12.0`) for DMG naming and GitHub release
 - `-g` : Create GitHub release with tag (requires `-v`)
 
 ### Code Signing
@@ -269,7 +270,7 @@ Default keychain profile: `infinidream-notarization`
 # Release with notarization
 ./build.py -r -n
 
-# Release with notarization and version (creates infinidream-0.12.0.zip)
+# Release with notarization and version (creates infinidream-0.12.0.dmg)
 ./build.py -r -n -v 0.12.0
 
 # Full release with appcast and GitHub release
@@ -279,8 +280,9 @@ Default keychain profile: `infinidream-notarization`
 ### Output
 - Screensaver: `build/DerivedData/Build/Products/{Debug|Release}/infinidream.saver`
 - Application: `build/{Debug|Release}/AppExport/infinidream.app`
+- Distribution DMG: `build/{Debug|Release}/infinidream-{version}.dmg` (or `infinidream-{version}-stage.dmg`)
 
-The app bundle contains the embedded screensaver at `infinidream.app/Contents/Resources/infinidream.saver`.
+The app bundle contains the embedded screensaver at `infinidream.app/Contents/Resources/infinidream.saver`. The DMG contains the app plus an Applications symlink for drag-to-install, in a window with a background picture (`client_generic/MacBuild/dmg/`; regenerate it with `make_background.py`, after `python3 -m pip install -r dmg/requirements.txt`).
 
 ## Build on Windows
 
@@ -417,7 +419,7 @@ This:
 - Builds and notarizes the app
 - Creates git tag `X.Y.Z` (overwrites if exists)
 - Creates GitHub prerelease `vX.Y.Z` with auto-generated notes
-- Uploads `infinidream-X.Y.Z.zip` to the release
+- Uploads `infinidream-X.Y.Z.dmg` to the release
 
 ### 2. Test the app
 ```bash
@@ -478,7 +480,7 @@ See [Build on Windows](#build-on-windows) above for the full flag list, installe
    - Stage app: `https://infinidream.ai/stage/appcast.xml`
 2. Compares `sparkle:version` in appcast with app's `CFBundleVersion`
 3. If newer version found, shows update dialog
-4. User clicks "Update Now" → downloads zip from GitHub → installs → relaunches
+4. User clicks "Update Now" → downloads DMG from GitHub → installs → relaunches
 
 ### Sparkle Tools Setup (one-time)
 

@@ -385,6 +385,48 @@ def clean_previous_builds(build_dir: Path) -> None:
             shutil.rmtree(build_dir)
 
 
+# DMG window layout, in points. dmg/make_background.py draws the background
+# for exactly this size and these icon centers; change both together. The
+# window height includes the title bar (32pt on recent macOS); the picture is
+# 408pt tall so it also fills the window under an older 28pt title bar.
+DMG_WINDOW_WIDTH, DMG_WINDOW_HEIGHT = 660, 400 + 32
+DMG_APP_X, DMG_APPLICATIONS_X, DMG_ICON_Y = 165, 495, 190
+
+
+def check_python_requirements() -> None:
+    """Check requirements.txt pins up front, not after a long build.
+
+    A missing package is fatal; a different version only warns, since it
+    probably still works but may change how the DMG looks.
+    """
+    from importlib.metadata import PackageNotFoundError, version
+
+    install = "    python3 -m pip install -r requirements.txt"
+    missing, mismatched = [], []
+    for line in Path("requirements.txt").read_text().splitlines():
+        line = line.split("#", 1)[0].strip()
+        if not line:
+            continue
+        name, _, pinned = line.partition("==")
+        try:
+            installed = version(name)
+        except PackageNotFoundError:
+            missing.append(name)
+            continue
+        if pinned and installed != pinned:
+            mismatched.append(f"{name} {installed} (requirements.txt pins {pinned})")
+
+    if missing:
+        print_red(f"Missing Python packages: {', '.join(missing)}. Run:")
+        print_red(install)
+        sys.exit(1)
+    for m in mismatched:
+        print_yellow(f"Warning: {m}")
+    if mismatched:
+        print_yellow("To match the pins:")
+        print_yellow(install)
+
+
 def check_submodules() -> None:
     """Fail early if the Syphon submodule (built by the app targets) is missing."""
     if not Path("../Syphon-Framework/Syphon.xcodeproj").exists():
@@ -776,34 +818,48 @@ def step4_export_app(config: BuildConfig, archive_path: Path) -> Path:
     print("STEP 4: Exporting App")
     print("========================================")
 
-    export_options_path = config.build_dir / config.build_config / "AppExportOptions.plist"
+    export_path = config.build_dir / config.build_config / "AppExport"
+    if export_path.exists():
+        shutil.rmtree(export_path)
+    export_path.mkdir(parents=True)
 
     if config.release:
+        # Signed Release: use xcodebuild -exportArchive with Developer ID
+        export_options_path = config.build_dir / config.build_config / "AppExportOptions.plist"
         export_options = {
             'method': 'developer-id',
             'teamID': config.team_id,
             'signingStyle': 'automatic',
             'signingCertificate': 'Developer ID Application',
         }
+        with open(export_options_path, 'wb') as f:
+            plistlib.dump(export_options, f)
+
+        print_yellow("Exporting app for distribution...")
+        run_xcodebuild([
+            '-exportArchive',
+            '-archivePath', str(archive_path),
+            '-exportPath', str(export_path),
+            '-exportOptionsPlist', str(export_options_path),
+        ])
     else:
-        export_options = {
-            'method': 'development',
-            'teamID': config.team_id,
-            'signingStyle': 'automatic',
-        }
-
-    with open(export_options_path, 'wb') as f:
-        plistlib.dump(export_options, f)
-
-    print_yellow("Exporting app for distribution...")
-    export_path = config.build_dir / config.build_config / "AppExport"
-
-    run_xcodebuild([
-        '-exportArchive',
-        '-archivePath', str(archive_path),
-        '-exportPath', str(export_path),
-        '-exportOptionsPlist', str(export_options_path),
-    ])
+        # Unsigned Debug: copy .app straight from the archive (no cert required).
+        # Without signing, xcodebuild often installs under Products/Users/.../Applications
+        # instead of Products/Applications.
+        print_yellow("Copying unsigned app from archive (Debug, no codesigning)...")
+        products_dir = archive_path / "Products"
+        archive_apps = list((products_dir / "Applications").glob("*.app"))
+        if not archive_apps:
+            archive_apps = list(products_dir.rglob("*.app"))
+            # Prefer the top-level app bundle, not nested Sparkle Updater.app etc.
+            archive_apps = [
+                p for p in archive_apps
+                if 'Contents/Frameworks' not in str(p) and 'Contents/Resources' not in str(p)
+            ]
+        if not archive_apps:
+            print_red(f"No .app found under {products_dir}")
+            sys.exit(1)
+        run_command(['ditto', str(archive_apps[0]), str(export_path / archive_apps[0].name)])
 
     # Find the exported app
     exported_apps = list(export_path.glob("*.app"))
@@ -954,7 +1010,7 @@ def step5_notarize_app(config: BuildConfig, exported_app: Path) -> None:
 
 
 def step6_create_distribution(config: BuildConfig, exported_app: Path, output_saver: Path) -> Path:
-    """Create final distribution package. Returns path to final zip."""
+    """Create final distribution DMG. Returns path to the .dmg."""
     print()
     print("========================================")
     print("STEP 6: Creating Distribution Package")
@@ -963,18 +1019,147 @@ def step6_create_distribution(config: BuildConfig, exported_app: Path, output_sa
     # Determine output filename
     stage_suffix = "-stage" if config.stage else ""
     if config.version:
-        final_zip = config.build_dir / config.build_config / f"infinidream-{config.version}{stage_suffix}.zip"
+        final_dmg = config.build_dir / config.build_config / f"infinidream-{config.version}{stage_suffix}.dmg"
     else:
         date_str = datetime.now().strftime("%Y%m%d")
-        final_zip = config.build_dir / config.build_config / f"infinidream-{date_str}{stage_suffix}.zip"
+        final_dmg = config.build_dir / config.build_config / f"infinidream-{date_str}{stage_suffix}.dmg"
 
-    print_yellow("Creating final distribution package...")
-    run_command([
-        'ditto', '-c', '-k', '--keepParent', '--norsrc',
-        str(exported_app), str(final_zip)
-    ])
+    if final_dmg.exists():
+        final_dmg.unlink()
 
-    return final_zip
+    # The Finder window layout (background, icon positions, no toolbar) lives
+    # in the image's .DS_Store, which hdiutil can't write; dmgbuild writes it
+    # directly, without scripting Finder. APFS + lzfse (ULFO) is Sparkle's
+    # recommended DMG format.
+    import dmgbuild
+
+    volume_name = "infinidream stage" if config.stage else "infinidream"
+    print_yellow(f"Creating DMG ({volume_name})...")
+    dmg_dir = Path("dmg")
+    settings = {
+        'format': 'ULFO',
+        'filesystem': 'APFS',
+        'files': [str(exported_app)],
+        'symlinks': {'Applications': '/Applications'},
+        'icon': 'infinidream.icns',
+        # background.png + background@2x.png, drawn by dmg/make_background.py;
+        # window size and icon positions below must match that script.
+        'background': str(dmg_dir / 'background.png'),
+        'window_rect': ((200, 120), (DMG_WINDOW_WIDTH, DMG_WINDOW_HEIGHT)),
+        'icon_size': 128,
+        'text_size': 13,
+        'icon_locations': {
+            exported_app.name: (DMG_APP_X, DMG_ICON_Y),
+            'Applications': (DMG_APPLICATIONS_X, DMG_ICON_Y),
+        },
+        'default_view': 'icon-view',
+        'show_toolbar': False,
+        'show_sidebar': False,
+        'show_status_bar': False,
+        'show_pathbar': False,
+        'show_tab_view': False,
+        'hide_extensions': [exported_app.name],
+    }
+    dmgbuild.build_dmg(str(final_dmg), volume_name, settings=settings)
+    print_green(f"DMG created: {final_dmg}")
+
+    if config.notarize:
+        notarize_and_staple_dmg(config, final_dmg)
+
+    return final_dmg
+
+
+def notarize_and_staple_dmg(config: BuildConfig, dmg_path: Path) -> None:
+    """Codesign, notarize, and staple the distribution DMG."""
+    print()
+    print("========================================")
+    print("STEP 6b: Notarizing Distribution DMG")
+    print("========================================")
+
+    print_yellow("Codesigning DMG...")
+    result = run_command(
+        [
+            'codesign', '--force', '--sign', config.developer_id_cert,
+            '--timestamp', str(dmg_path),
+        ],
+        check=False,
+        capture_output=True,
+    )
+    if result.returncode != 0:
+        print_red("Failed to codesign DMG")
+        print(result.stderr or result.stdout)
+        sys.exit(1)
+    print_green("DMG codesigned")
+
+    print_yellow("Submitting DMG to Apple for notarization...")
+    print_yellow("This may take several minutes...")
+    result = run_command(
+        [
+            'xcrun', 'notarytool', 'submit', str(dmg_path),
+            '--keychain-profile', config.keychain_profile, '--wait',
+        ],
+        capture_output=True,
+        check=False,
+    )
+
+    notary_output = result.stdout + (result.stderr or "")
+    print(notary_output)
+
+    submission_id = None
+    match = re.search(r'id: ([a-f0-9-]+)', notary_output)
+    if match:
+        submission_id = match.group(1)
+
+    if 'status: Invalid' in notary_output or 'status: Rejected' in notary_output:
+        print()
+        print_red("DMG notarization failed - Status: Invalid/Rejected")
+        print()
+        if submission_id:
+            print(f"Submission ID: {submission_id}")
+            print()
+            print("To see why notarization failed, run:")
+            print(f"  xcrun notarytool log {submission_id} --keychain-profile '{config.keychain_profile}'")
+            print()
+        sys.exit(1)
+
+    if 'status: Accepted' not in notary_output:
+        print()
+        print_red("DMG notarization failed")
+        print()
+        print("To notarize manually:")
+        print(f"1. codesign --force --sign '{config.developer_id_cert}' --timestamp '{dmg_path}'")
+        print(f"2. xcrun notarytool submit '{dmg_path}' --keychain-profile '{config.keychain_profile}' --wait")
+        print(f"3. xcrun stapler staple '{dmg_path}'")
+        sys.exit(1)
+
+    print_green("DMG notarization successful")
+
+    print_yellow("Stapling notarization ticket to DMG...")
+    result = run_command(
+        ['xcrun', 'stapler', 'staple', str(dmg_path)],
+        check=False,
+    )
+    if result.returncode != 0:
+        print_red("Failed to staple notarization ticket to DMG")
+        print("The DMG was notarized but stapling failed.")
+        print("Users will need internet access to verify on first open.")
+    else:
+        print_green("Notarization ticket stapled to DMG")
+
+    print_yellow("Verifying DMG signature...")
+    result = run_command(
+        ['spctl', '--assess', '--type', 'open', '--context', 'context:primary-signature',
+         '-vv', str(dmg_path)],
+        check=False,
+        capture_output=True,
+    )
+    assessment = (result.stderr or "") + (result.stdout or "")
+    if 'accepted' in assessment:
+        print_green("DMG Gatekeeper assessment passed")
+    else:
+        print_yellow("Warning: Could not fully verify DMG Gatekeeper assessment (may still be valid)")
+        if assessment.strip():
+            print(assessment.strip())
 
 
 def get_dir_size(path: Path) -> str:
@@ -989,8 +1174,8 @@ def get_file_size(path: Path) -> str:
     return result.split()[0] if result else "?"
 
 
-def step7_github_release(config: BuildConfig, final_zip: Path) -> Optional[str]:
-    """Create GitHub release with tag and upload zip. Returns release URL or None."""
+def step7_github_release(config: BuildConfig, final_dmg: Path) -> Optional[str]:
+    """Create GitHub release with tag and upload DMG. Returns release URL or None."""
     if not config.github_release:
         return None
 
@@ -1073,7 +1258,7 @@ def step7_github_release(config: BuildConfig, final_zip: Path) -> Optional[str]:
     result = run_command(
         [
             'gh', 'release', 'create', tag,
-            str(final_zip),
+            str(final_dmg),
             '--title', release_name,
             '--generate-notes',
             '--prerelease'
@@ -1132,13 +1317,13 @@ def print_summary(
     screensaver_zip: Path,
     archive_path: Path,
     exported_app: Path,
-    final_zip: Path,
+    final_dmg: Path,
     release_url: Optional[str] = None,
 ) -> None:
     """Print build summary."""
     saver_size = get_dir_size(output_saver)
     app_size = get_dir_size(exported_app)
-    zip_size = get_file_size(final_zip)
+    dmg_size = get_file_size(final_dmg)
 
     print()
     print_green("========================================")
@@ -1166,7 +1351,7 @@ def print_summary(
     print()
 
     if config.notarize:
-        print("Notarization: Complete (screensaver and app)")
+        print("Notarization: Complete (screensaver, app, and DMG)")
     else:
         print("Notarization: Skipped")
 
@@ -1178,7 +1363,7 @@ def print_summary(
         print("GitHub Release: Skipped")
 
     print()
-    print(f"Distribution package: {final_zip} ({zip_size})")
+    print(f"Distribution package: {final_dmg} ({dmg_size})")
 
     print()
     print("To test the app, run:")
@@ -1213,7 +1398,7 @@ Environment variables (optional overrides):
     parser.add_argument('-g', '--github', action='store_true',
                         help='Create GitHub release with tag (requires -v)')
     parser.add_argument('-v', '--version', type=str,
-                        help='Version string (e.g., 0.12.0) - used for zip naming and GitHub release')
+                        help='Version string (e.g., 0.12.0) - used for DMG naming and GitHub release')
     parser.add_argument('--force', action='store_true',
                         help='Overwrite an existing tag/release (destroys existing release notes)')
 
@@ -1231,6 +1416,7 @@ Environment variables (optional overrides):
     output_dir.mkdir(parents=True, exist_ok=True)
 
     check_submodules()
+    check_python_requirements()
 
     # Step 0: Re-sign Sparkle.framework
     step0_resign_sparkle(config)
@@ -1258,15 +1444,15 @@ Environment variables (optional overrides):
     step5_notarize_app(config, exported_app)
 
     # Step 6: Create distribution package
-    final_zip = step6_create_distribution(config, exported_app, output_saver)
+    final_dmg = step6_create_distribution(config, exported_app, output_saver)
 
     # Step 7: GitHub release
-    release_url = step7_github_release(config, final_zip)
+    release_url = step7_github_release(config, final_dmg)
 
     # Print summary
     print_summary(
         config, output_saver, project_saver, screensaver_zip,
-        archive_path, exported_app, final_zip, release_url
+        archive_path, exported_app, final_dmg, release_url
     )
 
 
