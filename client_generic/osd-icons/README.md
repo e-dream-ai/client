@@ -38,7 +38,7 @@ frontend's `react-icons` package (v5.5.0) and its `src/icons/` folder.
 | `Fa*` | Font Awesome Free 5 (step back/forward stretched square; thumbs without the cuff dot) | CC BY 4.0 (icons) |
 | `Lu*`, `Repeat` | Lucide (`Repeat` is Lucide `repeat` with filled, rounded arrowheads sized like `FaRandom`'s) | ISC |
 | `Replay10`, `Forward10` | after Material's `replay_10` / `forward_10`: ring and rounded arrowhead redrawn, digits are Lato Black outlines | Material: Apache 2.0; Lato: SIL OFL 1.1 |
-| `FlyingBird` | frontend `src/icons/flying-bird.tsx` | ours |
+| `FlyingBird` | frontend `src/icons/flying-bird.tsx`, inset ~1 unit per side like the Lucide animals | ours |
 
 To add an icon, drop its SVG in `src/` (24×24 line icons need
 `stroke="currentColor"` on the root `<svg>`; filled icons need nothing), add a
