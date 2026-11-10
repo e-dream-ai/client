@@ -677,6 +677,15 @@ def step3_archive_app(config: BuildConfig) -> Path:
         '-configuration', config.build_config,
         '-derivedDataPath', str(config.derived_data),
         '-archivePath', str(archive_path),
+        # Only the .app may be installed into the archive. The Syphon
+        # subproject's framework target doesn't set SKIP_INSTALL, so without
+        # this it lands in Products/Library/Frameworks as a second product,
+        # Xcode makes a "generic" archive, and -exportArchive fails with
+        # 'key "method" expected one {} but found developer-id'. Keying on
+        # WRAPPER_EXTENSION (not just SKIP_INSTALL_Syphon=YES) keeps Swift
+        # package targets skipped too, as they are by default.
+        'SKIP_INSTALL_app=NO',
+        'SKIP_INSTALL=$(SKIP_INSTALL_$(WRAPPER_EXTENSION):default=YES)',
     ]
 
     if config.release:
