@@ -385,6 +385,24 @@ def clean_previous_builds(build_dir: Path) -> None:
             shutil.rmtree(build_dir)
 
 
+# DMG window layout, in points. dmg/make_background.py draws the background
+# for exactly this size and these icon centers; change both together. The
+# window height includes the title bar (32pt on recent macOS); the picture is
+# 408pt tall so it also fills the window under an older 28pt title bar.
+DMG_WINDOW_WIDTH, DMG_WINDOW_HEIGHT = 660, 400 + 32
+DMG_APP_X, DMG_APPLICATIONS_X, DMG_ICON_Y = 165, 495, 190
+
+
+def check_dmg_tools() -> None:
+    """Fail early (not after a long build) if dmgbuild is missing."""
+    try:
+        import dmgbuild  # noqa: F401
+    except ImportError:
+        print_red("dmgbuild is not installed (it lays out the DMG window). Run:")
+        print_red("    python3 -m pip install dmgbuild")
+        sys.exit(1)
+
+
 def check_submodules() -> None:
     """Fail early if the Syphon submodule (built by the app targets) is missing."""
     if not Path("../Syphon-Framework/Syphon.xcodeproj").exists():
@@ -982,37 +1000,44 @@ def step6_create_distribution(config: BuildConfig, exported_app: Path, output_sa
         date_str = datetime.now().strftime("%Y%m%d")
         final_dmg = config.build_dir / config.build_config / f"infinidream-{date_str}{stage_suffix}.dmg"
 
-    staging_dir = config.build_dir / config.build_config / "dmg_staging"
-    if staging_dir.exists():
-        shutil.rmtree(staging_dir)
-    staging_dir.mkdir(parents=True)
-
-    print_yellow("Preparing DMG staging folder...")
-    staged_app = staging_dir / exported_app.name
-    run_command(['ditto', str(exported_app), str(staged_app)])
-    applications_link = staging_dir / "Applications"
-    if applications_link.exists() or applications_link.is_symlink():
-        applications_link.unlink()
-    applications_link.symlink_to("/Applications")
-
     if final_dmg.exists():
         final_dmg.unlink()
 
-    # APFS + lzfse (ULFO) — Sparkle's recommended DMG format
+    # The Finder window layout (background, icon positions, no toolbar) lives
+    # in the image's .DS_Store, which hdiutil can't write; dmgbuild writes it
+    # directly, without scripting Finder. APFS + lzfse (ULFO) is Sparkle's
+    # recommended DMG format.
+    import dmgbuild
+
     volume_name = "infinidream stage" if config.stage else "infinidream"
     print_yellow(f"Creating DMG ({volume_name})...")
-    run_command([
-        'hdiutil', 'create',
-        '-volname', volume_name,
-        '-srcfolder', str(staging_dir),
-        '-ov',
-        '-format', 'ULFO',
-        str(final_dmg),
-    ])
+    dmg_dir = Path("dmg")
+    settings = {
+        'format': 'ULFO',
+        'filesystem': 'APFS',
+        'files': [str(exported_app)],
+        'symlinks': {'Applications': '/Applications'},
+        'icon': 'infinidream.icns',
+        # background.png + background@2x.png, drawn by dmg/make_background.py;
+        # window size and icon positions below must match that script.
+        'background': str(dmg_dir / 'background.png'),
+        'window_rect': ((200, 120), (DMG_WINDOW_WIDTH, DMG_WINDOW_HEIGHT)),
+        'icon_size': 128,
+        'text_size': 13,
+        'icon_locations': {
+            exported_app.name: (DMG_APP_X, DMG_ICON_Y),
+            'Applications': (DMG_APPLICATIONS_X, DMG_ICON_Y),
+        },
+        'default_view': 'icon-view',
+        'show_toolbar': False,
+        'show_sidebar': False,
+        'show_status_bar': False,
+        'show_pathbar': False,
+        'show_tab_view': False,
+        'hide_extensions': [exported_app.name],
+    }
+    dmgbuild.build_dmg(str(final_dmg), volume_name, settings=settings)
     print_green(f"DMG created: {final_dmg}")
-
-    # Staging is only needed for hdiutil create
-    shutil.rmtree(staging_dir)
 
     if config.notarize:
         notarize_and_staple_dmg(config, final_dmg)
@@ -1367,6 +1392,7 @@ Environment variables (optional overrides):
     output_dir.mkdir(parents=True, exist_ok=True)
 
     check_submodules()
+    check_dmg_tools()
 
     # Step 0: Re-sign Sparkle.framework
     step0_resign_sparkle(config)
