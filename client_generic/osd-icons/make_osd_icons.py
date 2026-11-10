@@ -85,7 +85,7 @@ def icons():
         "osd-next": (ringed("FaStepForward", 35, dx=1), big, big),
         "osd-like": (ringed("FaThumbsUp", 42), big, big),
         "osd-dislike": (ringed("FaThumbsDown", 42), big, big),
-        "osd-repeat": (ringed("LuRepeat", 46), big, big),
+        "osd-repeat": (ringed("Repeat", 46), big, big),
         "osd-shuffle": (ringed("FaRandom", 42), big, big),
         "osd-back10": (plain("Replay10", pad=2), big, big),
         "osd-forward10": (plain("Forward10", pad=2), big, big),

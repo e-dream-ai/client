@@ -33,7 +33,7 @@ frontend's `react-icons` package (v5.5.0) and its `src/icons/` folder.
 | Prefix | Set | License |
 | --- | --- | --- |
 | `Fa*` | Font Awesome Free 5 (step back/forward stretched square; thumbs without the cuff dot) | CC BY 4.0 (icons) |
-| `Lu*` | Lucide | ISC |
+| `Lu*`, `Repeat` | Lucide (`Repeat` is Lucide `repeat` with filled arrowheads sized like `FaRandom`'s) | ISC |
 | `Replay10`, `Forward10` | Google Material Icons `replay_10` / `forward_10`, redrawn with a thinner stroked ring, smaller rounded arrowhead and larger digits | Apache 2.0 |
 | `FlyingBird` | frontend `src/icons/flying-bird.tsx` | ours |
 
