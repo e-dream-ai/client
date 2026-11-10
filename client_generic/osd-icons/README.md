@@ -11,6 +11,16 @@ python3 client_generic/osd-icons/make_osd_icons.py
 The script writes straight into `client_generic/Runtime/`. Commit the PNGs it
 produces; the builds use them as-is.
 
+Three sources are drawn by `make_custom_svgs.py` instead of coming from an icon
+set: `src/Replay10.svg`, `src/Forward10.svg` and `src/Repeat.svg`. Edit that
+script, not those SVGs, then run both scripts. It needs fontTools and Lato Black
+(only the "10" outlines end up in the SVGs; the client does not need the font):
+
+```bash
+pip install fonttools
+python3 client_generic/osd-icons/make_custom_svgs.py --font /path/to/Lato-Black.ttf
+```
+
 ## Look
 
 - One flat color, `#FFDAB8` at full opacity: the peach of the infinidream logo
@@ -33,8 +43,8 @@ frontend's `react-icons` package (v5.5.0) and its `src/icons/` folder.
 | Prefix | Set | License |
 | --- | --- | --- |
 | `Fa*` | Font Awesome Free 5 (step back/forward stretched square; thumbs without the cuff dot) | CC BY 4.0 (icons) |
-| `Lu*`, `Repeat` | Lucide (`Repeat` is Lucide `repeat` with filled arrowheads sized like `FaRandom`'s) | ISC |
-| `Replay10`, `Forward10` | Google Material Icons `replay_10` / `forward_10`, redrawn with a thinner stroked ring, smaller rounded arrowhead and larger digits | Apache 2.0 |
+| `Lu*`, `Repeat` | Lucide (`Repeat`, drawn by `make_custom_svgs.py`, is Lucide `repeat` with filled arrowheads sized like `FaRandom`'s) | ISC |
+| `Replay10`, `Forward10` | drawn by `make_custom_svgs.py` after Material's `replay_10` / `forward_10`; digits are Lato Black outlines | Material: Apache 2.0; Lato: SIL OFL 1.1 |
 | `FlyingBird` | frontend `src/icons/flying-bird.tsx` | ours |
 
 To add an icon, drop its SVG in `src/` (24×24 line icons need
