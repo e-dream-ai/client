@@ -12,7 +12,6 @@ Cross-platform native desktop application and screensaver for infinidream.ai (ma
 - **Auto-update:** Sparkle framework (EdDSA signatures) — macOS only
 - **Dependencies:** vcpkg (manifest at `vcpkg.json`, submodule at `vcpkg/`); Linux uses system packages
 - **Scripting:** Python (build/release scripts), Bash
-- **Binary Assets:** Git LFS
 
 ## Project Structure
 
@@ -37,12 +36,11 @@ vcpkg/                   # C++ dependency management (git submodule)
 
 ## Commands
 
-Shared setup (all platforms): clone with submodules (`git submodule update --init --recursive`) and install Git LFS.
+Shared setup (all platforms): clone with submodules (`git submodule update --init --recursive`).
 
 **macOS** (Xcode + vcpkg + Sparkle):
 
 ```bash
-brew install git-lfs && git lfs install          # Required for binary assets
 ./vcpkg/bootstrap-vcpkg.sh && ./vcpkg/vcpkg install  # Install C++ deps
 open client_generic/MacBuild/e-dream.xcodeproj   # Open in Xcode
 cd client_generic/MacBuild && ./build.py               # Build app (Debug)
