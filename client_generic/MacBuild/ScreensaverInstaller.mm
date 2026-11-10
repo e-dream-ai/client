@@ -16,6 +16,14 @@
 
 #include "Log.h"
 
+// The stage app bundles and installs the stage screensaver (its own bundle id),
+// so stage and production can be installed side by side.
+#ifdef STAGE
+static NSString *const kScreensaverName = @"infinidream-stage";
+#else
+static NSString *const kScreensaverName = @"infinidream";
+#endif
+
 @implementation ScreensaverInstaller
 
 + (instancetype)sharedInstaller {
@@ -51,11 +59,12 @@
 
 - (NSString *)getInstallationPath {
     NSString *homeDirectory = NSHomeDirectory();
-    return [homeDirectory stringByAppendingPathComponent:@"Library/Screen Savers/infinidream.saver"];
+    return [homeDirectory stringByAppendingPathComponent:
+        [NSString stringWithFormat:@"Library/Screen Savers/%@.saver", kScreensaverName]];
 }
 
 - (NSString *)getBundledScreensaverPath {
-    NSString *bundlePath = [[NSBundle mainBundle] pathForResource:@"infinidream" ofType:@"saver"];
+    NSString *bundlePath = [[NSBundle mainBundle] pathForResource:kScreensaverName ofType:@"saver"];
     return bundlePath;
 }
 
@@ -174,7 +183,7 @@
     
     // Check if infinidream is already the active screensaver
     ScreensaverHelper *helper = [ScreensaverHelper shared];
-    if (![helper isInfinidreamActive]) {
+    if (![helper isScreensaverActive:kScreensaverName]) {
         if (g_Log) g_Log->Info("ScreensaverInstaller: infinidream is not active, setting it now");
         
         // Get current active screensaver name for logging
@@ -185,7 +194,7 @@
         }
         
         // Set infinidream as the active screensaver
-        [helper setInfinidreamAsActiveWithCompletion:^(BOOL success, NSError *error) {
+        [helper setScreensaverAsActive:kScreensaverName completion:^(BOOL success, NSError *error) {
             if (success) {
                 if (g_Log) g_Log->Info("ScreensaverInstaller: Successfully set infinidream as active screensaver");
             } else {
