@@ -282,6 +282,14 @@
     rotatePortrait.state =
         ESScreensaver_GetBoolSetting("settings.player.rotate_portrait", false);
 
+    syphonOutput.state =
+        ESScreensaver_GetBoolSetting("settings.player.syphon_output", false);
+#ifndef SCREEN_SAVER
+    [syphonOutput setHidden:NO];
+#else
+    [syphonOutput setHidden:YES];
+#endif
+
     blackoutMonitors.state =
         ESScreensaver_GetBoolSetting("settings.player.blackout_monitors", true);
 
@@ -384,6 +392,9 @@
 
     ESScreensaver_SetBoolSetting("settings.player.rotate_portrait",
                                  rotatePortrait.state);
+
+    ESScreensaver_SetBoolSetting("settings.player.syphon_output",
+                                 syphonOutput.state);
 
     ESScreensaver_SetBoolSetting("settings.player.blackout_monitors",
                                  blackoutMonitors.state);

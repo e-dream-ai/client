@@ -26,6 +26,7 @@
                 <outlet property="okButton" destination="331" id="Qns-8w-LN7"/>
                 <outlet property="preserveAR" destination="1191" id="1193"/>
                 <outlet property="rotatePortrait" destination="Rp1-bt-n01" id="Rp3-ol-n03"/>
+                <outlet property="syphonOutput" destination="Sy1-bt-n01" id="Sy3-ol-n03"/>
                 <outlet property="proxyHost" destination="Q3k-U6-7Ad" id="ALD-hu-lzP"/>
                 <outlet property="proxyLogin" destination="gY4-Mj-Ffb" id="vlU-Ky-EMd"/>
                 <outlet property="proxyPassword" destination="q9Y-KC-fux" id="7Jk-w6-4dx"/>
@@ -559,14 +560,23 @@ room for new ones</string>
                                                 <font key="font" metaFont="system"/>
                                             </buttonCell>
                                         </button>
+                                        <button toolTip="Publish the primary display to Syphon as &quot;infinidream&quot; for use in other apps (OBS, Resolume, etc.)." translatesAutoresizingMaskIntoConstraints="NO" id="Sy1-bt-n01">
+                                            <rect key="frame" x="158" y="140" width="200" height="18"/>
+                                            <buttonCell key="cell" type="check" title="Syphon Output" bezelStyle="regularSquare" imagePosition="left" alignment="left" inset="2" id="Sy2-cl-n02">
+                                                <behavior key="behavior" changeContents="YES" doesNotDimImage="YES" lightByContents="YES"/>
+                                                <font key="font" metaFont="system"/>
+                                            </buttonCell>
+                                        </button>
                                     </subviews>
                                     <constraints>
                                         <constraint firstItem="933" firstAttribute="leading" secondItem="1185" secondAttribute="leading" id="Mn2-NU-Vah"/>
                                         <constraint firstItem="1191" firstAttribute="leading" secondItem="324" secondAttribute="leading" constant="160" id="m1n-dn-ySm"/>
                                         <constraint firstItem="1185" firstAttribute="top" secondItem="324" secondAttribute="top" constant="65" id="m7d-8w-pdm"/>
-                                        <constraint firstItem="933" firstAttribute="top" secondItem="Rp1-bt-n01" secondAttribute="bottom" constant="8" id="mYm-6P-5kG"/>
+                                        <constraint firstItem="933" firstAttribute="top" secondItem="Sy1-bt-n01" secondAttribute="bottom" constant="8" id="mYm-6P-5kG"/>
                                         <constraint firstItem="Rp1-bt-n01" firstAttribute="top" secondItem="1191" secondAttribute="bottom" constant="8" id="Rp4-tp-n04"/>
                                         <constraint firstItem="Rp1-bt-n01" firstAttribute="leading" secondItem="324" secondAttribute="leading" constant="160" id="Rp5-ld-n05"/>
+                                        <constraint firstItem="Sy1-bt-n01" firstAttribute="top" secondItem="Rp1-bt-n01" secondAttribute="bottom" constant="8" id="Sy4-tp-n04"/>
+                                        <constraint firstItem="Sy1-bt-n01" firstAttribute="leading" secondItem="324" secondAttribute="leading" constant="160" id="Sy5-ld-n05"/>
                                         <constraint firstItem="1191" firstAttribute="top" secondItem="1185" secondAttribute="bottom" constant="8" id="pGU-aw-jVg"/>
                                         <constraint firstItem="1185" firstAttribute="leading" secondItem="324" secondAttribute="leading" constant="200" id="pOq-Gj-AEO"/>
                                     </constraints>
