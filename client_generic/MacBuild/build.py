@@ -393,14 +393,38 @@ DMG_WINDOW_WIDTH, DMG_WINDOW_HEIGHT = 660, 400 + 32
 DMG_APP_X, DMG_APPLICATIONS_X, DMG_ICON_Y = 165, 495, 190
 
 
-def check_dmg_tools() -> None:
-    """Fail early (not after a long build) if dmgbuild is missing."""
-    try:
-        import dmgbuild  # noqa: F401
-    except ImportError:
-        print_red("dmgbuild is not installed (it lays out the DMG window). Run:")
-        print_red("    python3 -m pip install dmgbuild")
+def check_python_requirements() -> None:
+    """Check requirements.txt pins up front, not after a long build.
+
+    A missing package is fatal; a different version only warns, since it
+    probably still works but may change how the DMG looks.
+    """
+    from importlib.metadata import PackageNotFoundError, version
+
+    install = "    python3 -m pip install -r requirements.txt"
+    missing, mismatched = [], []
+    for line in Path("requirements.txt").read_text().splitlines():
+        line = line.split("#", 1)[0].strip()
+        if not line:
+            continue
+        name, _, pinned = line.partition("==")
+        try:
+            installed = version(name)
+        except PackageNotFoundError:
+            missing.append(name)
+            continue
+        if pinned and installed != pinned:
+            mismatched.append(f"{name} {installed} (requirements.txt pins {pinned})")
+
+    if missing:
+        print_red(f"Missing Python packages: {', '.join(missing)}. Run:")
+        print_red(install)
         sys.exit(1)
+    for m in mismatched:
+        print_yellow(f"Warning: {m}")
+    if mismatched:
+        print_yellow("To match the pins:")
+        print_yellow(install)
 
 
 def check_submodules() -> None:
@@ -1392,7 +1416,7 @@ Environment variables (optional overrides):
     output_dir.mkdir(parents=True, exist_ok=True)
 
     check_submodules()
-    check_dmg_tools()
+    check_python_requirements()
 
     # Step 0: Re-sign Sparkle.framework
     step0_resign_sparkle(config)

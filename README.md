@@ -217,7 +217,7 @@ INFINIDREAM_NO_HW_DECODE=1 ./infinidream
 ### Prerequisites
 - Xcode 14.0 or later
 - macOS 12.4 or later
-- `python3 -m pip install dmgbuild` (`build.py` uses it to lay out the DMG window)
+- Python packages for `build.py` (it uses dmgbuild to lay out the DMG window): `cd client_generic/MacBuild && python3 -m pip install -r requirements.txt`
 
 ### Quick Build for Debugging
 
@@ -282,7 +282,7 @@ Default keychain profile: `infinidream-notarization`
 - Application: `build/{Debug|Release}/AppExport/infinidream.app`
 - Distribution DMG: `build/{Debug|Release}/infinidream-{version}.dmg` (or `infinidream-{version}-stage.dmg`)
 
-The app bundle contains the embedded screensaver at `infinidream.app/Contents/Resources/infinidream.saver`. The DMG contains the app plus an Applications symlink for drag-to-install, in a window with a background picture (`client_generic/MacBuild/dmg/`; regenerate it with `make_background.py`, which needs Pillow).
+The app bundle contains the embedded screensaver at `infinidream.app/Contents/Resources/infinidream.saver`. The DMG contains the app plus an Applications symlink for drag-to-install, in a window with a background picture (`client_generic/MacBuild/dmg/`; regenerate it with `make_background.py`, after `python3 -m pip install -r dmg/requirements.txt`).
 
 ## Build on Windows
 

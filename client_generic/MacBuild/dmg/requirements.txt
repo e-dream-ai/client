@@ -1,0 +1,3 @@
+# Only for redrawing the DMG background (make_background.py); build.py does
+# not need it.  python3 -m pip install -r requirements.txt
+Pillow==11.2.1

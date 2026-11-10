@@ -3,7 +3,8 @@
 
 The output PNGs are committed; build.py only reads them. Rerun this after
 changing the layout here or the DMG layout in build.py (window size and icon
-positions must agree). Needs Pillow:  python3 make_background.py
+positions must agree). Needs Pillow (pip install -r requirements.txt here):
+    python3 make_background.py
 
 A night sky in the app icon's colors. Finder draws icon labels in black over
 a background picture, even in dark mode, so each label sits on a light
