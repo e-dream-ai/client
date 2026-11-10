@@ -38,8 +38,8 @@ LOG="/tmp/embed_wallpaper_xcodebuild.log"
 # Nested xcodebuild inherits the host app's env (Bugsnag paths, BUILT_PRODUCTS_DIR,
 # SDKROOT, etc.) which breaks the wallpaper target. Use a clean environment.
 # Do NOT forward the host DEVELOPMENT_TEAM — App Stage may use a different team
-# than Wallpaper (project setting is J4KXDFT4C5).
-WP_TEAM="${WALLPAPER_DEVELOPMENT_TEAM:-J4KXDFT4C5}"
+# than Wallpaper (project setting is BNXH8TLP5D).
+WP_TEAM="${WALLPAPER_DEVELOPMENT_TEAM:-BNXH8TLP5D}"
 set +e
 env -i \
   HOME="$HOME" \

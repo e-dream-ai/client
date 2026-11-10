@@ -1220,7 +1220,7 @@ def _embed_appex_into_app(
     print_yellow(f"Embedding {label} appex into {app_path.name}...")
     env = os.environ.copy()
     env["CONFIGURATION"] = config.build_config
-    env["DEVELOPMENT_TEAM"] = config.team_id or env.get("DEVELOPMENT_TEAM", "J4KXDFT4C5")
+    env["DEVELOPMENT_TEAM"] = config.team_id or env.get("DEVELOPMENT_TEAM", "BNXH8TLP5D")
     # Avoid inheriting an Xcode PRODUCT_BUNDLE_IDENTIFIER that would flip
     # embed scripts between prod/stage incorrectly.
     env.pop("PRODUCT_BUNDLE_IDENTIFIER", None)

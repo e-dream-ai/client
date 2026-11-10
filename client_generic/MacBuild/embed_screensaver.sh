@@ -37,7 +37,7 @@ LOG="/tmp/embed_screensaver_xcodebuild.log"
 
 # Nested xcodebuild inherits the host app's env which breaks the screensaver
 # target. Use a clean environment.
-SS_TEAM="${SCREENSAVER_DEVELOPMENT_TEAM:-J4KXDFT4C5}"
+SS_TEAM="${SCREENSAVER_DEVELOPMENT_TEAM:-BNXH8TLP5D}"
 set +e
 env -i \
   HOME="$HOME" \
