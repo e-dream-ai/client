@@ -16,12 +16,11 @@ Originally known as [Electric Sheep](https://github.com/scottdraves/electricshee
 
 # dev docs
 
-this repository uses git LFS, be sure to run
+This repository no longer uses Git LFS. Commits from before LFS was
+dropped (#762) stored `cache/univ-osx/**/libavcodec.a` in LFS, so checking
+one of those out still needs `git lfs install` first.
 
-    brew install git-lfs
-    git lfs install
-
-Also, if you are doing releases you will need:
+If you are doing releases you will need:
     brew install gh
     brew install bugsnag/tap/bugsnag-cli
 
@@ -302,7 +301,7 @@ winget install --id GitHub.cli -e
 
 | Package | Purpose | Notes |
 |---------|---------|-------|
-| `Git.Git` | Clone, submodules. | Bundles Git LFS; after install run `git lfs install` once. |
+| `Git.Git` | Clone, submodules. | |
 | `Python.Python.3.12` | Drives [`WinBuild/build.py`](client_generic/WinBuild/build.py) and [`release.py`](client_generic/WinBuild/release.py). Any 3.10+ works. | |
 | `Microsoft.VisualStudio.2022.Community` | MSBuild, C++ toolchain, Windows 10/11 SDK, `signtool.exe`. Use `Microsoft.VisualStudio.2022.BuildTools` for headless/CI. | The winget install launches the VS Installer but **does not select workloads** — add **Desktop development with C++** (and the Windows SDK) in that UI, or pass `--override "--add Microsoft.VisualStudio.Workload.NativeDesktop --includeRecommended"` to winget. |
 | `NSIS.NSIS` | [`makensis`](client_generic/InstallerMSVC/nsis_installer.nsi) for the Windows installer. | Installs to `C:\Program Files (x86)\NSIS\` but does **not** add itself to `PATH`; [`release.py`](client_generic/WinBuild/release.py) auto-discovers it there, or honors `MAKENSIS=<path>`. |
