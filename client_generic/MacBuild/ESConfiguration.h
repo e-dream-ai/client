@@ -6,13 +6,13 @@
     // IBOutlet NSMatrix* displayMode;
 
     IBOutlet NSTextField* playerFPS;
-    IBOutlet NSTextField* displayFPS;
     IBOutlet NSButton* synchronizeVBL;
     IBOutlet NSButton* blackoutMonitors;
     IBOutlet NSButton* silentMode;
     IBOutlet NSButton* showAttribution;
     IBOutlet NSButton* preserveAR;
     IBOutlet NSButton* rotatePortrait;
+    IBOutlet NSButton* syphonOutput;
 
     // login buttons
     IBOutlet NSButton* signInButton;

@@ -34,6 +34,12 @@
 		063B5C622F19946300B5E553 /* Sparkle.framework in CopyFiles */ = {isa = PBXBuildFile; fileRef = 063B5C5C2F198F1500B5E553 /* Sparkle.framework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
 		063B5C632F19947D00B5E553 /* Sparkle.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 063B5C5C2F198F1500B5E553 /* Sparkle.framework */; };
 		063B5C642F19947D00B5E553 /* Sparkle.framework in CopyFiles */ = {isa = PBXBuildFile; fileRef = 063B5C5C2F198F1500B5E553 /* Sparkle.framework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
+		A15F10D02F1A000100B5E002 /* Syphon.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = A15F10D02F1A000100B5E013 /* Syphon.framework */; };
+		A15F10D02F1A000100B5E003 /* Syphon.framework in CopyFiles */ = {isa = PBXBuildFile; fileRef = A15F10D02F1A000100B5E013 /* Syphon.framework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
+		A15F10D02F1A000100B5E004 /* Syphon.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = A15F10D02F1A000100B5E013 /* Syphon.framework */; };
+		A15F10D02F1A000100B5E005 /* Syphon.framework in CopyFiles */ = {isa = PBXBuildFile; fileRef = A15F10D02F1A000100B5E013 /* Syphon.framework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
+		A15F10D02F1A000100B5E008 /* SyphonOutput.mm in Sources */ = {isa = PBXBuildFile; fileRef = A15F10D02F1A000100B5E006 /* SyphonOutput.mm */; };
+		A15F10D02F1A000100B5E009 /* SyphonOutput.mm in Sources */ = {isa = PBXBuildFile; fileRef = A15F10D02F1A000100B5E006 /* SyphonOutput.mm */; };
 		121FCCB72B484B8B00F58DD5 /* Clip.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 121FCCB52B484B8B00F58DD5 /* Clip.cpp */; };
 		121FCCB82B484B8B00F58DD5 /* Clip.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 121FCCB52B484B8B00F58DD5 /* Clip.cpp */; };
 		1220B5392B3DC64D00D68410 /* StringFormat.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 1220B5382B3DC64D00D68410 /* StringFormat.cpp */; };
@@ -609,6 +615,27 @@
 			remoteGlobalIDString = 2160FAAC0F30F43600B2C27A;
 			remoteInfo = "e-dream App";
 		};
+		A15F10D02F1A000100B5E012 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = A15F10D02F1A000100B5E010 /* Syphon.xcodeproj */;
+			proxyType = 2;
+			remoteGlobalIDString = 8DC2EF5B0486A6940098B216;
+			remoteInfo = Syphon;
+		};
+		A15F10D02F1A000100B5E014 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = A15F10D02F1A000100B5E010 /* Syphon.xcodeproj */;
+			proxyType = 1;
+			remoteGlobalIDString = 8DC2EF4F0486A6940098B216;
+			remoteInfo = Syphon;
+		};
+		A15F10D02F1A000100B5E016 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = A15F10D02F1A000100B5E010 /* Syphon.xcodeproj */;
+			proxyType = 1;
+			remoteGlobalIDString = 8DC2EF4F0486A6940098B216;
+			remoteInfo = Syphon;
+		};
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXCopyFilesBuildPhase section */
@@ -629,6 +656,7 @@
 			dstSubfolderSpec = 10;
 			files = (
 				063B5C5E2F198F1500B5E553 /* Sparkle.framework in CopyFiles */,
+				A15F10D02F1A000100B5E003 /* Syphon.framework in CopyFiles */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -691,6 +719,7 @@
 			dstSubfolderSpec = 10;
 			files = (
 				063B5C622F19946300B5E553 /* Sparkle.framework in CopyFiles */,
+				A15F10D02F1A000100B5E005 /* Syphon.framework in CopyFiles */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -699,6 +728,9 @@
 /* Begin PBXFileReference section */
 		063B5C5B2F172FAB00B5E553 /* .gitignore */ = {isa = PBXFileReference; lastKnownFileType = text; name = .gitignore; path = ../../../../webminds/ReplayVideoCapture/.gitignore; sourceTree = "<group>"; };
 		063B5C5C2F198F1500B5E553 /* Sparkle.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Sparkle.framework; path = Frameworks/Sparkle.framework; sourceTree = "<group>"; };
+		A15F10D02F1A000100B5E010 /* Syphon.xcodeproj */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.pb-project"; name = Syphon.xcodeproj; path = "../Syphon-Framework/Syphon.xcodeproj"; sourceTree = "<group>"; };
+		A15F10D02F1A000100B5E006 /* SyphonOutput.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; name = SyphonOutput.mm; path = ../../DisplayOutput/Metal/SyphonOutput.mm; sourceTree = "<group>"; };
+		A15F10D02F1A000100B5E007 /* SyphonOutput.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = SyphonOutput.h; path = ../../DisplayOutput/Metal/SyphonOutput.h; sourceTree = "<group>"; };
 		09AB6884FE841BABC02AAC07 /* CoreFoundation.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreFoundation.framework; path = System/Library/Frameworks/CoreFoundation.framework; sourceTree = SDKROOT; };
 		121FCCB52B484B8B00F58DD5 /* Clip.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = Clip.cpp; path = ../ContentDecoder/Clip.cpp; sourceTree = "<group>"; };
 		121FCCB62B484B8B00F58DD5 /* Clip.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = Clip.h; path = ../ContentDecoder/Clip.h; sourceTree = "<group>"; };
@@ -964,6 +996,7 @@
 				213D540311F79C9800CF500D /* IOKit.framework in Frameworks */,
 				F07071D72C0E05DA008219A4 /* libboost_log.a in Frameworks */,
 				063B5C5D2F198F1500B5E553 /* Sparkle.framework in Frameworks */,
+				A15F10D02F1A000100B5E002 /* Syphon.framework in Frameworks */,
 				2160FC9D0F30F48200B2C27A /* CoreFoundation.framework in Frameworks */,
 				F0141B982C663E8900DBA60E /* libavcodec.a in Frameworks */,
 				2160FC9E0F30F48200B2C27A /* GLUT.framework in Frameworks */,
@@ -1090,6 +1123,7 @@
 				F0E9CE832C136B0500C4D694 /* IOKit.framework in Frameworks */,
 				F0E9CE842C136B0500C4D694 /* libboost_log.a in Frameworks */,
 				063B5C612F19946300B5E553 /* Sparkle.framework in Frameworks */,
+				A15F10D02F1A000100B5E004 /* Syphon.framework in Frameworks */,
 				F0E9CE852C136B0500C4D694 /* CoreFoundation.framework in Frameworks */,
 				F0141BA62C663F1500DBA60E /* libavcodec.a in Frameworks */,
 				F0E9CE862C136B0500C4D694 /* GLUT.framework in Frameworks */,
@@ -1458,6 +1492,7 @@
 			isa = PBXGroup;
 			children = (
 				063B5C5C2F198F1500B5E553 /* Sparkle.framework */,
+				A15F10D02F1A000100B5E010 /* Syphon.xcodeproj */,
 				063B5C5B2F172FAB00B5E553 /* .gitignore */,
 				F0141B912C663DEF00DBA60E /* libswscale.a */,
 				F0141B8B2C663DE800DBA60E /* libavcodec.a */,
@@ -1498,6 +1533,8 @@
 				46D2E8FF2AFBBD2D0054049D /* FontMetal.h */,
 				467230C12AC1817500017C51 /* RendererMetal.mm */,
 				467230BF2AC1814800017C51 /* RendererMetal.h */,
+				A15F10D02F1A000100B5E006 /* SyphonOutput.mm */,
+				A15F10D02F1A000100B5E007 /* SyphonOutput.h */,
 				46ED5CB02AF5326A00AF8F45 /* DisplayMetal.cpp */,
 				467230B22AC16E9900017C51 /* DisplayMetal.h */,
 				46ED5CAF2AF5326A00AF8F45 /* MetalShaders.metal */,
@@ -1530,6 +1567,14 @@
 			path = "First startup";
 			sourceTree = "<group>";
 		};
+		A15F10D02F1A000100B5E011 /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				A15F10D02F1A000100B5E013 /* Syphon.framework */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
@@ -1548,6 +1593,7 @@
 			buildRules = (
 			);
 			dependencies = (
+				A15F10D02F1A000100B5E015 /* PBXTargetDependency */,
 			);
 			name = "infinidream App Prod";
 			packageProductDependencies = (
@@ -1623,6 +1669,7 @@
 			buildRules = (
 			);
 			dependencies = (
+				A15F10D02F1A000100B5E017 /* PBXTargetDependency */,
 			);
 			name = "infinidream Stage";
 			packageProductDependencies = (
@@ -1669,6 +1716,12 @@
 				F09CFF622E747DAE00054936 /* XCRemoteSwiftPackageReference "PaperSaver" */,
 			);
 			projectDirPath = "";
+			projectReferences = (
+				{
+					ProductGroup = A15F10D02F1A000100B5E011 /* Products */;
+					ProjectRef = A15F10D02F1A000100B5E010 /* Syphon.xcodeproj */;
+				},
+			);
 			projectRoot = "";
 			targets = (
 				218878CF0EC6CD7E001ABD2E /* ScreenSaver Prod */,
@@ -1679,6 +1732,16 @@
 			);
 		};
 /* End PBXProject section */
+
+/* Begin PBXReferenceProxy section */
+		A15F10D02F1A000100B5E013 /* Syphon.framework */ = {
+			isa = PBXReferenceProxy;
+			fileType = wrapper.framework;
+			path = Syphon.framework;
+			remoteRef = A15F10D02F1A000100B5E012 /* PBXContainerItemProxy */;
+			sourceTree = BUILT_PRODUCTS_DIR;
+		};
+/* End PBXReferenceProxy section */
 
 /* Begin PBXResourcesBuildPhase section */
 		21AAA0C80F7040ED00AC23A8 /* Resources */ = {
@@ -2054,6 +2117,7 @@
 				2160FACF0F30F45100B2C27A /* LoadDDS.cpp in Sources */,
 				2160FAD00F30F45100B2C27A /* LoadPNG.cpp in Sources */,
 				467230C32AC1835300017C51 /* RendererMetal.mm in Sources */,
+				A15F10D02F1A000100B5E008 /* SyphonOutput.mm in Sources */,
 				A1BEE5700000000000000010 /* sio_beast.cpp in Sources */,
 				467B6FCA2AE6D031001C80CB /* EDreamClient.cpp in Sources */,
 				46D2E9022AFBC3720054049D /* Text.cpp in Sources */,
@@ -2246,6 +2310,7 @@
 				F0E9CE5B2C136B0500C4D694 /* LoadDDS.cpp in Sources */,
 				F0E9CE5C2C136B0500C4D694 /* LoadPNG.cpp in Sources */,
 				F0E9CE5D2C136B0500C4D694 /* RendererMetal.mm in Sources */,
+				A15F10D02F1A000100B5E009 /* SyphonOutput.mm in Sources */,
 				A1BEE5700000000000000013 /* sio_beast.cpp in Sources */,
 				F0E9CE5E2C136B0500C4D694 /* EDreamClient.cpp in Sources */,
 				F0E9CE5F2C136B0500C4D694 /* Text.cpp in Sources */,
@@ -2294,6 +2359,16 @@
 			isa = PBXTargetDependency;
 			target = 2160FAAC0F30F43600B2C27A /* infinidream App Prod */;
 			targetProxy = 12726C252B6BF53B003C0FF6 /* PBXContainerItemProxy */;
+		};
+		A15F10D02F1A000100B5E015 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			name = Syphon;
+			targetProxy = A15F10D02F1A000100B5E014 /* PBXContainerItemProxy */;
+		};
+		A15F10D02F1A000100B5E017 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			name = Syphon;
+			targetProxy = A15F10D02F1A000100B5E016 /* PBXContainerItemProxy */;
 		};
 /* End PBXTargetDependency section */
 

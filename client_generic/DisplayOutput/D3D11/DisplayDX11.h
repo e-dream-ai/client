@@ -22,6 +22,21 @@ private:
     ComPtr<ID3D11DeviceContext> m_context;
     ComPtr<IDXGISwapChain> m_swapChain;
     ComPtr<ID3D11RenderTargetView> m_renderTargetView;
+    // Flip-model pacing (issue #749). The waitable object is signaled when the swap chain
+    // can take another frame; it's the fallback when the monitor's vblank can't be waited on.
+    UINT m_swapChainFlags = 0;
+    HANDLE m_frameLatencyWaitable = nullptr;
+    bool m_frameWaitOwed = false; // a Present happened since the last wait
+    // The loop waits for the vblank of the monitor the window is on (m_vblankOutput, cached
+    // per monitor) rather than on the waitable, which follows the compositor's clock; see
+    // WaitForNextFrame(). m_pacedOnVblank says the last wait did, so Present needn't.
+    ComPtr<IDXGIOutput> m_vblankOutput;
+    bool m_pacedOnVblank = false;
+    HMONITOR m_vblankMonitor = nullptr;
+    // Detected refresh rate, cached per monitor; m_refreshDirty forces a re-query.
+    HMONITOR m_refreshMonitor = nullptr;
+    double m_refreshHz = 0.0;
+    bool m_refreshDirty = true;
     RECT m_windowedRect;
     DWORD m_windowedStyle;
     DWORD m_windowedExStyle;
@@ -61,8 +76,6 @@ private:
     int m_sizeMoveNested = 0;
     bool m_deviceLost = false;
 
-    // When set, fullscreen will be windowed-borderless (no DXGI exclusive mode).
-    bool m_disableExclusiveFullscreen = false;
 
     // Optional target monitor placement for fullscreen windows.
     bool m_hasTargetMonitorIndex = false;
@@ -88,6 +101,15 @@ private:
     virtual void ToggleFullscreen() override;
     virtual bool SetFullscreen(const bool fullscreen) override;
     virtual bool IsFullscreen() const override { return m_bFullScreen; }
+    double RefreshRateHz() override;
+    // Block until the swap chain can take another frame (flip model only). Call before
+    // rendering each frame, without holding the D3D11 context lock.
+    // Returns false when this display should skip the frame (not the pacing display, and
+    // its swap chain can't take another frame yet).
+    bool WaitForNextFrame();
+    // True for the one display that should wait for a vblank: the only display, or with
+    // several, the one on the monitor with the highest refresh rate.
+    bool IsPacingDisplay();
     bool IsEmbeddedSaverPreview() const { return m_bEmbeddedSaverPreview; }
 
 #ifdef WIN32
@@ -102,6 +124,7 @@ private:
     /// Client-area height (px) excluded from the D3D video viewport (custom title strip when there is no WS_CAPTION).
     /// Matches `BuildBaseViewportForDisplay` / preserve-AR letterboxing; 0 when the full client is used for video.
     int GetVideoViewportTopInsetPx() const;
+    int VideoTopInsetPx() const override { return GetVideoViewportTopInsetPx(); }
 
     // Caption button hit rects in *client* coordinates (only valid when custom chrome is enabled).
     const RECT& GetCaptionButtonMinRectPx() const { return m_captionBtnMinRect; }
@@ -125,8 +148,6 @@ private:
     void SetTargetMonitorIndex(uint32_t index) { m_hasTargetMonitorIndex = true; m_targetMonitorIndex = index; }
     void ClearTargetMonitor() { m_hasTargetMonitorIndex = false; m_hasTargetMonitorRect = false; }
 
-    // Screensaver mode uses borderless windowed fullscreen across monitors.
-    void SetDisableExclusiveFullscreen(bool disable) { m_disableExclusiveFullscreen = disable; }
 
     void SetMenuLoopRenderCallback(std::function<void()> cb) { m_menuLoopRenderCb = std::move(cb); }
 

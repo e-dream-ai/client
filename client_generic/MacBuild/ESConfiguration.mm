@@ -273,9 +273,6 @@
     playerFPS.doubleValue =
         ESScreensaver_GetDoubleSetting("settings.player.player_fps", 23.0);
 
-    displayFPS.doubleValue =
-        ESScreensaver_GetDoubleSetting("settings.player.display_fps", 60.0);
-
     synchronizeVBL.state =
         ESScreensaver_GetBoolSetting("settings.player.vbl_sync", false);
 
@@ -284,6 +281,14 @@
 
     rotatePortrait.state =
         ESScreensaver_GetBoolSetting("settings.player.rotate_portrait", false);
+
+    syphonOutput.state =
+        ESScreensaver_GetBoolSetting("settings.player.syphon_output", false);
+#ifndef SCREEN_SAVER
+    [syphonOutput setHidden:NO];
+#else
+    [syphonOutput setHidden:YES];
+#endif
 
     blackoutMonitors.state =
         ESScreensaver_GetBoolSetting("settings.player.blackout_monitors", true);
@@ -376,13 +381,6 @@
 
     ESScreensaver_SetDoubleSetting("settings.player.player_fps", player_fps);
 
-    double display_fps = displayFPS.doubleValue;
-
-    if (display_fps < .1)
-        display_fps = 60.0;
-
-    ESScreensaver_SetDoubleSetting("settings.player.display_fps", display_fps);
-
     // Hardcode displaymode for now to Cubic as we have removed the setting
     ESScreensaver_SetIntSetting("settings.player.DisplayMode",2);
 
@@ -394,6 +392,9 @@
 
     ESScreensaver_SetBoolSetting("settings.player.rotate_portrait",
                                  rotatePortrait.state);
+
+    ESScreensaver_SetBoolSetting("settings.player.syphon_output",
+                                 syphonOutput.state);
 
     ESScreensaver_SetBoolSetting("settings.player.blackout_monitors",
                                  blackoutMonitors.state);

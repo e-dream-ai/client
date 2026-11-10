@@ -6,12 +6,15 @@ port. It accepts any credentials. Videos come from a folder of <uuid>.mp4 files,
 such as a client's content/mp4 cache, and are only ever read.
 
 Every request and socket message goes to a JSON-lines event log, and
-POST /control/send/<event> sends a remote-control event to the connected client.
+POST /control/send/<event> sends a remote-control event to the connected client, and
+POST /control/media-rate?bytes_per_second=N limits media downloads to N bytes a second in
+total, like one shared link. 0 means no limit.
 """
 import argparse
 import asyncio
 import hashlib
 import json
+import re
 import subprocess
 import time
 from pathlib import Path
@@ -34,9 +37,10 @@ def probe(path):
     return round(int(numerator) / int(denominator)), int(stream["nb_read_packets"])
 
 
-def load_dreams(media_dir, count, min_frames):
-    """Builds records for the smallest distinct videos, in the types the client expects."""
-    videos = sorted(Path(media_dir).glob("*.mp4"), key=lambda p: p.stat().st_size)
+def load_dreams(media_dir, count, min_frames, pick="smallest"):
+    """Builds records for the smallest or largest distinct videos, in the types the client expects."""
+    videos = sorted(Path(media_dir).glob("*.mp4"), key=lambda p: p.stat().st_size,
+                    reverse=pick == "largest")
     dreams = {}
     seen_md5 = set()
     for path in videos:
@@ -60,17 +64,34 @@ def load_dreams(media_dir, count, min_frames):
     raise SystemExit(f"Need {count} distinct videos of at least {min_frames} frames in {media_dir}")
 
 
+def parse_range(header, size):
+    """Returns (start, end) inclusive for a Range header, or None if it can't be satisfied."""
+    if not header:
+        return 0, size - 1
+    match = re.fullmatch(r"bytes=(\d*)-(\d*)", header.strip())
+    if not match or not (match[1] or match[2]):
+        return None
+    if match[1]:
+        start, end = int(match[1]), int(match[2]) if match[2] else size - 1
+    else:
+        start, end = max(0, size - int(match[2])), size - 1
+    end = min(end, size - 1)
+    return (start, end) if start <= end else None
+
+
 def ok(data):
     return web.json_response({"success": True, "data": data})
 
 
 class MockServer:
-    def __init__(self, media_dir, dreams, event_log, port):
+    def __init__(self, media_dir, dreams, event_log, port, media_rate=0):
         self.media_dir = Path(media_dir)
         self.dreams = dreams
         self.event_log = event_log
         self.port = port
         self.sockets = set()
+        self.media_rate = media_rate  # Bytes a second across all downloads; 0 means no limit.
+        self.next_send = 0.0
 
     def log(self, kind, **fields):
         self.event_log.write(json.dumps({"t": time.time(), "kind": kind, **fields}) + "\n")
@@ -111,8 +132,55 @@ class MockServer:
         uuid = request.match_info["uuid"]
         if uuid not in self.dreams:
             raise web.HTTPNotFound()
-        # FileResponse handles Range requests.
-        return web.FileResponse(self.media_dir / f"{uuid}.mp4")
+        path = self.media_dir / f"{uuid}.mp4"
+        size = path.stat().st_size
+        byte_range = parse_range(request.headers.get("Range"), size)
+        if byte_range is None:
+            raise web.HTTPRequestRangeNotSatisfiable(headers={"Content-Range": f"bytes */{size}"})
+        start, end = byte_range
+        response = web.StreamResponse(status=206 if request.headers.get("Range") else 200)
+        response.headers["Content-Type"] = "video/mp4"
+        response.headers["Accept-Ranges"] = "bytes"
+        response.headers["Content-Length"] = str(end - start + 1)
+        if request.headers.get("Range"):
+            response.headers["Content-Range"] = f"bytes {start}-{end}/{size}"
+        await response.prepare(request)
+
+        began = time.time()
+        sent = 0
+        try:
+            with open(path, "rb") as file:
+                file.seek(start)
+                while sent < end - start + 1:
+                    wanted = min(self.chunk_size(), end - start + 1 - sent)
+                    chunk = file.read(wanted)
+                    if not chunk:
+                        break
+                    await self.wait_for_link(len(chunk))
+                    await response.write(chunk)
+                    sent += len(chunk)
+            await response.write_eof()
+        except ConnectionError:
+            # The client hung up, as it does on a skip or a seek.
+            pass
+        finally:
+            self.log("media_end", uuid=uuid, range=request.headers.get("Range"), sent=sent,
+                     wanted=end - start + 1, seconds=round(time.time() - began, 3))
+        return response
+
+    def chunk_size(self):
+        # About 50 ms worth of data, so that a rate change takes effect quickly.
+        return 256 * 1024 if not self.media_rate else max(4096, min(65536, self.media_rate // 20))
+
+    async def wait_for_link(self, length):
+        """Holds a chunk until the shared link has room for it."""
+        if not self.media_rate:
+            return
+        now = asyncio.get_running_loop().time()
+        start = max(self.next_send, now)
+        self.next_send = start + length / self.media_rate
+        if start > now:
+            await asyncio.sleep(start - now)
 
     async def quota(self, request):
         return ok({"quota": QUOTA_BYTES})
@@ -165,6 +233,12 @@ class MockServer:
         self.log("control_send", event=event, sockets=len(self.sockets))
         return web.json_response({"sockets": len(self.sockets)})
 
+    async def control_media_rate(self, request):
+        self.media_rate = int(request.query["bytes_per_second"])
+        self.next_send = 0.0
+        self.log("media_rate", bytes_per_second=self.media_rate)
+        return web.json_response({"bytes_per_second": self.media_rate})
+
     async def unhandled(self, request):
         self.log("unhandled", method=request.method, path=request.path_qs)
         return web.json_response({"success": False}, status=404)
@@ -187,6 +261,7 @@ class MockServer:
             web.get("/socket.io/", self.socket_io),
             web.get("/control/health", self.control_health),
             web.post("/control/send/{event}", self.control_send),
+            web.post("/control/media-rate", self.control_media_rate),
             web.route("*", "/{tail:.*}", self.unhandled),
         ])
         return app
@@ -200,12 +275,16 @@ def main():
     # Long enough that a dream doesn't end by itself during a test, which would look like
     # a command working.
     parser.add_argument("--min-frames", type=int, default=900, help="skip shorter videos")
+    parser.add_argument("--pick", choices=["smallest", "largest"], default="smallest",
+                        help="which videos to serve; largest needs the most bandwidth")
+    parser.add_argument("--media-rate", type=int, default=0,
+                        help="limit media to this many bytes a second in total; 0 means no limit")
     parser.add_argument("--event-log", default="events.jsonl")
     args = parser.parse_args()
 
-    dreams = load_dreams(args.media_dir, args.dreams, args.min_frames)
+    dreams = load_dreams(args.media_dir, args.dreams, args.min_frames, args.pick)
     with open(args.event_log, "w", buffering=1) as event_log:
-        server = MockServer(args.media_dir, dreams, event_log, args.port)
+        server = MockServer(args.media_dir, dreams, event_log, args.port, args.media_rate)
         web.run_app(server.app(), host="127.0.0.1", port=args.port, print=None)
 
 

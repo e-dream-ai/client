@@ -681,22 +681,10 @@ void CRendererDX11::EndGpuTimingFrame()
 
 float CRendererDX11::DisplayRefreshHz() const
 {
-    auto display = std::dynamic_pointer_cast<DisplayOutput::CDisplayDX11>(m_spDisplay);
-    if (!display)
-        return 60.0f;
-    IDXGISwapChain* sc = display->GetSwapChain();
-    if (!sc)
-        return 60.0f;
-
-    DXGI_SWAP_CHAIN_DESC scd = {};
-    if (FAILED(sc->GetDesc(&scd)))
-        return 60.0f;
-    const UINT den = scd.BufferDesc.RefreshRate.Denominator;
-    const UINT num = scd.BufferDesc.RefreshRate.Numerator;
-    if (den == 0 || num == 0)
-        return 60.0f;
-    const float hz = static_cast<float>(num) / static_cast<float>(den);
-    return hz > 0.5f ? hz : 60.0f;
+    // The swap chain's RefreshRate is whatever we asked for (it used to be a hardcoded 60),
+    // not the monitor's rate; ask the display, which detects it (issue #749).
+    const double hz = m_spDisplay ? m_spDisplay->RefreshRateHz() : 0.0;
+    return hz > 0.5 ? static_cast<float>(hz) : 60.0f;
 }
 
 float CRendererDX11::GetGPUFrameTimeMs()
@@ -1376,6 +1364,14 @@ bool CRendererDX11::EnsureMdl2ChromeGlyphTextures(int sizePx)
 }
 
 bool CRendererDX11::BeginFrame() {
+    // Pace the loop to the display: wait for the swap chain to take another frame before
+    // rendering it (issue #749). Not under the context lock, which the decoder also takes.
+    // With several displays, the ones not pacing the loop skip passes their swap chain
+    // can't take yet; returning false skips this display's frame without EndFrame.
+    if (auto* display = dynamic_cast<CDisplayDX11*>(m_spDisplay.get()))
+        if (!display->WaitForNextFrame())
+            return false;
+
     std::lock_guard<std::recursive_mutex> d3dLock(GetD3D11ImmediateContextMutex());
     m_pendingTextDraws.clear();
 

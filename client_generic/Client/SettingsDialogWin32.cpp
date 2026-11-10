@@ -134,8 +134,6 @@ char g_nicknameBuf[256] = {};
 char g_codeBuf[32] = {};
 
 double g_playerFps = 23.0;
-double g_displayFps = 60.0;
-bool g_vsync = false;
 bool g_preserveAR = false;
 bool g_rotatePortrait = false;
 bool g_blackoutMonitors = true;

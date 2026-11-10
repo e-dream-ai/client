@@ -12,6 +12,10 @@
 #include "DisplayOutput.h"
 #include <atomic>
 
+#ifndef SCREEN_SAVER
+#import "Metal/SyphonOutput.h"
+#endif
+
 #ifdef SCREEN_SAVER
 // All ScreenSaverView instances in legacyScreenSaver.appex share one gClient/g_Player.
 // Refcount so Settings thumbnail stopAnimation cannot Deinit while Preview/fullscreen
@@ -25,10 +29,19 @@ static std::atomic<int> s_activeEngineViews{0};
     BOOL m_bPausedForSheet;  // YES when paused for Preferences sheet (no full shutdown)
     BOOL m_shouldRotate;     // YES when rotating the dream 90 deg for a portrait display
     int m_displayIdx;
+    BOOL m_refreshRatePending;  // Screen or display not ready yet; retried each frame (#749)
+    BOOL m_loggedNilScreen;     // Logged the window-has-no-screen diagnostic once
 #ifdef SCREEN_SAVER
     BOOL m_graphicsContextAdded;  // AddGraphicsContext once per view (startAnimation may re-enter)
     NSTimer *m_screenCheckTimer;  // Fallback when macOS never calls stopAnimation
     BOOL m_forceExiting;          // Guard against re-entrant force-exit
+#else
+    // Syphon needs full-rate frames while the window is fully occluded. MTKView's
+    // display link + nextDrawable drop to ~3Hz behind other apps, so we pause the
+    // view and drive DoFrame ourselves, and hold an App Nap activity.
+    dispatch_source_t m_occlusionFrameTimer;
+    id<NSObject> m_syphonOcclusionActivity;
+    BOOL m_observingOcclusion;
 #endif
 }
 
@@ -54,6 +67,8 @@ static std::atomic<int> s_activeEngineViews{0};
     m_isStopped = YES;
     m_bPausedForSheet = NO;
     m_displayIdx = 0;
+    m_refreshRatePending = NO;
+    m_loggedNilScreen = NO;
 #ifdef SCREEN_SAVER
     m_graphicsContextAdded = NO;
     m_screenCheckTimer = nil;
@@ -232,6 +247,135 @@ static BOOL ESWindowIsKnownOffscreen(NSWindow *win)
 }
 #endif
 
+// Refresh rate of a screen in Hz (#749). The current mode's rate is exact
+// (e.g. 29.97), but built-in panels can report 0 for it, so fall back to
+// maximumFramesPerSecond (120 on ProMotion), then to 60.
+static double ESScreenRefreshRate(NSScreen* screen)
+{
+    double hz = 0.0;
+    NSNumber* screenNumber = screen.deviceDescription[@"NSScreenNumber"];
+    if (screenNumber != nil)
+    {
+        CGDisplayModeRef mode =
+            CGDisplayCopyDisplayMode((CGDirectDisplayID)screenNumber.unsignedIntValue);
+        if (mode != NULL)
+        {
+            hz = CGDisplayModeGetRefreshRate(mode);
+            CGDisplayModeRelease(mode);
+        }
+    }
+    if (hz <= 0.0)
+    {
+        if (@available(macOS 12.0, *))
+            hz = (double)screen.maximumFramesPerSecond;
+    }
+    return hz > 0.0 ? hz : 60.0;
+}
+
+static NSScreen* ESScreenOverlapping(NSRect frame)
+{
+    NSScreen* best = nil;
+    CGFloat bestArea = 0.0;
+    for (NSScreen* screen in NSScreen.screens)
+    {
+        const NSRect overlap = NSIntersectionRect(frame, screen.frame);
+        const CGFloat area = overlap.size.width * overlap.size.height;
+        if (area > bestArea)
+        {
+            bestArea = area;
+            best = screen;
+        }
+    }
+    return best;
+}
+
+// The screen a window is on. A screensaver window on a secondary screen can have
+// a nil .screen (seen at startup and after hotplug), with its frame given as that
+// screen's rect in top-left (CoreGraphics) coordinates rather than Cocoa's
+// bottom-left ones, e.g. -831,-1692 for a screen at -831,956 above a
+// 956-point-high main screen. So match the frame as given, then flipped about
+// the main screen.
+static NSScreen* ESScreenForWindow(NSWindow* window)
+{
+    if (window == nil)
+        return nil;
+    if (window.screen != nil)
+        return window.screen;
+    NSRect frame = window.frame;
+    if (NSScreen* screen = ESScreenOverlapping(frame))
+        return screen;
+    NSScreen* primary = NSScreen.screens.firstObject;
+    if (primary == nil)
+        return nil;
+    frame.origin.y = NSMaxY(primary.frame) - NSMaxY(frame);
+    return ESScreenOverlapping(frame);
+}
+
+// Pace the view to its screen's refresh rate, and give that rate to the display
+// (CDisplayMetal::RefreshRateHz) for the player's late-tick threshold. Called
+// again when the window moves to another screen or a screen's mode changes
+// (hotplug). Until the window has a screen and the display exists, it stays
+// pending and the draw loop retries.
+- (void)_updateDisplayRefreshRate
+{
+    if (!m_bStarted || self.window == nil)
+    {
+        m_refreshRatePending = YES;
+        return;
+    }
+    NSScreen* screen = ESScreenForWindow(self.window);
+    if (self.window.screen == nil && !m_loggedNilScreen)
+    {
+        m_loggedNilScreen = YES;
+        const NSRect f = self.window.frame;
+        g_Log->Info("Display %d window has no screen; frame %.0f,%.0f %.0fx%.0f; using %s",
+                    m_displayIdx, f.origin.x, f.origin.y, f.size.width, f.size.height,
+                    screen ? screen.localizedName.UTF8String : "none");
+        for (NSScreen* s in NSScreen.screens)
+            g_Log->Info("  screen %s frame %.0f,%.0f %.0fx%.0f", s.localizedName.UTF8String,
+                        s.frame.origin.x, s.frame.origin.y, s.frame.size.width, s.frame.size.height);
+    }
+    if (screen == nil)
+    {
+        m_refreshRatePending = YES;
+        return;
+    }
+    const double hz = ESScreenRefreshRate(screen);
+    const NSInteger fps = (NSInteger)lround(hz);
+    if (view != nil && view.preferredFramesPerSecond != fps)
+        view.preferredFramesPerSecond = fps;
+    const int changed = ESScreensaver_SetRefreshRate(m_displayIdx, hz);
+    m_refreshRatePending = (changed < 0);
+    if (changed > 0)
+        g_Log->Info("Display %d refresh rate %.2f Hz (%s)", m_displayIdx, hz,
+                    screen.localizedName.UTF8String ?: "?");
+}
+
+- (void)_screensChanged:(NSNotification*)notification
+{
+    [self _updateDisplayRefreshRate];
+}
+
+- (void)viewDidMoveToWindow
+{
+    [super viewDidMoveToWindow];
+    NSNotificationCenter* nc = NSNotificationCenter.defaultCenter;
+    [nc removeObserver:self name:NSWindowDidChangeScreenNotification object:nil];
+    [nc removeObserver:self name:NSApplicationDidChangeScreenParametersNotification object:nil];
+    if (self.window != nil)
+    {
+        [nc addObserver:self
+               selector:@selector(_screensChanged:)
+                   name:NSWindowDidChangeScreenNotification
+                 object:self.window];
+        [nc addObserver:self
+               selector:@selector(_screensChanged:)
+                   name:NSApplicationDidChangeScreenParametersNotification
+                 object:nil];
+        [self _updateDisplayRefreshRate];
+    }
+}
+
 - (void)startAnimation
 {
 #ifdef SCREEN_SAVER
@@ -272,9 +416,10 @@ static BOOL ESWindowIsKnownOffscreen(NSWindow *win)
             [[MTKView alloc] initWithFrame:theRect device:selectedDevice];
 #endif
         metalView.delegate = self;
-        metalView.preferredFramesPerSecond = 60;
+        metalView.preferredFramesPerSecond = 60;  // Until the screen's rate is detected
 
         view = metalView;
+        [self _updateDisplayRefreshRate];
 
         if (view)
         {
@@ -320,11 +465,17 @@ static BOOL ESWindowIsKnownOffscreen(NSWindow *win)
        
         [self _beginThread];
         m_bStarted = YES;
+        [self _updateDisplayRefreshRate];
 #ifdef SCREEN_SAVER
         s_activeEngineViews.fetch_add(1);
         [self _startScreenConnectionMonitor];
 #endif
     }
+
+#ifndef SCREEN_SAVER
+    [self _startOcclusionObserving];
+    [self _updateOcclusionDrivenRendering];
+#endif
     
 #ifdef SCREEN_SAVER
     [super startAnimation];
@@ -337,6 +488,11 @@ static BOOL ESWindowIsKnownOffscreen(NSWindow *win)
     [self _stopScreenConnectionMonitor];
     [NSCursor unhide];
     [self _stopRedrawTimer];
+#else
+    [self _stopOcclusionDrivenRendering];
+    [self _stopOcclusionObserving];
+    // Unregister from the Syphon directory before tearing down Metal/engine.
+    SyphonOutput_Stop();
 #endif
     m_bPausedForSheet = NO;
     if (m_bStarted)
@@ -386,6 +542,8 @@ static BOOL ESWindowIsKnownOffscreen(NSWindow *win)
 {
 #ifdef SCREEN_SAVER
     [self _stopScreenConnectionMonitor];
+#else
+    [self _stopOcclusionDrivenRendering];
 #endif
     if (!m_bStarted || m_bPausedForSheet)
         return;
@@ -406,6 +564,8 @@ static BOOL ESWindowIsKnownOffscreen(NSWindow *win)
 #ifdef SCREEN_SAVER
     [self _startScreenConnectionMonitor];
     [super startAnimation];
+#else
+    [self _updateOcclusionDrivenRendering];
 #endif
     return YES;  // Caller must NOT call startAnimation (would re-add display and retrigger full startup)
 }
@@ -1044,11 +1204,17 @@ static void hideSkipButtonInView(NSView *view)
 #endif
 {
     DEBUG_LOG("DRAW_IN_METAL_VIEW");
+#ifndef SCREEN_SAVER
+    // Pick up Syphon toggle while already occluded (no occlusion notification).
+    [self _updateOcclusionDrivenRendering];
+#endif
     if (!m_isStopped)
     {
         @autoreleasepool
         {
             ESScreensaver_DoFrame(m_displayIdx);
+            if (m_refreshRatePending)
+                [self _updateDisplayRefreshRate];
 #ifdef SCREEN_SAVER
             if (!m_isPreview && CGCursorIsVisible())
             {
@@ -1059,5 +1225,126 @@ static void hideSkipButtonInView(NSView *view)
         }
     }
 }
+
+#ifndef SCREEN_SAVER
+- (void)_startOcclusionObserving
+{
+    if (m_observingOcclusion)
+        return;
+    m_observingOcclusion = YES;
+    [[NSNotificationCenter defaultCenter]
+        addObserver:self
+           selector:@selector(_windowOcclusionStateDidChange:)
+               name:NSWindowDidChangeOcclusionStateNotification
+             object:nil];
+}
+
+- (void)_stopOcclusionObserving
+{
+    if (!m_observingOcclusion)
+        return;
+    m_observingOcclusion = NO;
+    [[NSNotificationCenter defaultCenter] removeObserver:self
+                                                     name:NSWindowDidChangeOcclusionStateNotification
+                                                   object:nil];
+}
+
+- (void)_windowOcclusionStateDidChange:(NSNotification*)notification
+{
+    NSWindow* window = self.window;
+    if (!window || notification.object != window)
+        return;
+    [self _updateOcclusionDrivenRendering];
+}
+
+- (BOOL)_needsOcclusionDrivenRendering
+{
+    if (m_isStopped || !m_bStarted || !view)
+        return NO;
+    // Full-rate occluded clock is only for live Syphon receivers; otherwise
+    // let MTKView's display link drop while covered. (No server runs while
+    // the setting is off, so this also covers the setting.)
+    if (!SyphonOutput_HasClients())
+        return NO;
+    NSWindow* window = self.window;
+    if (!window)
+        return YES;
+    return (window.occlusionState & NSWindowOcclusionStateVisible) == 0;
+}
+
+- (void)_updateOcclusionDrivenRendering
+{
+    if ([self _needsOcclusionDrivenRendering])
+        [self _startOcclusionDrivenRendering];
+    else
+        [self _stopOcclusionDrivenRendering];
+}
+
+- (void)_startOcclusionDrivenRendering
+{
+    if (m_occlusionFrameTimer)
+        return;
+
+    // Stop MTKView's display link so we don't race nextDrawable while occluded.
+    view.paused = YES;
+
+    if (!m_syphonOcclusionActivity)
+    {
+        m_syphonOcclusionActivity = [[NSProcessInfo processInfo]
+            beginActivityWithOptions:NSActivityUserInitiatedAllowingIdleSystemSleep
+                              reason:@"Syphon output while window occluded"];
+    }
+
+    __weak ESScreensaverView* weakSelf = self;
+    dispatch_source_t timer =
+        dispatch_source_create(DISPATCH_SOURCE_TYPE_TIMER, 0, 0,
+                               dispatch_get_main_queue());
+    // Zero leeway — App Nap still coalesces NSTimers. Tick at the detected
+    // display rate (#749) so the player's late-tick threshold still holds.
+    const NSInteger fps = view.preferredFramesPerSecond > 0 ? view.preferredFramesPerSecond : 60;
+    dispatch_source_set_timer(timer, DISPATCH_TIME_NOW, NSEC_PER_SEC / fps, 0);
+    dispatch_source_set_event_handler(timer, ^{
+        ESScreensaverView* strongSelf = weakSelf;
+        if (!strongSelf)
+            return;
+        [strongSelf _occlusionDrivenFrame];
+    });
+    m_occlusionFrameTimer = timer;
+    dispatch_resume(timer);
+    g_Log->Info("Syphon occlusion clock started (offscreen Metal path)");
+}
+
+- (void)_stopOcclusionDrivenRendering
+{
+    if (m_occlusionFrameTimer)
+    {
+        dispatch_source_cancel(m_occlusionFrameTimer);
+        m_occlusionFrameTimer = nil;
+        g_Log->Info("Syphon occlusion clock stopped");
+    }
+    if (m_syphonOcclusionActivity)
+    {
+        [[NSProcessInfo processInfo] endActivity:m_syphonOcclusionActivity];
+        m_syphonOcclusionActivity = nil;
+    }
+    if (view)
+        view.paused = NO;
+}
+
+- (void)_occlusionDrivenFrame
+{
+    if (![self _needsOcclusionDrivenRendering])
+    {
+        [self _stopOcclusionDrivenRendering];
+        return;
+    }
+    if (m_isStopped)
+        return;
+    @autoreleasepool
+    {
+        ESScreensaver_DoFrame(m_displayIdx);
+    }
+}
+#endif
 
 @end
