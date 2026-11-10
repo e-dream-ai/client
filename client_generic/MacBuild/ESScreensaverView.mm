@@ -414,9 +414,6 @@ static NSScreen* ESScreenForWindow(NSWindow* window)
         MTKView* metalView =
 
             [[MTKView alloc] initWithFrame:theRect device:selectedDevice];
-        // Allow Syphon (and any blit/sample of the drawable) to read the
-        // framebuffer. Default YES blocks publishFrameTexture.
-        metalView.framebufferOnly = NO;
 #endif
         metalView.delegate = self;
         metalView.preferredFramesPerSecond = 60;  // Until the screen's rate is detected
@@ -1265,9 +1262,8 @@ static void hideSkipButtonInView(NSView *view)
     if (m_isStopped || !m_bStarted || !view)
         return NO;
     // Full-rate occluded clock is only for live Syphon receivers; otherwise
-    // let MTKView's display link drop while covered.
-    if (!ESScreensaver_GetBoolSetting("settings.player.syphon_output", false))
-        return NO;
+    // let MTKView's display link drop while covered. (No server runs while
+    // the setting is off, so this also covers the setting.)
     if (!SyphonOutput_HasClients())
         return NO;
     NSWindow* window = self.window;
@@ -1303,8 +1299,10 @@ static void hideSkipButtonInView(NSView *view)
     dispatch_source_t timer =
         dispatch_source_create(DISPATCH_SOURCE_TYPE_TIMER, 0, 0,
                                dispatch_get_main_queue());
-    // Zero leeway — App Nap still coalesces NSTimers; this keeps ~60Hz for Syphon.
-    dispatch_source_set_timer(timer, DISPATCH_TIME_NOW, NSEC_PER_SEC / 60, 0);
+    // Zero leeway — App Nap still coalesces NSTimers. Tick at the detected
+    // display rate (#749) so the player's late-tick threshold still holds.
+    const NSInteger fps = view.preferredFramesPerSecond > 0 ? view.preferredFramesPerSecond : 60;
+    dispatch_source_set_timer(timer, DISPATCH_TIME_NOW, NSEC_PER_SEC / fps, 0);
     dispatch_source_set_event_handler(timer, ^{
         ESScreensaverView* strongSelf = weakSelf;
         if (!strongSelf)

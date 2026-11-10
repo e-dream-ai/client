@@ -924,16 +924,8 @@ bool CPlayer::BeginDisplayFrame(uint32_t displayUnit)
         du = m_displayUnits[displayUnit];
     }
 
-#if defined(MAC) && !defined(SCREEN_SAVER)
-    // Primary display only: offscreen video pass for HUD-free Syphon publish.
-    if (auto* metal =
-            dynamic_cast<CRendererMetal*>(du->spRenderer.get()))
-    {
-        const bool syphonOn =
-            g_Settings()->Get("settings.player.syphon_output", false);
-        metal->SetSyphonCaptureThisFrame(displayUnit == 0 && syphonOn);
-    }
-#endif
+    // External outputs (Syphon) publish the primary display only.
+    du->spRenderer->EnableExternalOutputThisFrame(displayUnit == 0);
 
     if (du->spRenderer->BeginFrame() == false)
         return false;
@@ -953,15 +945,6 @@ bool CPlayer::EndDisplayFrame(uint32_t displayUnit, bool drawn)
 
         du = m_displayUnits[displayUnit];
     }
-
-#if defined(MAC) && !defined(SCREEN_SAVER)
-    // Syphon publishes only the primary display (unit 0).
-    if (auto* metal =
-            dynamic_cast<CRendererMetal*>(du->spRenderer.get()))
-    {
-        metal->SetSyphonPublishThisFrame(displayUnit == 0);
-    }
-#endif
 
     return du->spRenderer->EndFrame(drawn);
 }

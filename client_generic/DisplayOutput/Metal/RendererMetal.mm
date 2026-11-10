@@ -16,7 +16,6 @@
 #include "TextMetal.h"
 #include "TextureFlatMetal.h"
 #ifndef SCREEN_SAVER
-#include "Settings.h"
 #include "SyphonOutput.h"
 #endif
 
@@ -287,6 +286,18 @@ bool CRendererMetal::BeginFrame(void)
     rendererContext->renderedToSyphonOffscreen = NO;
     rendererContext->syphonPublishedThisFrame = NO;
     rendererContext->presentingToDrawable = NO;
+    // Decide once per frame. Update() keeps the server registered while the
+    // setting is on; the offscreen pass and copy only run while a client is
+    // actually receiving, so an idle server costs nothing per frame.
+    m_syphonCaptureThisFrame =
+        m_externalOutputThisFrame &&
+        SyphonOutput_Update(rendererContext->metalView.device);
+    m_externalOutputThisFrame = false;
+    // Copying into the drawable needs framebufferOnly = NO, which turns off
+    // some GPU framebuffer optimizations, so only do it while capturing.
+    // (Changes only when a client connects or disconnects.)
+    if (rendererContext->metalView.framebufferOnly == m_syphonCaptureThisFrame)
+        rendererContext->metalView.framebufferOnly = !m_syphonCaptureThisFrame;
 #endif
 
     // Single render pass for the entire frame: clear once, draw everything,
@@ -354,8 +365,7 @@ void CRendererMetal::CaptureExternalOutputBeforeOverlay()
     if (!rendererContext->currentCommandBuffer ||
         !rendererContext->currentRenderEncoder)
         return;
-    if (!m_syphonCaptureThisFrame ||
-        !rendererContext->renderedToSyphonOffscreen ||
+    if (!rendererContext->renderedToSyphonOffscreen ||
         !rendererContext->syphonOffscreenTexture)
         return;
 
@@ -364,9 +374,8 @@ void CRendererMetal::CaptureExternalOutputBeforeOverlay()
     [rendererContext->currentRenderEncoder endEncoding];
     rendererContext->currentRenderEncoder = nil;
 
-    SyphonOutput_PublishIfEnabled(rendererContext->syphonOffscreenTexture,
-                                  rendererContext->currentCommandBuffer,
-                                  rendererContext->metalView.device);
+    SyphonOutput_Publish(rendererContext->syphonOffscreenTexture,
+                         rendererContext->currentCommandBuffer);
     rendererContext->syphonPublishedThisFrame = YES;
     rendererContext->renderedToSyphonOffscreen = NO;
 
@@ -432,7 +441,6 @@ bool CRendererMetal::EndFrame(bool drawn)
     if (!rendererContext->currentCommandBuffer ||
         !rendererContext->currentRenderEncoder)
     {
-        m_syphonPublishThisFrame = false;
         m_syphonCaptureThisFrame = false;
 #ifndef SCREEN_SAVER
         rendererContext->renderedToSyphonOffscreen = NO;
@@ -441,6 +449,14 @@ bool CRendererMetal::EndFrame(bool drawn)
 #endif
         return false;
     }
+
+#ifndef SCREEN_SAVER
+    // Frames that skip the HUD path (nothing drawn, early exits) never called
+    // CaptureExternalOutputBeforeOverlay. Do it now so the frame still gets
+    // published and copied to the window instead of being dropped.
+    if (rendererContext->renderedToSyphonOffscreen)
+        CaptureExternalOutputBeforeOverlay();
+#endif
 
     // End the frame's single render pass.
     [rendererContext->currentRenderEncoder endEncoding];
@@ -496,37 +512,14 @@ bool CRendererMetal::EndFrame(bool drawn)
                         presentDrawable:drawable];
             }
         }
-        else if (rendererContext->renderedToSyphonOffscreen)
-        {
-            // Syphon on but CaptureExternalOutputBeforeOverlay wasn't called
-            // (e.g. early exit) — publish the offscreen video as a fallback.
-            if (m_syphonPublishThisFrame)
-            {
-                SyphonOutput_PublishIfEnabled(
-                    rendererContext->syphonOffscreenTexture,
-                    rendererContext->currentCommandBuffer,
-                    rendererContext->metalView.device);
-            }
-        }
         else
 #endif
         {
             auto drawable = rendererContext->metalView.currentDrawable;
             if (drawable)
-            {
-#ifndef SCREEN_SAVER
-                if (m_syphonPublishThisFrame)
-                {
-                    SyphonOutput_PublishIfEnabled(
-                        drawable.texture, rendererContext->currentCommandBuffer,
-                        rendererContext->metalView.device);
-                }
-#endif
                 [rendererContext->currentCommandBuffer presentDrawable:drawable];
-            }
         }
     }
-    m_syphonPublishThisFrame = false;
     m_syphonCaptureThisFrame = false;
 #ifndef SCREEN_SAVER
     rendererContext->renderedToSyphonOffscreen = NO;

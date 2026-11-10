@@ -47,27 +47,25 @@ bool EnsureServer(id<MTLDevice> device)
 }
 } // namespace
 
-void SyphonOutput_PublishIfEnabled(id<MTLTexture> texture,
-                                   id<MTLCommandBuffer> commandBuffer,
-                                   id<MTLDevice> device)
+bool SyphonOutput_Update(id<MTLDevice> device)
 {
-    const bool enabled =
-        g_Settings()->Get("settings.player.syphon_output", false);
-    if (!enabled)
+    if (!g_Settings()->Get("settings.player.syphon_output", false))
     {
         StopServer();
-        return;
+        return false;
     }
-
-    if (!texture || !commandBuffer || !device)
-        return;
-
     if (!EnsureServer(device))
-        return;
+        return false;
+    // Keep the server alive for discovery, but only capture and copy frames
+    // when someone is listening (SyphonMetalServer guidance for display-rate
+    // publishers).
+    return g_syphonServer.hasClients;
+}
 
-    // Keep the server alive for discovery; only copy frames when someone is
-    // listening (SyphonMetalServer guidance for display-rate publishers).
-    if (!g_syphonServer.hasClients)
+void SyphonOutput_Publish(id<MTLTexture> texture,
+                          id<MTLCommandBuffer> commandBuffer)
+{
+    if (!g_syphonServer || !texture || !commandBuffer)
         return;
 
     const NSRect region =

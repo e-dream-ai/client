@@ -149,7 +149,10 @@ class CRenderer
     //
     virtual bool BeginFrame(void) { return (true); };
     virtual bool EndFrame(bool drawn = true) { return (drawn); };
-    // Optional: publish video to external outputs (e.g. Syphon) before HUD overlays.
+    // Optional external video output (e.g. Syphon on Mac). Call before
+    // BeginFrame: only the primary display's renderer is enabled.
+    virtual void EnableExternalOutputThisFrame(bool /*enable*/) {}
+    // Publish the video pass to external outputs before HUD overlays.
     virtual void CaptureExternalOutputBeforeOverlay() {}
     // Synchronize outstanding GPU work before render-owned resources are released.
     virtual void WaitForIdle() {};
