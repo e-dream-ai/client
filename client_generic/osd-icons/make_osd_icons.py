@@ -42,7 +42,9 @@ def glyph(name, x, y, size, stroke=None):
     k = size / max(vw, vh)
     ox = x + (size - vw * k) / 2 - vx * k
     oy = y + (size - vh * k) / 2 - vy * k
-    body = re.sub(r'\s(fill|stroke|stroke-width)="[^"]*"', "", body)
+    # Elements may set their own fill/stroke (e.g. a stroked arc in a filled icon);
+    # currentColor becomes the icon color, everything else inherits from the group.
+    body = body.replace("currentColor", COLOR)
     if is_line:
         width = stroke / k if stroke else 2  # Lucide's native 2px on a 24px grid
         paint = (f'fill="none" stroke="{COLOR}" stroke-width="{width:.3f}" '
