@@ -88,33 +88,6 @@ public:
             m_spDotTexture_u->Upload(tmpDotU);
         }
         
-        // Grab our dot red texture
-        DisplayOutput::spCImage tmpDotR(new DisplayOutput::CImage());
-        if (tmpDotR->Load(g_Settings()->Get("settings.app.InstallDir", defaultDir) +
-                           "osd-pill-r.png", false))
-        {
-            m_spDotTexture_r = g_Player().Renderer()->NewTextureFlat();
-            m_spDotTexture_r->Upload(tmpDotR);
-        }
-
-        // Grab our dot blue texture
-        DisplayOutput::spCImage tmpDotB(new DisplayOutput::CImage());
-        if (tmpDotB->Load(g_Settings()->Get("settings.app.InstallDir", defaultDir) +
-                           "osd-pill-b.png", false))
-        {
-            m_spDotTexture_b = g_Player().Renderer()->NewTextureFlat();
-            m_spDotTexture_b->Upload(tmpDotB);
-        }
-        
-        // Grab our symbols texture
-        DisplayOutput::spCImage tmpSymbolSpeed(new DisplayOutput::CImage());
-        if (tmpSymbolSpeed->Load(g_Settings()->Get("settings.app.InstallDir", defaultDir) +
-                           "osd-speed.png", false))
-        {
-            m_spSymbolSpeedTexture = g_Player().Renderer()->NewTextureFlat();
-            m_spSymbolSpeedTexture->Upload(tmpSymbolSpeed);
-        }
-        
         DisplayOutput::spCImage tmpSymbolBrightness(new DisplayOutput::CImage());
         if (tmpSymbolBrightness->Load(g_Settings()->Get("settings.app.InstallDir", defaultDir) +
                            "osd-brightness.png", false))
@@ -409,10 +382,7 @@ public:
         // Large HUD
         tmpBg = NULL;
         tmpDot = NULL;
-        tmpDotR = NULL;
-        tmpDotB = NULL;
         tmpDotU = NULL;
-        tmpSymbolSpeed = NULL;
         tmpSymbolBrightness = NULL;
 
         // Mini HUD
@@ -820,7 +790,7 @@ private:
     OSDType type;
 
     // Textures and coordinates for main hud (large 700px)
-    DisplayOutput::spCTextureFlat m_spBgTexture, m_spDotTexture, m_spDotTexture_u, m_spDotTexture_r, m_spDotTexture_b, m_spSymbolSpeedTexture, m_spSymbolBrightnessTexture;
+    DisplayOutput::spCTextureFlat m_spBgTexture, m_spDotTexture, m_spDotTexture_u, m_spSymbolBrightnessTexture;
     Base::Math::CRect m_BgCRect, m_DotCRect, m_SymbolCRect;
     
     // Textures and coordinates for mini hud (210sq)
