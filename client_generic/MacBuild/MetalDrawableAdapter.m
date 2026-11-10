@@ -69,4 +69,13 @@
     return _currentDrawable;
 }
 
+// CTextMetal::UpdateContentsScale asks the view for -window to pick the
+// backing scale. A remote wallpaper surface has no window; return nil so it
+// falls back to the main screen's scale instead of crashing with an
+// unrecognized selector.
+- (id)window
+{
+    return nil;
+}
+
 @end
