@@ -5,3 +5,6 @@
 [submodule "client_generic/imgui"]
 	path = client_generic/imgui
 	url = https://github.com/ocornut/imgui.git
+[submodule "client_generic/Syphon-Framework"]
+	path = client_generic/Syphon-Framework
+	url = https://github.com/Syphon/Syphon-Framework

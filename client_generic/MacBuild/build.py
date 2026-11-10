@@ -385,6 +385,14 @@ def clean_previous_builds(build_dir: Path) -> None:
             shutil.rmtree(build_dir)
 
 
+def check_submodules() -> None:
+    """Fail early if the Syphon submodule (built by the app targets) is missing."""
+    if not Path("../Syphon-Framework/Syphon.xcodeproj").exists():
+        print_red("Syphon-Framework submodule is missing. Run:")
+        print_red("    git submodule update --init client_generic/Syphon-Framework")
+        sys.exit(1)
+
+
 def step0_resign_sparkle(config: BuildConfig) -> None:
     """Re-sign Sparkle.framework for distribution (Release builds only)."""
     if not config.release:
@@ -423,33 +431,6 @@ def step0_resign_sparkle(config: BuildConfig) -> None:
         print_green("Sparkle.framework signed successfully")
     else:
         print_red("Sparkle.framework signature verification failed")
-        sys.exit(1)
-
-
-def step0_resign_syphon(config: BuildConfig) -> None:
-    """Re-sign Syphon.framework for distribution (Release builds only)."""
-    if not config.release:
-        return
-
-    print()
-    print("========================================")
-    print("STEP 0b: Re-signing Syphon.framework")
-    print("========================================")
-
-    syphon_path = Path("Frameworks/Syphon.framework")
-
-    if not syphon_path.exists():
-        print_yellow(f"Warning: Syphon.framework not found at {syphon_path} - skipping re-sign")
-        return
-
-    print_yellow("Re-signing Syphon.framework with Developer ID certificate...")
-    sign_component(str(syphon_path), config.developer_id_cert)
-
-    print_yellow("Verifying Syphon.framework signature...")
-    if verify_signature(str(syphon_path)):
-        print_green("Syphon.framework signed successfully")
-    else:
-        print_red("Syphon.framework signature verification failed")
         sys.exit(1)
 
 
@@ -1240,9 +1221,10 @@ Environment variables (optional overrides):
     output_dir = config.build_dir / config.build_config
     output_dir.mkdir(parents=True, exist_ok=True)
 
+    check_submodules()
+
     # Step 0: Re-sign Sparkle.framework
     step0_resign_sparkle(config)
-    step0_resign_syphon(config)
 
     # Step 1: Build screensaver
     screensaver_path = step1_build_screensaver(config)
