@@ -10,6 +10,7 @@ source SVGs come from and how to add an icon.
 import argparse
 import re
 import shutil
+import struct
 import subprocess
 import sys
 from pathlib import Path
@@ -100,6 +101,20 @@ def icons():
     }
 
 
+def strip_ancillary_chunks(path):
+    """Keep only IHDR, IDAT and IEND. rsvg-convert writes a bKGD chunk, and the
+    client's PNG loader (DisplayOutput/LoadPNG.cpp) flattens any image with a bKGD
+    onto that color and drops the alpha channel, so the icons would not draw."""
+    data = path.read_bytes()
+    out, i = [data[:8]], 8
+    while i < len(data):
+        n = struct.unpack(">I", data[i:i + 4])[0]
+        if data[i + 4:i + 8] in (b"IHDR", b"IDAT", b"IEND"):
+            out.append(data[i:i + 12 + n])
+        i += 12 + n
+    path.write_bytes(b"".join(out))
+
+
 def main():
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     ap.add_argument("--scale", type=float, default=1.0,
@@ -115,6 +130,7 @@ def main():
         out = args.out / f"{name}.png"
         subprocess.run([rsvg, "-w", str(round(w * args.scale)), "-h", str(round(h * args.scale)),
                         "-o", str(out)], input=svg.encode(), check=True)
+        strip_ancillary_chunks(out)
         print(out)
 
 
