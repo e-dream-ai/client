@@ -34,7 +34,7 @@ frontend's `react-icons` package (v5.5.0) and its `src/icons/` folder.
 | --- | --- | --- |
 | `Fa*` | Font Awesome Free 5 | CC BY 4.0 (icons) |
 | `Lu*` | Lucide | ISC |
-| `Md*` | Google Material Icons | Apache 2.0 |
+| `Replay10`, `Forward10` | Google Material Icons `replay_10` / `forward_10`, arrowhead halved and digits enlarged | Apache 2.0 |
 | `FlyingBird` | frontend `src/icons/flying-bird.tsx` | ours |
 
 To add an icon, drop its SVG in `src/` (24×24 line icons need
