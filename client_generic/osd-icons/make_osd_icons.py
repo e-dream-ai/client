@@ -81,8 +81,8 @@ def icons():
     return {
         "osd-play": (ringed("FaPlay", 38, dx=3), big, big),
         "osd-pause": (ringed("FaPause", 38), big, big),
-        "osd-back": (ringed("FaStepBackward", 40, dx=-1), big, big),
-        "osd-next": (ringed("FaStepForward", 40, dx=1), big, big),
+        "osd-back": (ringed("FaStepBackward", 35, dx=-1), big, big),
+        "osd-next": (ringed("FaStepForward", 35, dx=1), big, big),
         "osd-like": (ringed("FaThumbsUp", 42), big, big),
         "osd-dislike": (ringed("FaThumbsDown", 42), big, big),
         "osd-repeat": (ringed("LuRepeat", 46), big, big),
