@@ -134,9 +134,9 @@ std::string RunCommandAndGetFirstLine(const char* command)
 }
 } // namespace
 
-void PlatformUtils::Win32SetMessageWindow(void* hwnd)
+void PlatformUtils::SetNativeMessageWindow(void* _nativeHandle)
 {
-    g_win32MsgHwnd = static_cast<HWND>(hwnd);
+    g_win32MsgHwnd = static_cast<HWND>(_nativeHandle);
 }
 
 void PlatformUtils::NotifyMouseMoved(int x, int y)
