@@ -24,6 +24,12 @@ malformed ones, but no other faults or chaos yet. Mac only for now.
   with a build made with `xcodebuild ... -enableAddressSanitizer YES`.
 - `navigation_chaos_test.py` is the same with only `next`, `previous`, `forward`, `backward`,
   `play_playlist` and `play_dream`, and the rate changing every 1 to 4 seconds.
+- `keyframe_test.py` plays a keyframed playlist from a snapshot set (default `wanderlust-v1`)
+  and checks every move against its keyframe graph: along a chain with `next`, when dreams end
+  by themselves, from a dead end and inside a cycle. A move must take an unplayed dream that
+  starts where the current one ends, if there is one, and be seamless exactly when it does. A
+  natural end may only go to a cached dream (by design, #269), so there only cached matches
+  count. `--rate N` streams over a limited link.
 - `crash_test.py` sends malformed remote-control messages, one per fresh client, and checks
   the client survives each. `--list` shows the cases; `--case NAME` runs one.
 - `throttle_test.py` serves the largest videos over a limited link, drops the rate below

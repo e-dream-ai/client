@@ -157,10 +157,13 @@ def ok(data):
 
 
 class MockServer:
-    def __init__(self, media_dir, dreams, event_log, port, media_rate=0):
+    def __init__(self, media_dir, dreams, event_log, port, media_rate=0, default_playlist=PLAYLIST_UUID):
         self.media_dir = Path(media_dir)
         self.dreams = dreams
         self.playlists = build_playlists(list(dreams), snapshot_playlists(media_dir, dreams))
+        if default_playlist not in self.playlists:
+            raise SystemExit(f"No playlist {default_playlist} in this set; have {', '.join(self.playlists)}")
+        self.start_playlist = default_playlist
         self.event_log = event_log
         self.port = port
         self.sockets = set()
@@ -179,10 +182,10 @@ class MockServer:
                  cookie=request.headers.get("Cookie"))
 
     async def hello(self, request):
-        return ok({"quota": QUOTA_BYTES, "dislikesCount": 0, "currentPlaylistUUID": PLAYLIST_UUID})
+        return ok({"quota": QUOTA_BYTES, "dislikesCount": 0, "currentPlaylistUUID": self.start_playlist})
 
-    def contents(self, playlist=PLAYLIST_UUID):
-        return self.playlists[playlist][1]
+    def contents(self, playlist=None):
+        return self.playlists[playlist or self.start_playlist][1]
 
     async def playlist(self, request):
         uuid = request.match_info["id"]
@@ -369,12 +372,15 @@ def main():
                         help="which videos to serve; largest needs the most bandwidth")
     parser.add_argument("--media-rate", type=int, default=0,
                         help="limit media to this many bytes a second in total; 0 means no limit")
+    parser.add_argument("--default-playlist", default=PLAYLIST_UUID,
+                        help="the playlist the client starts on, e.g. a snapshot set's real one")
     parser.add_argument("--event-log", default="events.jsonl")
     args = parser.parse_args()
 
     dreams = load_dreams(args.media_dir, args.dreams, args.min_frames, args.pick)
     with open(args.event_log, "w", buffering=1) as event_log:
-        server = MockServer(args.media_dir, dreams, event_log, args.port, args.media_rate)
+        server = MockServer(args.media_dir, dreams, event_log, args.port, args.media_rate,
+                            args.default_playlist)
         web.run_app(server.app(), host="127.0.0.1", port=args.port, print=None)
 
 
