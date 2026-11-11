@@ -22,6 +22,8 @@ malformed ones, but no other faults or chaos yet. Mac only for now.
   changing the media rate every few seconds, then checks the client recovers. `--seed N`
   replays a run; every action goes to `actions.jsonl` in the run folder. It finds more
   with a build made with `xcodebuild ... -enableAddressSanitizer YES`.
+- `navigation_chaos_test.py` is the same with only `next`, `previous`, `forward`, `backward`,
+  `play_playlist` and `play_dream`, and the rate changing every 1 to 4 seconds.
 - `crash_test.py` sends malformed remote-control messages, one per fresh client, and checks
   the client survives each. `--list` shows the cases; `--case NAME` runs one.
 - `throttle_test.py` serves the largest videos over a limited link, drops the rate below
@@ -105,5 +107,23 @@ venv/bin/python e2e_test.py --app "$APP" --set local-v1
 ```
 
 Sets live in `~/edream-fixtures/<name>/` (or under `INFINIDREAM_FIXTURES`), and each run checks
-the set's md5s before starting. Shared sets of alpha dreams fetched through the client API come
-later (#733, milestone 2b).
+the set's md5s before starting.
+
+`fixtures.py snapshot` makes a set from real playlists on alpha, through the same client API
+the client uses, with an API key read from `INFINIDREAM_FIXTURES_KEY` or an env file (it is
+sent only to the API server and never printed). It saves the raw API responses under `api/`,
+and can be rerun to resume. The server then serves that set's real dream records and its real
+playlists (cut to the dreams taken, keyframes kept) beside the made-up ones.
+
+```bash
+venv/bin/python fixtures.py snapshot --set alpha-v1 --env-file ~/e-dream-ai/python-api/.env \
+    --playlist e45d0e8c-ac8d-47c4-b32b-c615066d3663:20 \
+    --playlist bd5615c2-5a68-4e33-b9c1-6649fb09dc03:2 \
+    --playlist d9726526-b8f2-4221-a0bf-67fbacc01f4d:40
+venv/bin/python chaos_test.py --app "$APP" --set alpha-v1 --dreams 0 --min-frames 0
+```
+
+`alpha-v1` is 62 dreams and 2.8 GB: the first 20 of Infinite Visions (31-68 MB, 727 frames),
+the first 2 of Pink Floyd (605-787 MB, 11-12k frames) and the first 40 of Wankel Rotary Engine
+(4-9 MB, 193 frames). Most are shorter than 900 frames, so they end by themselves during a
+run; tests that rely on a dream not ending can still pick long ones with `--min-frames 900`.

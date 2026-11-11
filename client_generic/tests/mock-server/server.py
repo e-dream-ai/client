@@ -15,8 +15,9 @@ server over HTTP:
   total, like one shared link. 0 means no limit.
 
 It serves a few playlists of the same dreams, for play_playlist: the default one with every
-dream, the same reversed, one with a single dream, and one without the first dream.
-/control/health lists them.
+dream, the same reversed, one with a single dream, and one without the first dream. A snapshot
+fixture set (fixtures.py snapshot) also brings its real dream records and real playlists, cut
+to the dreams served. /control/health lists them.
 """
 import argparse
 import asyncio
@@ -45,8 +46,31 @@ def probe(path):
     return round(int(numerator) / int(denominator)), int(stream["nb_read_packets"])
 
 
+def snapshot_records(media_dir):
+    """A snapshot fixture set's dream records as the real server sent them, or None if
+    media_dir isn't a snapshot (see fixtures.py snapshot)."""
+    path = Path(media_dir) / "api" / "dreams.json"
+    if not path.exists():
+        return None
+    records = {}
+    for record in json.loads(path.read_text())["data"]["dreams"]:
+        if (Path(media_dir) / f"{record['uuid']}.mp4").exists():
+            # Links to the real site; the client must not fetch anything from it in a test.
+            records[record["uuid"]] = {**record, "thumbnail": "", "frontendUrl": ""}
+    return records
+
+
 def load_dreams(media_dir, count, min_frames, pick="smallest"):
-    """Builds records for the smallest or largest distinct videos, in the types the client expects."""
+    """Builds records for the smallest or largest distinct videos, in the types the client
+    expects; count 0 means all of them. A snapshot set's own records are used as they are."""
+    records = snapshot_records(media_dir)
+    if records is not None:
+        chosen = sorted((r for r in records.values() if r["frames"] >= min_frames),
+                        key=lambda r: int(r["size"]), reverse=pick == "largest")
+        chosen = chosen[:count] if count else chosen
+        if not chosen or (count and len(chosen) < count):
+            raise SystemExit(f"Need {count or 1} videos of at least {min_frames} frames in {media_dir}")
+        return {r["uuid"]: r for r in chosen}
     videos = sorted(Path(media_dir).glob("*.mp4"), key=lambda p: p.stat().st_size,
                     reverse=pick == "largest")
     dreams = {}
@@ -69,6 +93,8 @@ def load_dreams(media_dir, count, min_frames, pick="smallest"):
         }
         if len(dreams) == count:
             return dreams
+    if not count and dreams:
+        return dreams
     raise SystemExit(f"Need {count} distinct videos of at least {min_frames} frames in {media_dir}")
 
 
@@ -76,13 +102,38 @@ def playlist_uuid(number):
     return f"00000000-0000-4000-8000-{number:012d}"
 
 
-def build_playlists(uuids):
-    """Playlist uuid -> (name, dream uuids). The first is the default playlist."""
+def entries(uuids):
+    return [{"uuid": uuid, "timestamp": TIMESTAMP} for uuid in uuids]
+
+
+def snapshot_playlists(media_dir, served):
+    """A snapshot set's real playlists, cut to the dreams it took and the server serves, with
+    their own order, timestamps and keyframes: uuid -> (name, contents)."""
+    manifest_path = Path(media_dir) / "manifest.json"
+    if not manifest_path.exists():
+        return {}
+    playlists = {}
+    for playlist in json.loads(manifest_path.read_text()).get("playlists", []):
+        path = Path(media_dir) / "api" / f"playlist_{playlist['id']}.json"
+        if not path.exists():
+            continue
+        taken = set(playlist["uuids"])
+        contents = [item for item in json.loads(path.read_text())["data"]["playlist"]["contents"]
+                    if item["uuid"] in taken and item["uuid"] in served]
+        if contents:
+            playlists[playlist["id"]] = (playlist.get("name") or playlist["id"], contents)
+    return playlists
+
+
+def build_playlists(uuids, real=None):
+    """Playlist uuid -> (name, contents). The first is the default playlist. A snapshot set's
+    real playlists come after the made-up ones."""
     return {
-        playlist_uuid(1): ("mock playlist", list(uuids)),
-        playlist_uuid(2): ("mock reversed", list(reversed(uuids))),
-        playlist_uuid(3): ("mock single", list(uuids[-1:])),
-        playlist_uuid(4): ("mock without first", list(uuids[1:]) or list(uuids)),
+        playlist_uuid(1): ("mock playlist", entries(uuids)),
+        playlist_uuid(2): ("mock reversed", entries(reversed(uuids))),
+        playlist_uuid(3): ("mock single", entries(uuids[-1:])),
+        playlist_uuid(4): ("mock without first", entries(uuids[1:] or uuids)),
+        **(real or {}),
     }
 
 
@@ -109,7 +160,7 @@ class MockServer:
     def __init__(self, media_dir, dreams, event_log, port, media_rate=0):
         self.media_dir = Path(media_dir)
         self.dreams = dreams
-        self.playlists = build_playlists(list(dreams))
+        self.playlists = build_playlists(list(dreams), snapshot_playlists(media_dir, dreams))
         self.event_log = event_log
         self.port = port
         self.sockets = set()
@@ -131,7 +182,7 @@ class MockServer:
         return ok({"quota": QUOTA_BYTES, "dislikesCount": 0, "currentPlaylistUUID": PLAYLIST_UUID})
 
     def contents(self, playlist=PLAYLIST_UUID):
-        return [{"uuid": uuid, "timestamp": TIMESTAMP} for uuid in self.playlists[playlist][1]]
+        return self.playlists[playlist][1]
 
     async def playlist(self, request):
         uuid = request.match_info["id"]
@@ -252,7 +303,8 @@ class MockServer:
         return web.json_response({"dreams": list(self.dreams), "sockets": len(self.sockets),
                                   "fps": {u: float(d["fps"]) for u, d in self.dreams.items()},
                                   "frames": {u: d["frames"] for u, d in self.dreams.items()},
-                                  "playlists": {u: dreams for u, (_, dreams) in self.playlists.items()}})
+                                  "playlists": {u: [item["uuid"] for item in contents]
+                                                for u, (_, contents) in self.playlists.items()}})
 
     async def control_send(self, request):
         event = request.match_info["event"]
@@ -309,7 +361,7 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--media-dir", required=True, help="folder of <uuid>.mp4 files")
     parser.add_argument("--port", type=int, default=8765)
-    parser.add_argument("--dreams", type=int, default=3, help="how many videos to serve")
+    parser.add_argument("--dreams", type=int, default=3, help="how many videos to serve; 0 for all")
     # Long enough that a dream doesn't end by itself during a test, which would look like
     # a command working.
     parser.add_argument("--min-frames", type=int, default=900, help="skip shorter videos")

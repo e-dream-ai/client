@@ -28,8 +28,9 @@ DREAMS = 4
 RECOVERY_TIMEOUT = 60
 COMMAND_TIMEOUT = 20
 
-# Media rates in bytes a second; 0 is no limit. The low ones starve the client.
-RATES = [0, 0, 5_000_000, 2_000_000, 1_000_000, 500_000, 200_000, 50_000, 10_000]
+# Media rates in bytes a second. The fastest is capped, so even it can't fetch a large set in
+# a few seconds; the low ones starve the client. The run starts at one of these too.
+RATES = [20_000_000, 20_000_000, 5_000_000, 2_000_000, 1_000_000, 500_000, 200_000, 50_000, 10_000]
 RATE_SECONDS = (2.0, 6.0)  # how long each rate lasts
 
 # (command, weight). play_dream and play_playlist are filled in with random arguments.
@@ -56,8 +57,8 @@ def frame_for(rng, frames):
     return frames + rng.randrange(1, 100)
 
 
-def make_command(rng, run):
-    name = rng.choices([c for c, _ in COMMANDS], [w for _, w in COMMANDS])[0]
+def make_command(rng, run, commands=COMMANDS):
+    name = rng.choices([c for c, _ in commands], [w for _, w in commands])[0]
     if name == "play_dream":
         uuid = rng.choice(run.dreams)
         fields = {"uuid": uuid}
@@ -96,7 +97,7 @@ class Actions:
                                     **fields}) + "\n")
 
 
-def chaos(run, rng, seconds, actions):
+def chaos(run, rng, seconds, actions, commands=COMMANDS, rate_seconds=RATE_SECONDS):
     counts, rates = Counter(), []
     gap = gaps(rng)
     end = time.time() + seconds
@@ -108,13 +109,37 @@ def chaos(run, rng, seconds, actions):
             run.set_media_rate(rate)
             rates.append(rate)
             actions.log("media_rate", bytes_per_second=rate)
-            next_rate = time.time() + rng.uniform(*RATE_SECONDS)
-        name, fields = make_command(rng, run)
+            next_rate = time.time() + rng.uniform(*rate_seconds)
+        name, fields = make_command(rng, run, commands)
         run.send(name, **fields)
         counts[name] += 1
         actions.log("send", event=name, **fields)
         time.sleep(next(gap))
     return counts, rates
+
+
+# Not below this at launch, or the first dream may not start before wait_until_playing gives up.
+MIN_START_RATE = 500_000
+MIN_STREAMED = 3  # plays that must start from a dream still downloading, or the run tested little
+
+
+def network_report(run, cache_gb):
+    """What the run did with the network, from the server's events and the client's log, and
+    checks that it really exercised streaming, and eviction when the cache was limited."""
+    ends = run.events("media_end")
+    served = sum(e["sent"] for e in ends)
+    complete = sum(1 for e in ends if e["sent"] == e["wanted"])
+    log = run.log_text()
+    streamed = log.count("is not cached, will try loading")
+    evicted = log.count("Evicted oldest video")
+    print(f"Network: {len(ends)} media transfers, {served / 1e9:.2f} GB served, {complete} complete, "
+          f"{len(ends) - complete} cut short; {streamed} plays streamed, "
+          f"{log.count('Opening remote decoder')} remote opens, {evicted} evictions", flush=True)
+    h.check(f"At least {MIN_STREAMED} plays started from a dream still downloading",
+            streamed >= MIN_STREAMED, f"{streamed}")
+    if cache_gb:
+        h.check(f"The client evicted videos to stay within {cache_gb} GB", evicted > 0,
+                f"{evicted} evictions, {served / 1e9:.2f} GB served")
 
 
 def latest(run):
@@ -177,12 +202,18 @@ def recover(run, actions):
         h.check("next still works after the chaos", False, f"stayed on {now[:8]}")
 
 
-def main():
-    parser = argparse.ArgumentParser(description=__doc__,
+def main(description=__doc__, commands=COMMANDS, rate_seconds=RATE_SECONDS, prefix="chaos"):
+    parser = argparse.ArgumentParser(description=description,
                                      formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("--app", required=True, help="client binary inside the .app")
     h.add_media_args(parser)
     parser.add_argument("--seconds", type=float, default=60, help="how long to send commands")
+    parser.add_argument("--dreams", type=int, default=DREAMS, help="how many to serve; 0 for all")
+    parser.add_argument("--min-frames", type=int, default=900,
+                        help="serve only dreams at least this long; 0 to allow short ones")
+    parser.add_argument("--cache-gb", type=int,
+                        help="client cache limit in GB (whole numbers, at least 1); smaller than "
+                             "the set makes the client evict and download again")
     parser.add_argument("--seed", type=int, help="replay a run; random if not given")
     parser.add_argument("--keep", action="store_true", help="keep the run folder even if it passes")
     args = parser.parse_args()
@@ -193,26 +224,32 @@ def main():
     if h.screen_locked():
         sys.exit("The screen is locked, which stops the render loop. Unlock it and run again.")
 
-    work = tempfile.mkdtemp(prefix="infinidream-chaos-")
+    work = tempfile.mkdtemp(prefix=f"infinidream-{prefix}-")
     print(f"Run folder: {work}", flush=True)
     print(f"Seed {seed} (replay with --seed {seed})", flush=True)
     before = h.snapshot_real_installs()
-    run = h.Run(work, args.app, args.media_dir, server_args=("--dreams", str(DREAMS)),
-                screenshots=False)
+    start_rate = rng.choice([r for r in RATES if r >= MIN_START_RATE])
+    print(f"Starting with media limited to {start_rate / 1e3:.0f} KB/s", flush=True)
+    cache = {"cache_size": args.cache_gb, "unlimited_cache": False} if args.cache_gb else {}
+    run = h.Run(work, args.app, args.media_dir, server_args=(
+                    "--dreams", str(args.dreams), "--min-frames", str(args.min_frames),
+                    "--media-rate", str(start_rate)),
+                screenshots=False, content_settings=cache)
     actions = None
     try:
         run.start()
         actions = Actions(f"{work}/actions.jsonl", run.started_at)
-        actions.log("seed", seed=seed)
+        actions.log("seed", seed=seed, start_rate=start_rate, cache_gb=args.cache_gb)
         run.wait_until_ready()
         first = run.wait_until_playing()["current"]
         h.check("Client is playing", True, first[:8])
 
-        counts, rates = chaos(run, rng, args.seconds, actions)
+        counts, rates = chaos(run, rng, args.seconds, actions, commands, rate_seconds)
         h.check(f"Client survived {sum(counts.values())} commands and {len(rates)} rate changes "
                 f"in {args.seconds:.0f} s", True,
                 ", ".join(f"{name} {n}" for name, n in counts.most_common()))
         recover(run, actions)
+        network_report(run, args.cache_gb)
 
         played = {b["current"] for b in run.heartbeats() if b.get("current", "-") != "-"}
         h.check("Every dream played is one the server offered", played <= set(run.dreams),
