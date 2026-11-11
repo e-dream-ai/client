@@ -33,6 +33,14 @@ static void ShowFirstTimeSetupCallback()
     [[FirstTimeSetupManager sharedManager] showFirstTimeSetupIfNeeded];
 }
 
+// The same path as Cmd-Q. Called from the socket thread, so hop to the main thread.
+static void QuitCallback()
+{
+    dispatch_async(dispatch_get_main_queue(), ^{
+        [[NSApplication sharedApplication] terminate:nil];
+    });
+}
+
 - (void)awakeFromNib // was - (NSWindow *)window
 {
     if (g_Log) g_Log->Info("Awake from nib");
@@ -76,6 +84,7 @@ static void ShowFirstTimeSetupCallback()
     s_pWindow = self;
     ESSetShowPreferencesCallback(ShowPreferencesCallback);
     ESSetShowFirstTimeSetupCallback(ShowFirstTimeSetupCallback);
+    ESSetQuitCallback(QuitCallback);
     
     // Check if user has enabled auto-install screensaver and install if needed
     // Only run this in the app, not in the screensaver itself
