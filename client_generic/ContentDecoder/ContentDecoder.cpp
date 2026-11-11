@@ -253,7 +253,12 @@ int CContentDecoder::DumpError(int _err)
     if (_err < 0)
     {
 #ifdef MAC
-        const char* errStr = UNFFERRTAG(_err);
+        // FFmpeg error codes are negated four-character tags. Spell the tag out in a local
+        // array: a compound literal here was a temporary, gone before it was logged
+        // (found by AddressSanitizer, client#733).
+        const int tag = -_err;
+        const char errStr[] = {(char)(tag & 0xFF), (char)((tag >> 8) & 0xFF),
+                               (char)((tag >> 16) & 0xFF), (char)((tag >> 24) & 0xFF), 0};
 #else
         std::string numStr = std::to_string(_err);
         const char* errStr = numStr.c_str();

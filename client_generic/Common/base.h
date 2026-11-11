@@ -128,13 +128,6 @@ inline std::recursive_mutex& GetD3D11ImmediateContextMutex()
 #define USE_HW_ACCELERATION 0
 #endif
 
-#define UNFFERRTAG(tag)                                                        \
-    (const char[])                                                             \
-    {                                                                          \
-        (char)(-tag & 0xFF), (char)((-tag >> 8) & 0xFF),                       \
-            (char)((-tag >> 16) & 0xFF), (char)((-tag >> 24) & 0xFF), 0        \
-    }
-
 #define LOG_PROFILER_EVENTS 0
 
 #if LOG_PROFILER_EVENTS
