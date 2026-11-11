@@ -11,6 +11,9 @@
 bool SpoutOutput_Update(ID3D11Device* device);
 // Publish a frame. Only call after SpoutOutput_Update returned true.
 void SpoutOutput_Publish(ID3D11Texture2D* texture);
-void SpoutOutput_Stop(void);
+// Stop only if this device owns the global sender (primary renderer teardown).
+// Secondary-display renderers share the same process-global Spout state but never
+// open it; their destructors must not kill an active primary sender.
+void SpoutOutput_Stop(ID3D11Device* device);
 
 #endif // _SPOUTOUTPUT_H_

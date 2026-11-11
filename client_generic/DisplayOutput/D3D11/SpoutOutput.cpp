@@ -83,7 +83,9 @@ void SpoutOutput_Publish(ID3D11Texture2D* texture)
         g_Log->Warning("Spout SendTexture failed");
 }
 
-void SpoutOutput_Stop(void)
+void SpoutOutput_Stop(ID3D11Device* device)
 {
+    if (!device || g_spoutDevice != device)
+        return;
     StopSender();
 }

@@ -610,7 +610,7 @@ CRendererDX11::CRendererDX11()
 }
 
 CRendererDX11::~CRendererDX11() {
-    SpoutOutput_Stop();
+    SpoutOutput_Stop(m_device.Get());
     ReleaseSpoutOffscreenTarget();
 }
 
