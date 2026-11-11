@@ -19,6 +19,12 @@ void StopSender()
     if (!g_spout)
         return;
 
+    // ReleaseSender/CloseDirectX11 touch the shared immediate context; take the
+    // same lock as Publish so destructor teardown is safe vs in-flight frames.
+    std::lock_guard<std::recursive_mutex> d3dLock(GetD3D11ImmediateContextMutex());
+    if (!g_spout)
+        return;
+
     g_spout->ReleaseSender();
     g_spout->CloseDirectX11();
     g_spout.reset();

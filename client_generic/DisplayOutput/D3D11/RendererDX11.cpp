@@ -1432,8 +1432,8 @@ bool CRendererDX11::BeginFrame() {
     std::lock_guard<std::recursive_mutex> d3dLock(GetD3D11ImmediateContextMutex());
     m_pendingTextDraws.clear();
     m_renderedToSpoutOffscreen = false;
-    m_spoutCaptureThisFrame =
-        m_externalOutputThisFrame && SpoutOutput_Update(m_device.Get());
+    m_spoutCaptureThisFrame = false;
+    const bool wantExternalOutput = m_externalOutputThisFrame;
     m_externalOutputThisFrame = false;
 
     // Abort immediately if the D3D11 device was lost (DXGI_ERROR_DEVICE_REMOVED /
@@ -1451,10 +1451,13 @@ bool CRendererDX11::BeginFrame() {
                 g_Log->Error("D3D11 device removed (reason: %08X); all rendering suspended", removedReason);
                 s_deviceLostLogged = true;
             }
-            m_spoutCaptureThisFrame = false;
             return false;
         }
     }
+
+    // Open/refresh Spout only after the device is known to be alive.
+    m_spoutCaptureThisFrame =
+        wantExternalOutput && SpoutOutput_Update(m_device.Get());
 
     if (!CRenderer::BeginFrame())
     {
