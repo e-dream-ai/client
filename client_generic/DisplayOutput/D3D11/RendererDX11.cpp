@@ -4,6 +4,7 @@
 #include "base.h"
 #include "GlyphAtlasDX11.h"
 #include "Settings.h"
+#include "SpoutOutput.h"
 #include <cassert>
 #include <cmath>
 #include <cstring>
@@ -609,7 +610,8 @@ CRendererDX11::CRendererDX11()
 }
 
 CRendererDX11::~CRendererDX11() {
-    // ComPtr handles cleanup automatically
+    SpoutOutput_Stop();
+    ReleaseSpoutOffscreenTarget();
 }
 
 bool CRendererDX11::CreateGpuTimingQueries()
@@ -831,13 +833,68 @@ void CRendererDX11::PrepareForSwapChainResize()
     // CRTV for the swap chain buffer holds a ref; DXGI ResizeBuffers requires all refs released.
     m_renderTargetView.Reset();
     m_depthStencilView.Reset();
+    ReleaseSpoutOffscreenTarget();
 }
 
 bool CRendererDX11::RecreateRenderTargetsAfterResize()
 {
     m_renderTargetView.Reset();
     m_depthStencilView.Reset();
+    ReleaseSpoutOffscreenTarget();
     return CreateRenderTargets();
+}
+
+void CRendererDX11::ReleaseSpoutOffscreenTarget()
+{
+    m_spoutOffscreenRtv.Reset();
+    m_spoutOffscreenTexture.Reset();
+}
+
+bool CRendererDX11::EnsureSpoutOffscreenTarget(UINT width, UINT height,
+                                              DXGI_FORMAT format)
+{
+    if (width == 0 || height == 0 || !m_device)
+        return false;
+
+    if (m_spoutOffscreenTexture)
+    {
+        D3D11_TEXTURE2D_DESC existing = {};
+        m_spoutOffscreenTexture->GetDesc(&existing);
+        if (existing.Width == width && existing.Height == height &&
+            existing.Format == format && m_spoutOffscreenRtv)
+            return true;
+    }
+
+    ReleaseSpoutOffscreenTarget();
+
+    D3D11_TEXTURE2D_DESC desc = {};
+    desc.Width = width;
+    desc.Height = height;
+    desc.MipLevels = 1;
+    desc.ArraySize = 1;
+    desc.Format = format;
+    desc.SampleDesc.Count = 1;
+    desc.Usage = D3D11_USAGE_DEFAULT;
+    desc.BindFlags = D3D11_BIND_RENDER_TARGET | D3D11_BIND_SHADER_RESOURCE;
+
+    HRESULT hr =
+        m_device->CreateTexture2D(&desc, nullptr, &m_spoutOffscreenTexture);
+    if (FAILED(hr))
+    {
+        g_Log->Error("Failed to create Spout offscreen texture: %08X", hr);
+        return false;
+    }
+
+    hr = m_device->CreateRenderTargetView(m_spoutOffscreenTexture.Get(), nullptr,
+                                          &m_spoutOffscreenRtv);
+    if (FAILED(hr))
+    {
+        g_Log->Error("Failed to create Spout offscreen RTV: %08X", hr);
+        ReleaseSpoutOffscreenTarget();
+        return false;
+    }
+
+    return true;
 }
 
 bool CRendererDX11::CreateDepthStencilStates()
@@ -1374,6 +1431,10 @@ bool CRendererDX11::BeginFrame() {
 
     std::lock_guard<std::recursive_mutex> d3dLock(GetD3D11ImmediateContextMutex());
     m_pendingTextDraws.clear();
+    m_renderedToSpoutOffscreen = false;
+    m_spoutCaptureThisFrame =
+        m_externalOutputThisFrame && SpoutOutput_Update(m_device.Get());
+    m_externalOutputThisFrame = false;
 
     // Abort immediately if the D3D11 device was lost (DXGI_ERROR_DEVICE_REMOVED /
     // DXGI_ERROR_DEVICE_HUNG during a previous Present).  Every D3D11 call on a
@@ -1390,16 +1451,46 @@ bool CRendererDX11::BeginFrame() {
                 g_Log->Error("D3D11 device removed (reason: %08X); all rendering suspended", removedReason);
                 s_deviceLostLogged = true;
             }
+            m_spoutCaptureThisFrame = false;
             return false;
         }
     }
 
     if (!CRenderer::BeginFrame())
+    {
+        m_spoutCaptureThisFrame = false;
         return false;
+    }
 
-    if (m_context && m_renderTargetView) {
-        ID3D11RenderTargetView* rtv = m_renderTargetView.Get();
-        m_context->OMSetRenderTargets(1, &rtv, m_depthStencilView.Get());
+    ID3D11RenderTargetView* colorRtv = m_renderTargetView.Get();
+    if (m_spoutCaptureThisFrame && m_spDisplay && m_spDisplay->GetSwapChain())
+    {
+        ComPtr<ID3D11Texture2D> backBuffer;
+        HRESULT hr = m_spDisplay->GetSwapChain()->GetBuffer(
+            0, IID_PPV_ARGS(&backBuffer));
+        if (SUCCEEDED(hr) && backBuffer)
+        {
+            D3D11_TEXTURE2D_DESC bbDesc = {};
+            backBuffer->GetDesc(&bbDesc);
+            if (EnsureSpoutOffscreenTarget(bbDesc.Width, bbDesc.Height,
+                                           bbDesc.Format))
+            {
+                colorRtv = m_spoutOffscreenRtv.Get();
+                m_renderedToSpoutOffscreen = true;
+            }
+            else
+            {
+                m_spoutCaptureThisFrame = false;
+            }
+        }
+        else
+        {
+            m_spoutCaptureThisFrame = false;
+        }
+    }
+
+    if (m_context && colorRtv) {
+        m_context->OMSetRenderTargets(1, &colorRtv, m_depthStencilView.Get());
 
         float blendFactor[4] = {0.f, 0.f, 0.f, 0.f};
         m_context->OMSetBlendState(m_blendState.Get(), blendFactor, 0xFFFFFFFF);
@@ -1412,9 +1503,9 @@ bool CRendererDX11::BeginFrame() {
     m_context->RSSetViewports(1, &viewport);
 
     // Clear render target and depth buffer
-    if (m_context && m_renderTargetView) {
+    if (m_context && colorRtv) {
         float clearColor[4] = {0.0f, 0.0f, 0.0f, 1.0f};
-        m_context->ClearRenderTargetView(m_renderTargetView.Get(), clearColor);
+        m_context->ClearRenderTargetView(colorRtv, clearColor);
         if (m_depthStencilView) {
             m_context->ClearDepthStencilView(m_depthStencilView.Get(), D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 1.0f, 0);
         }
@@ -1433,7 +1524,40 @@ bool CRendererDX11::BeginFrame() {
 
         return true;
     }
+    m_spoutCaptureThisFrame = false;
+    m_renderedToSpoutOffscreen = false;
     return false;
+}
+
+void CRendererDX11::CaptureExternalOutputBeforeOverlay()
+{
+    if (!m_renderedToSpoutOffscreen || !m_spoutOffscreenTexture || !m_context ||
+        !m_spDisplay || !m_spDisplay->GetSwapChain())
+        return;
+
+    // Publish HUD-free video, then copy to the swapchain for local overlays.
+    SpoutOutput_Publish(m_spoutOffscreenTexture.Get());
+
+    std::lock_guard<std::recursive_mutex> d3dLock(GetD3D11ImmediateContextMutex());
+
+    ComPtr<ID3D11Texture2D> backBuffer;
+    HRESULT hr =
+        m_spDisplay->GetSwapChain()->GetBuffer(0, IID_PPV_ARGS(&backBuffer));
+    if (FAILED(hr) || !backBuffer)
+    {
+        g_Log->Error("Spout blit: failed to get back buffer: %08X", hr);
+        m_renderedToSpoutOffscreen = false;
+        return;
+    }
+
+    m_context->CopyResource(backBuffer.Get(), m_spoutOffscreenTexture.Get());
+
+    ID3D11RenderTargetView* rtv = m_renderTargetView.Get();
+    m_context->OMSetRenderTargets(1, &rtv, m_depthStencilView.Get());
+    D3D11_VIEWPORT viewport = BuildBaseViewportForDisplay(m_spDisplay);
+    m_context->RSSetViewports(1, &viewport);
+
+    m_renderedToSpoutOffscreen = false;
 }
 
 bool CRendererDX11::EnsureTextBatchResources()
@@ -1538,7 +1662,13 @@ bool CRendererDX11::EnsureTextBatchResources()
 }
 
 bool CRendererDX11::EndFrame(bool drawn) {
+    // Frames that skip the HUD path never called CaptureExternalOutputBeforeOverlay.
+    // Do it now so the Spout feed still gets a frame and the window gets the blit.
+    if (m_renderedToSpoutOffscreen)
+        CaptureExternalOutputBeforeOverlay();
+
     std::lock_guard<std::recursive_mutex> d3dLock(GetD3D11ImmediateContextMutex());
+    m_spoutCaptureThisFrame = false;
 #ifdef WIN32
     // Base CRenderer::EndFrame returns false when !drawn, which would skip overlay + Present.
     // Settings overlay is rendered after HUD text so it always appears top-most.

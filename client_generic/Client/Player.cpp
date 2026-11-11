@@ -924,7 +924,7 @@ bool CPlayer::BeginDisplayFrame(uint32_t displayUnit)
         du = m_displayUnits[displayUnit];
     }
 
-    // External outputs (Syphon) publish the primary display only.
+    // External outputs (Syphon/Spout) publish the primary display only.
     du->spRenderer->EnableExternalOutputThisFrame(displayUnit == 0);
 
     if (du->spRenderer->BeginFrame() == false)
