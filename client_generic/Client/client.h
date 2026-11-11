@@ -103,6 +103,13 @@ extern void ESSetShowFirstTimeSetupCallback(ShowFirstTimeSetupCallback_t);
 extern void ESShowFirstTimeSetup();
 extern bool ESHasFirstTimeSetupCallback();
 
+/// Quits the app the way the user would (Cmd-Q on Mac). Registered by the app; used by the
+/// test-only "quit" remote-control command, which the client honors only when
+/// INFINIDREAM_DATA_DIR is set (client#733). Returns false if no callback is registered.
+typedef void (*QuitCallback_t)();
+extern void ESSetQuitCallback(QuitCallback_t);
+extern bool ESRequestQuit();
+
 #if defined(WIN32)
 /// True while the first-run ImGui wizard is active (used to skip game HUD compositing).
 bool FirstTimeSetupWin32_IsWizardVisible();
