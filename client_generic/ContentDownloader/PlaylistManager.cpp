@@ -930,16 +930,21 @@ std::optional<PlaylistManager::NextDreamDecision> PlaylistManager::preflightNext
         return std::nullopt;
     }
 
-    const auto& firstEntry = m_playlist[0];
+    // Nothing unplayed besides (at most) the current dream: start a new round
+    // with the dream after the current one, so a skip never restarts the dream
+    // that is already playing (client#771).
+    const size_t restartPos = m_started ? (m_currentPosition + 1) % m_playlist.size() : 0;
+    const_cast<PlaylistManager*>(this)->resetPlayHistory();
+    const auto& restartEntry = m_playlist[restartPos];
 
     decision = {
-        0,
+        restartPos,
         TransitionType::StandardCrossfade,  // Always crossfade when restarting playlist
-        m_cacheManager.getDream(firstEntry.uuid),
-        firstEntry.startKeyframe,
-        firstEntry.endKeyframe
+        m_cacheManager.getDream(restartEntry.uuid),
+        restartEntry.startKeyframe,
+        restartEntry.endKeyframe
     };
-    g_Log->Info("Preflight : fallback to first dream");
+    g_Log->Info("Preflight : nothing unplayed, starting a new round at position %zu", restartPos);
 
     return decision;
 }
