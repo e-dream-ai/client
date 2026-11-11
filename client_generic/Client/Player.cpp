@@ -2061,7 +2061,11 @@ void CPlayer::SkipToNext(std::string_view endReason)
             g_Log->Warning("Next dream is not cached and quota is too low, cannot stream");
             return;
         }
-        g_Log->Info("Next dream is not cached, will try loading and playin immediately");
+        g_Log->Info("Next dream is not cached, will try loading and playing immediately");
+        // Record the move as the cached path does. PlayDreamNow only sets the
+        // position, so without this the dream never enters the play history
+        // and later nexts skip or repeat dreams (client#771).
+        m_playlistManager->moveToNextDream(*nextDecision);
         PlayDreamNow(nextDecision->dream->uuid, -1, endReason);
         return;
     }
