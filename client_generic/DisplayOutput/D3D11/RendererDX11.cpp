@@ -1500,7 +1500,12 @@ bool CRendererDX11::BeginFrame() {
     }
 
     if (m_context && colorRtv) {
-        m_context->OMSetRenderTargets(1, &colorRtv, m_depthStencilView.Get());
+        // Spout offscreen is titlebar-cropped (shorter than the swapchain depth buffer).
+        // D3D11 rejects RTV+DSV binds when dimensions differ; depth is already disabled
+        // for 2D compositing, so skip the DSV on the offscreen pass.
+        ID3D11DepthStencilView* dsv =
+            m_renderedToSpoutOffscreen ? nullptr : m_depthStencilView.Get();
+        m_context->OMSetRenderTargets(1, &colorRtv, dsv);
 
         float blendFactor[4] = {0.f, 0.f, 0.f, 0.f};
         m_context->OMSetBlendState(m_blendState.Get(), blendFactor, 0xFFFFFFFF);
