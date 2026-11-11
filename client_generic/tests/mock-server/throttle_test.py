@@ -9,14 +9,13 @@ throughout. Takes about 45 seconds. Mac only for now.
 import argparse
 import json
 import re
-import shutil
 import sys
 import tempfile
 import time
 import urllib.request
 from datetime import datetime
 
-import e2e_test as e
+import harness as e
 import server
 
 # The client plays dreams at 20 fps by default, whatever the file's own rate.
@@ -123,9 +122,10 @@ def verify_timing(run):
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--app", required=True, help="client binary inside the .app")
-    parser.add_argument("--media-dir", default="/Users/Shared/infinidream.ai/content/mp4")
+    e.add_media_args(parser)
     parser.add_argument("--keep", action="store_true", help="keep the run folder even if it passes")
     args = parser.parse_args()
+    e.resolve_media(args)
 
     if e.screen_locked():
         sys.exit("The screen is locked, which stops the render loop. Unlock it and run again.")
@@ -138,33 +138,27 @@ def main():
     print(f"First dream {first['uuid'][:8]} needs {need / 1e3:.0f} KB/s; at {GOOD_RATE}x it "
           f"downloads in {download_seconds:.0f} s", flush=True)
 
-    # Screenshots stall the render loop briefly, which would show up as late ticks.
-    e.screens.can_capture = lambda: False
     work = tempfile.mkdtemp(prefix="infinidream-throttle-")
     print(f"Run folder: {work}", flush=True)
     before = e.snapshot_real_installs()
+    # Screenshots stall the render loop briefly, which would show up as late ticks. While
+    # starved, frames move in short bursts, so allow a longer stretch without one.
     run = e.Run(work, args.app, args.media_dir, server_args=(
-        "--pick", "largest", "--media-rate", str(int(need * GOOD_RATE))))
+        "--pick", "largest", "--media-rate", str(int(need * GOOD_RATE))),
+        screenshots=False, max_stuck=15)
     try:
         run.start()
         scenario(run, need, download_seconds)
     except e.Failed as failure:
         e.check("Scenario", False, str(failure))
     finally:
-        exit_code = run.stop()
+        run.stop()
     if run.client:
-        print(f"Client exit code after SIGTERM: {exit_code}", flush=True)
+        e.verify_process(run)
         # The run can end before every download finishes, so don't require one.
-        e.verify(run, before, require_download=False)
+        e.verify_server(run, before, require_download=False)
         verify_timing(run)
-
-    passed = bool(e.results) and all(e.results)
-    print(f"\n{sum(e.results)} of {len(e.results)} checks passed", flush=True)
-    if passed and not args.keep:
-        shutil.rmtree(work)
-    else:
-        print(f"Artifacts kept in {work}", flush=True)
-    sys.exit(0 if passed else 1)
+    e.finish(work, args.keep)
 
 
 if __name__ == "__main__":

@@ -5,10 +5,14 @@ Serves the client API, the /remote-control Socket.IO namespace and media from on
 port. It accepts any credentials. Videos come from a folder of <uuid>.mp4 files,
 such as a client's content/mp4 cache, and are only ever read.
 
-Every request and socket message goes to a JSON-lines event log, and
-POST /control/send/<event> sends a remote-control event to the connected client, and
-POST /control/media-rate?bytes_per_second=N limits media downloads to N bytes a second in
-total, like one shared link. 0 means no limit.
+Every request and socket message goes to a JSON-lines event log. The test controls the
+server over HTTP:
+- POST /control/send/<event> sends a remote-control event to the connected client.
+- POST /control/emit sends any Socket.IO event on /remote-control, including malformed ones:
+  the JSON body is {"args": [name, payload...]}, or {"raw": "<text frame>"} to send a frame
+  exactly as given.
+- POST /control/media-rate?bytes_per_second=N limits media downloads to N bytes a second in
+  total, like one shared link. 0 means no limit.
 """
 import argparse
 import asyncio
@@ -223,7 +227,8 @@ class MockServer:
         return ws
 
     async def control_health(self, request):
-        return web.json_response({"dreams": list(self.dreams), "sockets": len(self.sockets)})
+        return web.json_response({"dreams": list(self.dreams), "sockets": len(self.sockets),
+                                  "fps": {u: float(d["fps"]) for u, d in self.dreams.items()}})
 
     async def control_send(self, request):
         event = request.match_info["event"]
@@ -231,6 +236,14 @@ class MockServer:
         for ws in self.sockets:
             await ws.send_str(frame)
         self.log("control_send", event=event, sockets=len(self.sockets))
+        return web.json_response({"sockets": len(self.sockets)})
+
+    async def control_emit(self, request):
+        body = await request.json()
+        frame = body["raw"] if "raw" in body else f"42{NAMESPACE}," + json.dumps(body["args"])
+        for ws in self.sockets:
+            await ws.send_str(frame)
+        self.log("control_emit", frame=frame, sockets=len(self.sockets))
         return web.json_response({"sockets": len(self.sockets)})
 
     async def control_media_rate(self, request):
@@ -261,6 +274,7 @@ class MockServer:
             web.get("/socket.io/", self.socket_io),
             web.get("/control/health", self.control_health),
             web.post("/control/send/{event}", self.control_send),
+            web.post("/control/emit", self.control_emit),
             web.post("/control/media-rate", self.control_media_rate),
             web.route("*", "/{tail:.*}", self.unhandled),
         ])
