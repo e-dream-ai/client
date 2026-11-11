@@ -1,7 +1,9 @@
 #!/usr/bin/env python3
 """Drives the client through the common remote-control commands and checks each one's effect
 in the heartbeat (client#733): next five times, previous, play_dream, play_dream at a frame,
-forward and backward, then quit. Takes about a minute and a half. Mac only for now.
+forward and backward, then quit. The nexts run over a slow link, so some of them start a dream
+that is still downloading, and each must add its dream to the play history (#771). Takes
+about a minute and a half. Mac only for now.
 
     venv/bin/python commands_test.py --app ".../infinidream.app/Contents/MacOS/infinidream"
 """
@@ -17,6 +19,10 @@ import harness as h
 SKIP_SECONDS = 10
 SEEK_FRAME = 300
 COMMAND_TIMEOUT = 15
+# Total media rate until the nexts are done: enough to play the dream on screen, too little
+# to finish downloading the rest of the playlist, so some nexts take the not-cached path.
+SLOW_LINK = 600_000
+NOT_CACHED = "Next dream is not cached, will try loading"
 
 
 def frame_of(beat):
@@ -81,11 +87,15 @@ def scenario(run):
     first = run.wait_until_playing()["current"]
     h.check("Client is playing", True, first[:8])
 
-    # With 3 dreams, 5 nexts go round the playlist more than once.
-    order, stuck = [first], []
+    # With 3 dreams, 5 nexts go round the playlist more than once. The link is slow
+    # throughout, so some nexts reach a dream that is still downloading: the path that
+    # left dreams out of the play history (#771).
+    order, stuck, unrecorded = [first], [], []
+    next_logs = ""
     for number in range(1, 6):
         time.sleep(2)
         now = latest(run)["current"]
+        log_before = len(run.log_text())
         run.send("next")
         try:
             beat = wait_for_dream(run, f"next #{number} to change the dream", lambda u: u != now)
@@ -94,9 +104,21 @@ def scenario(run):
             run.require_alive()
             stuck.append(number)
             order.append(latest(run)["current"])
+        # The history is updated before the new dream starts, so it's in the log by now.
+        logged = run.log_text()[log_before:]
+        next_logs += logged
+        if f"Added to history: {order[-1]}" not in logged:
+            unrecorded.append(number)
+    run.set_media_rate(0)
     h.check("next changed the dream 5 times in a row", not stuck,
             " -> ".join(u[:8] for u in order) + (f"; next #{', #'.join(map(str, stuck))} stayed on the same dream"
                                                  if stuck else ""))
+    h.check("Every next added its dream to the play history", not unrecorded,
+            f"no 'Added to history' after next #{', #'.join(map(str, unrecorded))}" if unrecorded else "")
+    streamed = next_logs.count(NOT_CACHED)
+    h.check("At least one next started a dream that was still downloading", streamed > 0,
+            f"{streamed} of 5" if streamed else
+            f"none did, so the not-cached path wasn't tested; lower SLOW_LINK ({SLOW_LINK} B/s)")
     h.check("Every dream played is one the server offered", all(u in run.dreams for u in order))
 
     time.sleep(2)
@@ -142,7 +164,8 @@ def main():
     work = tempfile.mkdtemp(prefix="infinidream-commands-")
     print(f"Run folder: {work}", flush=True)
     before = h.snapshot_real_installs()
-    run = h.Run(work, args.app, args.media_dir, screenshots=False)
+    run = h.Run(work, args.app, args.media_dir, server_args=("--media-rate", str(SLOW_LINK)),
+                screenshots=False)
     try:
         run.start()
         scenario(run)

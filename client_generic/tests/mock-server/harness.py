@@ -223,6 +223,10 @@ class Run:
         if sockets != 1:
             raise Failed(f"Sent {event} to {sockets} sockets, expected 1")
 
+    def set_media_rate(self, bytes_per_second):
+        """Limits all media downloads together to this many bytes a second; 0 removes the limit."""
+        self._control(f"/control/media-rate?bytes_per_second={int(bytes_per_second)}")
+
     def emit(self, args=None, raw=None):
         """Sends any Socket.IO event, or a raw text frame, to the client."""
         body = {"raw": raw} if raw is not None else {"args": args}
