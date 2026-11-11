@@ -4,7 +4,7 @@
 Serves the largest videos over a rate-limited link and changes the rate during the run:
 enough for the first dream, then well below it, then enough again. Checks that the client
 plays smoothly, rebuffers when starved, recovers, and keeps its render loop running
-throughout. Takes about two and a half minutes. Mac only for now.
+throughout. Takes about 45 seconds. Mac only for now.
 """
 import argparse
 import json
@@ -24,6 +24,8 @@ PLAYBACK_FPS = 20
 GOOD_RATE = 2.5   # times the first dream's playback rate: room for prefetching beside it
 STARVED_RATE = 0.6  # times the first dream's playback rate: below what it needs
 MAX_HEARTBEAT_GAP = 3.0  # seconds; heartbeats come every second
+DROP_FRACTION = 0.4  # lower the rate before this share of the first dream can have arrived
+MIN_GOOD_SECONDS = 3  # but play at least this long at the good rate first
 
 BEAT = re.compile(
     r"\[(?P<time>\d{4}-\d\d-\d\d \d\d:\d\d:\d\d\.\d+) - info\]: Heartbeat ticks=(?P<ticks>\d+) "
@@ -59,7 +61,9 @@ def rebuffers(beat_list):
     return sum(latest.values())
 
 
-def scenario(run, need):
+def scenario(run, need, download_seconds):
+    started_at = time.time()
+
     def playing():
         found = beats(run)
         return len(found) >= 3 and len({b["frame"] for b in found[-3:]}) == 3
@@ -68,7 +72,12 @@ def scenario(run, need):
     first = beats(run)[-1]["current"]
     e.check("Client is playing the first dream", True, first[:8])
 
-    time.sleep(30)
+    # Starve the client while most of the first dream is still to come. At GOOD_RATE the
+    # whole file would take download_seconds even with the link to itself, so by
+    # DROP_FRACTION of that time at most that fraction of it can have arrived. Waiting
+    # longer lets a fast link finish the file, and then nothing can make the client rebuffer.
+    drop_at = started_at + DROP_FRACTION * download_seconds
+    time.sleep(max(MIN_GOOD_SECONDS, drop_at - time.time()))
     so_far = beats(run)
     e.check(f"No rebuffering at {GOOD_RATE}x the dream's rate", rebuffers(so_far) == 0,
             f"{rebuffers(so_far)} rebuffers")
@@ -125,7 +134,9 @@ def main():
     dreams = server.load_dreams(args.media_dir, 3, 900, "largest")
     first = next(iter(dreams.values()))
     need = int(first["size"]) / (first["frames"] / PLAYBACK_FPS)
-    print(f"First dream {first['uuid'][:8]} needs {need / 1e3:.0f} KB/s", flush=True)
+    download_seconds = int(first["size"]) / (need * GOOD_RATE)
+    print(f"First dream {first['uuid'][:8]} needs {need / 1e3:.0f} KB/s; at {GOOD_RATE}x it "
+          f"downloads in {download_seconds:.0f} s", flush=True)
 
     # Screenshots stall the render loop briefly, which would show up as late ticks.
     e.screens.can_capture = lambda: False
@@ -136,14 +147,14 @@ def main():
         "--pick", "largest", "--media-rate", str(int(need * GOOD_RATE))))
     try:
         run.start()
-        scenario(run, need)
+        scenario(run, need, download_seconds)
     except e.Failed as failure:
         e.check("Scenario", False, str(failure))
     finally:
         exit_code = run.stop()
     if run.client:
         print(f"Client exit code after SIGTERM: {exit_code}", flush=True)
-        # The large files don't finish downloading in this short a run at these rates.
+        # The run can end before every download finishes, so don't require one.
         e.verify(run, before, require_download=False)
         verify_timing(run)
 

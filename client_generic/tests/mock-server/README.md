@@ -10,7 +10,7 @@ servers (#733). This is an early version: a total rate limit on media, but no fa
   and checks the results. It's Mac only for now.
 - `throttle_test.py` serves the largest videos over a limited link, drops the rate below
   what the first dream needs and raises it again, and checks that the client rebuffers and
-  recovers while its render loop keeps going. It takes about two and a half minutes, and runs
+  recovers while its render loop keeps going. It takes about 45 seconds, and runs
   without screenshots, because taking them stalls the render loop.
 - `screens.py` takes about one screenshot of the client's window a second, to catch a black
   or frozen picture. It can't see individual dropped frames.
