@@ -13,6 +13,10 @@ server over HTTP:
   exactly as given.
 - POST /control/media-rate?bytes_per_second=N limits media downloads to N bytes a second in
   total, like one shared link. 0 means no limit.
+
+It serves a few playlists of the same dreams, for play_playlist: the default one with every
+dream, the same reversed, one with a single dream, and one without the first dream.
+/control/health lists them.
 """
 import argparse
 import asyncio
@@ -25,7 +29,7 @@ from pathlib import Path
 
 from aiohttp import WSMsgType, web
 
-PLAYLIST_UUID = "00000000-0000-4000-8000-000000000001"
+PLAYLIST_UUID = "00000000-0000-4000-8000-000000000001"  # The default playlist.
 TIMESTAMP = 1700000000
 QUOTA_BYTES = 50 * 2**30
 NAMESPACE = "/remote-control"
@@ -68,6 +72,20 @@ def load_dreams(media_dir, count, min_frames, pick="smallest"):
     raise SystemExit(f"Need {count} distinct videos of at least {min_frames} frames in {media_dir}")
 
 
+def playlist_uuid(number):
+    return f"00000000-0000-4000-8000-{number:012d}"
+
+
+def build_playlists(uuids):
+    """Playlist uuid -> (name, dream uuids). The first is the default playlist."""
+    return {
+        playlist_uuid(1): ("mock playlist", list(uuids)),
+        playlist_uuid(2): ("mock reversed", list(reversed(uuids))),
+        playlist_uuid(3): ("mock single", list(uuids[-1:])),
+        playlist_uuid(4): ("mock without first", list(uuids[1:]) or list(uuids)),
+    }
+
+
 def parse_range(header, size):
     """Returns (start, end) inclusive for a Range header, or None if it can't be satisfied."""
     if not header:
@@ -91,6 +109,7 @@ class MockServer:
     def __init__(self, media_dir, dreams, event_log, port, media_rate=0):
         self.media_dir = Path(media_dir)
         self.dreams = dreams
+        self.playlists = build_playlists(list(dreams))
         self.event_log = event_log
         self.port = port
         self.sockets = set()
@@ -111,13 +130,16 @@ class MockServer:
     async def hello(self, request):
         return ok({"quota": QUOTA_BYTES, "dislikesCount": 0, "currentPlaylistUUID": PLAYLIST_UUID})
 
-    def contents(self):
-        return [{"uuid": uuid, "timestamp": TIMESTAMP} for uuid in self.dreams]
+    def contents(self, playlist=PLAYLIST_UUID):
+        return [{"uuid": uuid, "timestamp": TIMESTAMP} for uuid in self.playlists[playlist][1]]
 
     async def playlist(self, request):
-        return ok({"playlist": {"name": "mock playlist", "artist": "mock server", "nsfw": False,
-                                "timestamp": TIMESTAMP, "loops": 0, "transitionTime": 2,
-                                "contents": self.contents()}})
+        uuid = request.match_info["id"]
+        if uuid not in self.playlists:
+            return await self.unhandled(request)
+        return ok({"playlist": {"name": self.playlists[uuid][0], "artist": "mock server",
+                                "nsfw": False, "timestamp": TIMESTAMP, "loops": 0,
+                                "transitionTime": 2, "contents": self.contents(uuid)}})
 
     async def default_playlist(self, request):
         return ok({"playlist": self.contents()})
@@ -228,7 +250,9 @@ class MockServer:
 
     async def control_health(self, request):
         return web.json_response({"dreams": list(self.dreams), "sockets": len(self.sockets),
-                                  "fps": {u: float(d["fps"]) for u, d in self.dreams.items()}})
+                                  "fps": {u: float(d["fps"]) for u, d in self.dreams.items()},
+                                  "frames": {u: d["frames"] for u, d in self.dreams.items()},
+                                  "playlists": {u: dreams for u, (_, dreams) in self.playlists.items()}})
 
     async def control_send(self, request):
         event = request.match_info["event"]

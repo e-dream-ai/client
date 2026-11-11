@@ -257,6 +257,7 @@ class Run:
 
         health = wait_for("the server to start", healthy, 60)
         self.dreams, self.dream_fps = health["dreams"], health["fps"]
+        self.dream_frames, self.playlists = health["frames"], health["playlists"]
         env = {**os.environ, "INFINIDREAM_DATA_DIR": str(self.data),
                "INFINIDREAM_API_KEY": API_KEY, "INFINIDREAM_HEARTBEAT_SECONDS": "1"}
         self.started_at = time.time()

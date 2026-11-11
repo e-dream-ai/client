@@ -17,6 +17,11 @@ malformed ones, but no other faults or chaos yet. Mac only for now.
   frame number, `forward` and `backward`, and checks each one's effect in the heartbeat. The
   `next`s run over a slow link, so some start a dream that is still downloading, and each
   must add its dream to the play history (#771).
+- `chaos_test.py` sends about 200 random commands a minute (including `play_dream` at random
+  frames and near the end, and `play_playlist` across the server's four playlists) while
+  changing the media rate every few seconds, then checks the client recovers. `--seed N`
+  replays a run; every action goes to `actions.jsonl` in the run folder. It finds more
+  with a build made with `xcodebuild ... -enableAddressSanitizer YES`.
 - `crash_test.py` sends malformed remote-control messages, one per fresh client, and checks
   the client survives each. `--list` shows the cases; `--case NAME` runs one.
 - `throttle_test.py` serves the largest videos over a limited link, drops the rate below
