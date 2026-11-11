@@ -186,6 +186,9 @@
     <ClCompile Include="..\DisplayOutput\D3D11\ShaderDX11.cpp">
       <Filter>DisplayOutput\D3D11</Filter>
     </ClCompile>
+    <ClCompile Include="..\DisplayOutput\D3D11\SpoutOutput.cpp">
+      <Filter>DisplayOutput\D3D11</Filter>
+    </ClCompile>
     <ClCompile Include="..\DisplayOutput\D3D11\TextureFlatDX11.cpp">
       <Filter>DisplayOutput\D3D11</Filter>
     </ClCompile>
@@ -453,6 +456,9 @@
       <Filter>DisplayOutput\D3D11</Filter>
     </ClInclude>
     <ClInclude Include="..\DisplayOutput\D3D11\ShaderDX11.h">
+      <Filter>DisplayOutput\D3D11</Filter>
+    </ClInclude>
+    <ClInclude Include="..\DisplayOutput\D3D11\SpoutOutput.h">
       <Filter>DisplayOutput\D3D11</Filter>
     </ClInclude>
     <ClInclude Include="..\DisplayOutput\D3D11\TextureFlatDX11.h">
