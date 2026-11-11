@@ -1472,7 +1472,17 @@ bool CRendererDX11::BeginFrame() {
         {
             D3D11_TEXTURE2D_DESC bbDesc = {};
             backBuffer->GetDesc(&bbDesc);
-            if (EnsureSpoutOffscreenTarget(bbDesc.Width, bbDesc.Height,
+            // Exclude the custom titlebar inset so Spout gets video pixels only,
+            // not a black chrome strip at the top.
+            UINT titleInset = 0;
+            if (auto* dx = dynamic_cast<CDisplayDX11*>(m_spDisplay.get()))
+            {
+                const int inset = dx->GetVideoViewportTopInsetPx();
+                if (inset > 0 && static_cast<UINT>(inset) < bbDesc.Height)
+                    titleInset = static_cast<UINT>(inset);
+            }
+            const UINT spoutHeight = bbDesc.Height - titleInset;
+            if (EnsureSpoutOffscreenTarget(bbDesc.Width, spoutHeight,
                                            bbDesc.Format))
             {
                 colorRtv = m_spoutOffscreenRtv.Get();
@@ -1499,7 +1509,22 @@ bool CRendererDX11::BeginFrame() {
         m_context->OMSetDepthStencilState(m_depthStencilNoDepthTest.Get(), 0);
     }
 
-    D3D11_VIEWPORT viewport = BuildBaseViewportForDisplay(m_spDisplay);
+    // Spout offscreen is already titlebar-cropped: fill it edge-to-edge. Local
+    // swapchain frames still reserve the custom titlebar via the inset viewport.
+    D3D11_VIEWPORT viewport{};
+    if (m_renderedToSpoutOffscreen && m_spoutOffscreenTexture)
+    {
+        D3D11_TEXTURE2D_DESC spoutDesc = {};
+        m_spoutOffscreenTexture->GetDesc(&spoutDesc);
+        viewport.Width = static_cast<float>(spoutDesc.Width);
+        viewport.Height = static_cast<float>(spoutDesc.Height);
+        viewport.MinDepth = 0.0f;
+        viewport.MaxDepth = 1.0f;
+    }
+    else
+    {
+        viewport = BuildBaseViewportForDisplay(m_spDisplay);
+    }
     m_context->RSSetViewports(1, &viewport);
 
     // Clear render target and depth buffer
@@ -1535,7 +1560,8 @@ void CRendererDX11::CaptureExternalOutputBeforeOverlay()
         !m_spDisplay || !m_spDisplay->GetSwapChain())
         return;
 
-    // Publish HUD-free video, then copy to the swapchain for local overlays.
+    // Publish HUD-free video (no titlebar strip), then place it under the
+    // custom titlebar on the swapchain for local overlays.
     SpoutOutput_Publish(m_spoutOffscreenTexture.Get());
 
     std::lock_guard<std::recursive_mutex> d3dLock(GetD3D11ImmediateContextMutex());
@@ -1550,10 +1576,30 @@ void CRendererDX11::CaptureExternalOutputBeforeOverlay()
         return;
     }
 
-    m_context->CopyResource(backBuffer.Get(), m_spoutOffscreenTexture.Get());
+    D3D11_TEXTURE2D_DESC bbDesc = {};
+    backBuffer->GetDesc(&bbDesc);
+    D3D11_TEXTURE2D_DESC spoutDesc = {};
+    m_spoutOffscreenTexture->GetDesc(&spoutDesc);
+
+    UINT titleInset = 0;
+    if (bbDesc.Height > spoutDesc.Height)
+        titleInset = bbDesc.Height - spoutDesc.Height;
 
     ID3D11RenderTargetView* rtv = m_renderTargetView.Get();
     m_context->OMSetRenderTargets(1, &rtv, m_depthStencilView.Get());
+    float clearColor[4] = {0.0f, 0.0f, 0.0f, 1.0f};
+    m_context->ClearRenderTargetView(rtv, clearColor);
+
+    D3D11_BOX srcBox = {};
+    srcBox.left = 0;
+    srcBox.top = 0;
+    srcBox.front = 0;
+    srcBox.right = spoutDesc.Width;
+    srcBox.bottom = spoutDesc.Height;
+    srcBox.back = 1;
+    m_context->CopySubresourceRegion(backBuffer.Get(), 0, 0, titleInset, 0,
+                                     m_spoutOffscreenTexture.Get(), 0, &srcBox);
+
     D3D11_VIEWPORT viewport = BuildBaseViewportForDisplay(m_spDisplay);
     m_context->RSSetViewports(1, &viewport);
 
@@ -2595,7 +2641,22 @@ void CRendererDX11::DrawTexturedQuad(const Base::Math::CRect& _rect,
 
     if (isDecodedFrame)
     {
-        const D3D11_VIEWPORT baseVp = BuildBaseViewportForDisplay(m_spDisplay);
+        // Spout offscreen is already cropped to the video region (no titlebar),
+        // so letterbox inside that texture instead of re-applying the inset.
+        D3D11_VIEWPORT baseVp{};
+        if (m_renderedToSpoutOffscreen && m_spoutOffscreenTexture)
+        {
+            D3D11_TEXTURE2D_DESC spoutDesc = {};
+            m_spoutOffscreenTexture->GetDesc(&spoutDesc);
+            baseVp.Width = static_cast<float>(spoutDesc.Width);
+            baseVp.Height = static_cast<float>(spoutDesc.Height);
+            baseVp.MinDepth = 0.0f;
+            baseVp.MaxDepth = 1.0f;
+        }
+        else
+        {
+            baseVp = BuildBaseViewportForDisplay(m_spDisplay);
+        }
 
         // "Rotate On Portrait Displays" (issue #623): when enabled and the display
         // is taller than it is wide, turn the dream 90 deg (done in the decoded-frame
