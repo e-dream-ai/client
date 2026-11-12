@@ -554,6 +554,19 @@ to test sign-in flow.
 Then disable the screensaver, then uninstall the screen saver, then
 run the app and make sure it installs and selects the screen saver.
 
+Also test the screensaver, not just the app. Test it:
+- with the app quit, so the screensaver runs online,
+- while the app is running: the screensaver should still play, offline
+  from cached dreams (#756),
+- on one screen and on multiple screens,
+- with hot plugging: plug in and unplug a second screen while it runs,
+  then dismiss it,
+- in the Preview of the Screen Saver pane in System Settings.
+
+After each test, quit System Settings to clear out its screensaver
+processes, and check that `pgrep -l legacyScreenSaver` prints
+nothing: a leftover process may still be playing invisibly (#755).
+
 ## Upload symbols to BugSnag
 
 Upload the symbols to bugsnag, on a terminal: 
