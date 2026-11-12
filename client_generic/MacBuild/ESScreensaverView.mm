@@ -33,7 +33,6 @@ static std::atomic<int> s_activeEngineViews{0};
     BOOL m_loggedNilScreen;     // Logged the window-has-no-screen diagnostic once
 #ifdef SCREEN_SAVER
     BOOL m_graphicsContextAdded;  // AddGraphicsContext once per view (startAnimation may re-enter)
-    NSTimer *m_screenCheckTimer;  // Fallback when macOS never calls stopAnimation
     BOOL m_forceExiting;          // Guard against re-entrant force-exit
 #else
     // Syphon needs full-rate frames while the window is fully occluded. MTKView's
@@ -71,7 +70,6 @@ static std::atomic<int> s_activeEngineViews{0};
     m_loggedNilScreen = NO;
 #ifdef SCREEN_SAVER
     m_graphicsContextAdded = NO;
-    m_screenCheckTimer = nil;
     m_forceExiting = NO;
 #endif
 
@@ -222,28 +220,28 @@ static BOOL ESIsSystemSettingsApp_(NSRunningApplication *app)
            [bid isEqualToString:@"com.apple.Preferences"];
 }
 
-// Seconds a non-preview view's window may stay off-screen before we decide no
-// host will ever show or stop us. Generous so slow fades / display wake don't trip it.
-static const NSTimeInterval kOrphanOffscreenSeconds = 10.0;
+// Orphan watchdog state (#690, #755). WallpaperAgent can relaunch the appex
+// right after a dismiss and then fail to kill it; the relaunch gets
+// startAnimation but never stopAnimation/willstop, and plays unseen forever.
+//
+// The sandboxed appex can't read its own windows from CGWindowListCopyWindowInfo
+// (no layer, no on-screen flag), so the check uses what NSWindow reports. A
+// window the host is showing sits at a wallpaper level far below 0. A window
+// WallpaperAgent has dropped (the orphan, or a view left behind when a display
+// is added or removed) sits at NSNormalWindowLevel; the orphan's is also not
+// visible. The process is orphaned when none of its saver views is live.
+static const NSTimeInterval kOrphanSeconds = 10.0;
+static const NSTimeInterval kOrphanCheckSeconds = 2.0;
+static NSHashTable<ESScreensaverView *> *s_watchedViews = nil;
+static NSTimer *s_orphanTimer = nil;
+static NSTimeInterval s_orphanFor = 0;
+static NSString *s_lastWatchState = nil;
 
-// YES only when the window exists and WindowServer reports it off-screen.
-// A nil window is treated as unknown (that's what false-positived under
-// System Settings Preview before), never as orphaned.
-static BOOL ESWindowIsKnownOffscreen(NSWindow *win)
+// A nil window is unknown, never orphaned (that false-positived under System
+// Settings Preview before). Level and visibility both have to say "dropped".
+static BOOL ESWindowLooksHosted(NSWindow *win)
 {
-    if (!win || win.windowNumber <= 0)
-        return NO;
-    CFArrayRef info = CGWindowListCopyWindowInfo(kCGWindowListOptionIncludingWindow,
-                                                 (CGWindowID)win.windowNumber);
-    if (!info)
-        return NO;
-    BOOL offscreen = NO;
-    if (CFArrayGetCount(info) > 0) {
-        NSDictionary *d = (__bridge NSDictionary *)CFArrayGetValueAtIndex(info, 0);
-        offscreen = ![d[(__bridge NSString *)kCGWindowIsOnscreen] boolValue];
-    }
-    CFRelease(info);
-    return offscreen;
+    return !win || win.level != NSNormalWindowLevel || win.isVisible;
 }
 #endif
 
@@ -728,7 +726,7 @@ static void ESShutdownLogOnce(void)
 // macOS 26.6). If the process dies before that, WallpaperAgent treats it as a
 // crash and relaunches an orphan (#690). Nothing in-process signals the remove,
 // so hold the dying process until a fixed point after willstop. Heuristic; the
-// off-screen watchdog is the backstop if Apple's timing drifts past this.
+// orphan watchdog is the backstop if Apple's timing drifts past this.
 static const NSTimeInterval kExitHoldAfterWillStopSeconds = 1.0;
 
 static void ESLogExitTiming(void)
@@ -796,40 +794,68 @@ static void ESLogExitTiming(void)
 - (void)_startScreenConnectionMonitor
 {
 #ifdef SCREEN_SAVER
-    // Orphan watchdog. WallpaperAgent can relaunch the appex right after a
-    // dismiss and then fail to kill it; that process gets startAnimation with
-    // an off-screen layer-0 window and never receives stopAnimation/willstop
-    // (#690). A real saver or Settings "Preview" window is on-screen.
     if (m_isPreview)
         return;
-    [self _stopScreenConnectionMonitor];
-    __block NSTimeInterval offscreenFor = 0;
-    __weak ESScreensaverView *weakSelf = self;
-    m_screenCheckTimer = [NSTimer scheduledTimerWithTimeInterval:2.0 repeats:YES block:^(NSTimer *t) {
-        ESScreensaverView *strongSelf = weakSelf;
-        if (!strongSelf) { [t invalidate]; return; }
-        // Asleep displays can report windows off-screen; don't count that time.
-        if (CGDisplayIsAsleep(CGMainDisplayID()) ||
-            !ESWindowIsKnownOffscreen(strongSelf.window)) {
-            offscreenFor = 0;
-            return;
-        }
-        offscreenFor += t.timeInterval;
-        if (offscreenFor >= kOrphanOffscreenSeconds) {
-            g_Log->Info("Saver window off-screen for %.0fs with no stop from host",
-                        offscreenFor);
-            [strongSelf _forceExitScreensaverWithReason:"orphan-offscreen" delaySeconds:0];
-        }
+    if (!s_watchedViews)
+        s_watchedViews = [NSHashTable weakObjectsHashTable];
+    [s_watchedViews addObject:self];
+    if (s_orphanTimer)
+        return;
+    s_orphanFor = 0;
+    s_orphanTimer = [NSTimer scheduledTimerWithTimeInterval:kOrphanCheckSeconds
+                                                    repeats:YES
+                                                      block:^(NSTimer *t) {
+        [ESScreensaverView _checkForOrphanedProcess:t.timeInterval];
     }];
 #endif
 }
 
+#ifdef SCREEN_SAVER
++ (void)_checkForOrphanedProcess:(NSTimeInterval)interval
+{
+    NSArray<ESScreensaverView *> *views = s_watchedViews.allObjects;
+    if (views.count == 0) {
+        s_orphanFor = 0;
+        return;
+    }
+    NSUInteger live = 0;
+    NSMutableString *state = [NSMutableString string];
+    for (ESScreensaverView *v in views) {
+        NSWindow *w = v.window;
+        if (ESWindowLooksHosted(w))
+            live++;
+        [state appendFormat:@" [%ld level=%ld visible=%d]",
+                            (long)(w ? w.windowNumber : -1), (long)w.level, (int)w.isVisible];
+    }
+    // Log only on change: a hotplug or an orphan shows up as one line.
+    NSString *summary = [NSString stringWithFormat:@"%lu of %lu view(s) live:%@",
+                                                   (unsigned long)live,
+                                                   (unsigned long)views.count, state];
+    if (![summary isEqualToString:s_lastWatchState]) {
+        s_lastWatchState = summary;
+        g_Log->Info("Saver watchdog: %s", summary.UTF8String);
+    }
+    if (live > 0) {
+        s_orphanFor = 0;
+        return;
+    }
+    s_orphanFor += interval;
+    if (s_orphanFor >= kOrphanSeconds) {
+        g_Log->Info("No saver view shown by the host for %.0fs; exiting orphaned process",
+                    s_orphanFor);
+        [views.firstObject _forceExitScreensaverWithReason:"orphan-not-hosted" delaySeconds:0];
+    }
+}
+#endif
+
 - (void)_stopScreenConnectionMonitor
 {
 #ifdef SCREEN_SAVER
-    if (m_screenCheckTimer) {
-        [m_screenCheckTimer invalidate];
-        m_screenCheckTimer = nil;
+    [s_watchedViews removeObject:self];
+    if (s_watchedViews.count == 0 && s_orphanTimer) {
+        [s_orphanTimer invalidate];
+        s_orphanTimer = nil;
+        s_orphanFor = 0;
     }
 #endif
 }
