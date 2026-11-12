@@ -62,6 +62,11 @@ def check_skip(run, command, seconds):
     before, rate = latest(run), playback_rate(run)
     file_fps = run.dream_fps[before["current"]]
     expected = seconds * file_fps
+    frames = run.dream_frames.get(before["current"], 0)
+    if frames < 2.5 * abs(expected):
+        print(f"NOTE  {command} not checked: {before['current'][:8]} has {frames} frames, too few "
+              f"for a {seconds:+d} s skip ({abs(expected):.0f} frames)", flush=True)
+        return
     run.send(command)
 
     def jumped():
@@ -137,11 +142,14 @@ def scenario(run):
 
     other = next(u for u in run.dreams if u != target)
     time.sleep(2)
-    run.send("play_dream", uuid=other, frameNumber=SEEK_FRAME)
+    # Short dreams (a real playlist's can be 193 frames) are seeked to their middle instead, so
+    # the dream stays on screen long enough for a heartbeat to see it.
+    seek_frame = min(SEEK_FRAME, run.dream_frames[other] // 2)
+    run.send("play_dream", uuid=other, frameNumber=seek_frame)
     beat = wait_for_dream(run, "play_dream with frameNumber to switch dreams", lambda u: u == other)
     # The first heartbeat comes up to a second after the seek, at up to ~20 frames a second.
-    h.check(f"play_dream with frameNumber started near frame {SEEK_FRAME}",
-            SEEK_FRAME - 5 <= frame_of(beat) <= SEEK_FRAME + 60, f"first heartbeat at frame {frame_of(beat)}")
+    h.check(f"play_dream with frameNumber started near frame {seek_frame}",
+            seek_frame - 5 <= frame_of(beat) <= seek_frame + 60, f"first heartbeat at frame {frame_of(beat)}")
 
     check_skip(run, "forward", SKIP_SECONDS)
     check_skip(run, "backward", -SKIP_SECONDS)

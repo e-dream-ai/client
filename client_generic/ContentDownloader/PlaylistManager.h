@@ -278,6 +278,13 @@ private:
     // History stack
     // Just keep track of the play order using positions
     std::vector<size_t> m_playHistory;  // Positions in playlist order of play
+
+    // Dreams shown, newest last, as uuids so a playlist refresh can't shift them: the back
+    // stack for previous. Unlike m_playHistory, it isn't reset when the playlist wraps
+    // around (client#776).
+    std::vector<std::string> m_shownHistory;
+    void recordShown(size_t position);
+    std::optional<size_t> lastShownPosition();
     
     // Helper methods for history management
     void addToHistory(size_t position);

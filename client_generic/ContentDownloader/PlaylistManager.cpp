@@ -90,6 +90,7 @@ bool PlaylistManager::initializePlaylist(const std::string& playlistUUID, bool f
         m_started = false;
         m_currentDreamUUID = m_playlist.empty() ? "" : m_playlist[0].uuid;
         resetPlayHistory();
+        m_shownHistory.clear();
         m_initializeInProgress = false;
     }
 
@@ -127,6 +128,7 @@ void PlaylistManager::initializeOfflinePlaylist() {
 
     // Clear play history when initializing offline playlist
     resetPlayHistory();
+    m_shownHistory.clear();
 
     // Set offline playlist metadata
     m_currentPlaylistName = "Offline Playlist";
@@ -1020,6 +1022,7 @@ std::shared_ptr<const Cache::Dream> PlaylistManager::moveToNextDream(const NextD
     if (m_currentPosition == 0 && !hasUnplayedDreams()) {
         resetPlayHistory();
     }
+    recordShown(m_currentPosition);
 
     // Update current dream info
     {
@@ -1053,6 +1056,7 @@ std::optional<PlaylistManager::DreamLookupResult> PlaylistManager::getDreamByUUI
 
     // Dream is in the playlist, update the position
     m_currentPosition = std::distance(m_playlist.begin(), it);
+    recordShown(m_currentPosition);
     {
         std::lock_guard lock(m_stateMutex);
         m_currentDreamUUID = dreamUUID;
@@ -1082,9 +1086,19 @@ std::shared_ptr<const Cache::Dream> PlaylistManager::getPreviousDream() {
     if (!m_playHistory.empty() && m_playHistory.back() == m_currentPosition) {
         removeLastFromHistory();
     }
-    
-    // Get previous position from history
-    if (!m_playHistory.empty()) {
+
+    // Go back to the dream shown before this one. The play history can't say which that
+    // was: it is reset when the playlist wraps around (client#776).
+    std::optional<size_t> shown;
+    while ((shown = lastShownPosition()) && *shown == m_currentPosition) {
+        m_shownHistory.pop_back();
+    }
+
+    if (shown) {
+        m_currentPosition = *shown;
+        g_Log->Info("Going back to the dream shown before: %s (pos: %zu)",
+                    m_playlist[m_currentPosition].uuid.c_str(), m_currentPosition);
+    } else if (!m_playHistory.empty()) {
         m_currentPosition = m_playHistory.back();
         g_Log->Info("Going back to previous dream in history: %s (pos: %zu)",
                     m_playlist[m_currentPosition].uuid.c_str(), m_currentPosition);
@@ -1099,20 +1113,21 @@ std::shared_ptr<const Cache::Dream> PlaylistManager::getPreviousDream() {
     if (m_cacheManager.isPlaylistFillingCache(getCurrentPlaylistUUIDs())) {
         g_Log->Info("Cache is already filled up with current playlist, thrashing protection");
 
+        // Walk back through what was shown to a cached dream. Bounded: with nothing left to
+        // walk back to, the position stops changing and the loop would never end.
         size_t startPosition = m_currentPosition;
+        size_t steps = m_shownHistory.size() + 1;
         do {
             if (m_cacheManager.hasDiskCachedItem(m_playlist[m_currentPosition].uuid)) {
                 break;
             }
-            
-            removeLastFromHistory();
-            
-            if (!m_playHistory.empty()) {
-                m_currentPosition = m_playHistory.back();
-            } else {
-                m_currentPosition = m_playlist.size() - 1;
+
+            if (!m_shownHistory.empty()) {
+                m_shownHistory.pop_back();
             }
-        } while (m_currentPosition != startPosition);
+            auto shown = lastShownPosition();
+            m_currentPosition = shown ? *shown : m_playlist.size() - 1;
+        } while (m_currentPosition != startPosition && steps-- > 0);
         
         if (m_currentPosition == startPosition && !m_cacheManager.hasDiskCachedItem(m_playlist[m_currentPosition].uuid)) {
             g_Log->Warning("No cached dreams found in playlist after full scan");
@@ -1364,6 +1379,34 @@ void PlaylistManager::removeLastFromHistory() {
         g_Log->Info("Removed from history: %s (position %zu)",
                     m_playlist[lastPosition].uuid.c_str(), lastPosition);
     }
+}
+
+void PlaylistManager::recordShown(size_t position) {
+    if (position >= m_playlist.size()) {
+        return;
+    }
+    const std::string& uuid = m_playlist[position].uuid;
+    if (m_shownHistory.empty() || m_shownHistory.back() != uuid) {
+        m_shownHistory.push_back(uuid);
+    }
+    constexpr size_t kMaxShownHistory = 200;
+    if (m_shownHistory.size() > kMaxShownHistory) {
+        m_shownHistory.erase(m_shownHistory.begin());
+    }
+}
+
+std::optional<size_t> PlaylistManager::lastShownPosition() {
+    // The newest shown dream still in the playlist; ones since removed are dropped.
+    while (!m_shownHistory.empty()) {
+        const std::string& uuid = m_shownHistory.back();
+        auto found = std::find_if(m_playlist.begin(), m_playlist.end(),
+                                  [&](const PlaylistEntry& entry) { return entry.uuid == uuid; });
+        if (found != m_playlist.end()) {
+            return static_cast<size_t>(std::distance(m_playlist.begin(), found));
+        }
+        m_shownHistory.pop_back();
+    }
+    return std::nullopt;
 }
 
 void PlaylistManager::resetPlayHistory() {
