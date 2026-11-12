@@ -6,7 +6,12 @@
 #endif
 
 #include <string>
+#include <cerrno>
 #include <csignal>
+#include <cstdio>
+#include <cstring>
+#include <fcntl.h>
+#include <unistd.h>
 #include <ApplicationServices/ApplicationServices.h>
 #include <CoreFoundation/CoreFoundation.h>
 #include <IOKit/ps/IOPSKeys.h>
@@ -44,6 +49,7 @@ class CElectricSheep_Mac : public CElectricSheep
     Boolean m_proxyEnabled;
     std::string m_verStr;
     int m_lckFile;
+    bool m_InstanceClaimed = false;
 
   public:
     CElectricSheep_Mac() : CElectricSheep()
@@ -127,31 +133,73 @@ class CElectricSheep_Mac : public CElectricSheep
 
         ApplyDataDirOverride();
 
-        bool exists = std::filesystem::exists(m_AppData);
-        
-        if (exists) {
-            // check the exclusive file lock to see if we are running alone...
-            std::string lockfile = m_AppData + ".instance-lock";
-            
-            m_lckFile =
-            open(lockfile.c_str(), O_WRONLY + O_EXLOCK + O_NONBLOCK + O_CREAT,
-                 S_IWUSR + S_IWGRP + S_IWOTH);
-            
-            m_MultipleInstancesMode = (m_lckFile < 0);
-        } else {
-            m_MultipleInstancesMode = false;
-        }
-        
-        // Make sure we are in read only mode in that case !
-        InitStorage(m_MultipleInstancesMode);
-
-        // Initialize logging early so it's available throughout the app lifecycle
-        AttachLog();
+#ifdef SCREEN_SAVER
+        // The saver bundle is loaded by processes that never draw (System
+        // Settings loads it while listing screensavers). Taking the lock here let
+        // such a process hold it while the real thumbnail renderers exited one
+        // after another as "ghosts" — the flashing thumbnail. So the saver takes
+        // the lock in ClaimInstance(), from startAnimation. Until then settings
+        // are read-only (initWithFrame reads a few) and the log isn't attached.
+        InitStorage(true);
+#else
+        ClaimInstance();
+#endif
 
         GetClientProxy();
     }
 
+    // Take the instance lock (or find it taken), then set up storage and the log
+    // to match: the main log for the holder, a per-PID log otherwise. Runs once.
+    void ClaimInstance()
+    {
+        if (m_InstanceClaimed)
+            return;
+        m_InstanceClaimed = true;
+
+        if (std::filesystem::exists(m_AppData)) {
+            // check the exclusive file lock to see if we are running alone...
+            std::string lockfile = m_AppData + ".instance-lock";
+
+            m_lckFile =
+            open(lockfile.c_str(), O_WRONLY + O_EXLOCK + O_NONBLOCK + O_CREAT,
+                 S_IWUSR + S_IWGRP + S_IWOTH);
+
+            m_MultipleInstancesMode = (m_lckFile < 0);
+            if (m_lckFile >= 0)
+                WriteInstanceOwner();
+        } else {
+            m_MultipleInstancesMode = false;
+        }
+
+        // Make sure we are in read only mode in that case !
+        InitStorage(m_MultipleInstancesMode);
+
+        AttachLog();
+    }
+
     virtual ~CElectricSheep_Mac() {}
+
+  private:
+    // Record our PID and kind next to the lock so a secondary screensaver can
+    // tell whether the holder is the app (play offline) or another screensaver
+    // process (a Settings ghost, exit). The lock file itself is created
+    // write-only, so it can't carry this.
+    void WriteInstanceOwner()
+    {
+        const std::string path = m_AppData + ".instance-owner";
+        const int fd = open(path.c_str(), O_WRONLY | O_CREAT | O_TRUNC, 0666);
+        if (fd < 0)
+            return;
+        fchmod(fd, 0666);
+#ifdef SCREEN_SAVER
+        dprintf(fd, "%d saver\n", (int)getpid());
+#else
+        dprintf(fd, "%d app\n", (int)getpid());
+#endif
+        close(fd);
+    }
+
+  public:
 
     CFStringRef GetBundleVersion()
     {
@@ -206,6 +254,39 @@ class CElectricSheep_Mac : public CElectricSheep
 
     void SetUpConfig() { InitStorage(); }
     
+    // Who holds .instance-lock, as recorded in .instance-owner by the holder.
+    // Gone: the recorded holder has exited (we lost a race with its exit).
+    enum class InstanceOwner { Unknown, App, Screensaver, Gone };
+
+    bool HoldsInstanceLock() const { return m_lckFile >= 0; }
+
+    // Reads .instance-owner. Unknown when the file is missing, malformed or
+    // names this process (e.g. the holder is an older build that doesn't
+    // write it). Gone when the recorded process no longer exists.
+    InstanceOwner GetInstanceOwner(int* _pid = nullptr) const
+    {
+        if (_pid)
+            *_pid = 0;
+        FILE* f = fopen((m_AppData + ".instance-owner").c_str(), "r");
+        if (f == nullptr)
+            return InstanceOwner::Unknown;
+        int pid = 0;
+        char kind[16] = {0};
+        const int n = fscanf(f, "%d %15s", &pid, kind);
+        fclose(f);
+        if (n != 2 || pid <= 0 || pid == getpid())
+            return InstanceOwner::Unknown;
+        if (_pid)
+            *_pid = pid;
+        if (kill(pid, 0) != 0 && errno != EPERM)
+            return InstanceOwner::Gone;
+        if (strcmp(kind, "saver") == 0)
+            return InstanceOwner::Screensaver;
+        if (strcmp(kind, "app") == 0)
+            return InstanceOwner::App;
+        return InstanceOwner::Unknown;
+    }
+
     void ReleaseLockFile() {
         if (m_lckFile >= 0) {
             close(m_lckFile);

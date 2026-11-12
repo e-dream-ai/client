@@ -56,9 +56,38 @@ int ESScreenSaver_AddGraphicsContext(void* _glContext)
     return gClient.AddGraphicsContext((CGraphicsContext)_glContext);
 }
 
-bool ESScreensaver_IsSecondaryInstance(void)
+void ESScreensaver_ClaimInstance(void)
 {
-    return gClient.IsMultipleInstancesMode();
+    gClient.ClaimInstance();
+}
+
+bool ESScreensaver_IsGhostInstance(void)
+{
+    // Ask the lock itself, not IsMultipleInstancesMode(): that flag is also set
+    // for previews and when the internet is down at startup.
+    if (gClient.HoldsInstanceLock())
+        return false;
+    int pid = 0;
+    switch (gClient.GetInstanceOwner(&pid))
+    {
+    case CElectricSheep_Mac::InstanceOwner::Screensaver:
+        g_Log->Info("Instance lock held by screensaver process %d", pid);
+        return true;
+    case CElectricSheep_Mac::InstanceOwner::Gone:
+        // The holder exited after our lock attempt failed. We're already set up
+        // read-only; exit and let the next launch take the lock. Playing on
+        // would leave a ghost that outlives System Settings (#690).
+        g_Log->Info("Instance lock holder %d has exited — exiting so a fresh instance takes the lock", pid);
+        return true;
+    case CElectricSheep_Mac::InstanceOwner::App:
+        g_Log->Info("Instance lock held by the app (pid %d) — screensaver plays offline", pid);
+        return false;
+    default:
+        // Older holder build, or a stale file. Playing offline is the pre-#690
+        // behavior; exiting here risks a black screen (#756).
+        g_Log->Info("Instance lock holder unknown — screensaver plays offline");
+        return false;
+    }
 }
 
 bool ESScreensaver_Start(bool _bPreview, uint32 _width, uint32 _height)

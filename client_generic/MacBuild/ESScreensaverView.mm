@@ -380,10 +380,12 @@ static NSScreen* ESScreenForWindow(NSWindow* window)
 {
 #ifdef SCREEN_SAVER
     // Opening Screensaver settings often spawns a second legacyScreenSaver process
-    // (not the "(System Settings)" one). If we already lost the instance lock, that
-    // ghost must not start a full engine — it survives Settings close and makes
-    // hot-corner continue from the preview position.
-    if (!m_isPreview && ESScreensaver_IsSecondaryInstance()) {
+    // (not the "(System Settings)" one). If another screensaver process holds the
+    // instance lock, that ghost must not start a full engine — it survives Settings
+    // close and makes hot-corner continue from the preview position.
+    // If the app holds the lock this is a real screensaver: play offline (#756).
+    ESScreensaver_ClaimInstance();
+    if (!m_isPreview && ESScreensaver_IsGhostInstance()) {
         g_Log->Info("Secondary non-preview screensaver instance — exiting (avoid Settings ghost)");
         [self _forceExitScreensaverWithReason:"secondary-instance" delaySeconds:0];
         return;
