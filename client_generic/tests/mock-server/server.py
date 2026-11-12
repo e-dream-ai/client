@@ -60,10 +60,26 @@ def snapshot_records(media_dir):
     return records
 
 
-def load_dreams(media_dir, count, min_frames, pick="smallest"):
+def playlist_dreams(media_dir, playlist):
+    """The dreams a snapshot set took from one of its real playlists."""
+    manifest_path = Path(media_dir) / "manifest.json"
+    manifest = json.loads(manifest_path.read_text()) if manifest_path.exists() else {}
+    for entry in manifest.get("playlists", []):
+        if entry["id"] == playlist:
+            return set(entry["uuids"])
+    raise SystemExit(f"No playlist {playlist} in {media_dir}; it must be a snapshot set's playlist")
+
+
+def load_dreams(media_dir, count, min_frames, pick="smallest", playlist=None):
     """Builds records for the smallest or largest distinct videos, in the types the client
-    expects; count 0 means all of them. A snapshot set's own records are used as they are."""
+    expects; count 0 means all of them. A snapshot set's own records are used as they are,
+    limited to one of its real playlists if one is given."""
     records = snapshot_records(media_dir)
+    if playlist:
+        if records is None:
+            raise SystemExit("--playlist needs a snapshot fixture set")
+        keep = playlist_dreams(media_dir, playlist)
+        records = {u: r for u, r in records.items() if u in keep}
     if records is not None:
         chosen = sorted((r for r in records.values() if r["frames"] >= min_frames),
                         key=lambda r: int(r["size"]), reverse=pick == "largest")
@@ -372,15 +388,17 @@ def main():
                         help="which videos to serve; largest needs the most bandwidth")
     parser.add_argument("--media-rate", type=int, default=0,
                         help="limit media to this many bytes a second in total; 0 means no limit")
+    parser.add_argument("--playlist", help="serve only this real playlist of a snapshot set, "
+                        "and start the client on it")
     parser.add_argument("--default-playlist", default=PLAYLIST_UUID,
                         help="the playlist the client starts on, e.g. a snapshot set's real one")
     parser.add_argument("--event-log", default="events.jsonl")
     args = parser.parse_args()
 
-    dreams = load_dreams(args.media_dir, args.dreams, args.min_frames, args.pick)
+    dreams = load_dreams(args.media_dir, args.dreams, args.min_frames, args.pick, args.playlist)
     with open(args.event_log, "w", buffering=1) as event_log:
         server = MockServer(args.media_dir, dreams, event_log, args.port, args.media_rate,
-                            args.default_playlist)
+                            args.playlist or args.default_playlist)
         web.run_app(server.app(), host="127.0.0.1", port=args.port, print=None)
 
 

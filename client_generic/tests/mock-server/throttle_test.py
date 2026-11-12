@@ -20,6 +20,7 @@ import server
 
 # The client plays dreams at 20 fps by default, whatever the file's own rate.
 PLAYBACK_FPS = 20
+MIN_DREAM_SECONDS = 30  # shorter first dreams can't be made to rebuffer (see main)
 GOOD_RATE = 2.5   # times the first dream's playback rate: room for prefetching beside it
 STARVED_RATE = 0.6  # times the first dream's playback rate: below what it needs
 MAX_HEARTBEAT_GAP = 3.0  # seconds; heartbeats come every second
@@ -77,7 +78,9 @@ def scenario(run, need, download_seconds):
     # longer lets a fast link finish the file, and then nothing can make the client rebuffer.
     drop_at = started_at + DROP_FRACTION * download_seconds
     time.sleep(max(MIN_GOOD_SECONDS, drop_at - time.time()))
-    so_far = beats(run)
+    # Only the first dream: GOOD_RATE is relative to it, and a real playlist's later dreams can
+    # be far bigger.
+    so_far = [b for b in beats(run) if b["current"] == first]
     e.check(f"No rebuffering at {GOOD_RATE}x the dream's rate", rebuffers(so_far) == 0,
             f"{rebuffers(so_far)} rebuffers")
 
@@ -130,10 +133,20 @@ def main():
     if e.screen_locked():
         sys.exit("The screen is locked, which stops the render loop. Unlock it and run again.")
 
-    # The server lists dreams in this order, and the client starts with the first one.
-    dreams = server.load_dreams(args.media_dir, 3, 900, "largest")
-    first = next(iter(dreams.values()))
-    need = int(first["size"]) / (first["frames"] / PLAYBACK_FPS)
+    # The server lists dreams in this order, and the client starts with the first one (with
+    # --playlist, the first dream of that playlist).
+    dreams = e.load_dreams(args.media_dir, 3, 900, "largest")
+    first = e.first_dream(args.media_dir, dreams)
+    # The client plays a dream at its perceptual rate divided by the dream's activity level
+    # (CPlayer::SetPerceptualFPS); made-up records have activity 1, real ones vary.
+    playback_fps = PLAYBACK_FPS / float(first.get("activityLevel") or 1)
+    need = int(first["size"]) / (first["frames"] / playback_fps)
+    if first["frames"] / playback_fps < MIN_DREAM_SECONDS:
+        # It downloads before the drop can bite, and the next dream comes by a natural
+        # transition, which never streams; nothing here can make the client rebuffer.
+        print(f"Not applicable: the first dream lasts {first['frames'] / playback_fps:.0f} s; "
+              f"this test needs at least {MIN_DREAM_SECONDS} s", flush=True)
+        sys.exit(0)
     download_seconds = int(first["size"]) / (need * GOOD_RATE)
     print(f"First dream {first['uuid'][:8]} needs {need / 1e3:.0f} KB/s; at {GOOD_RATE}x it "
           f"downloads in {download_seconds:.0f} s", flush=True)

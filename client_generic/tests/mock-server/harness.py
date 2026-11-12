@@ -247,7 +247,9 @@ class Run:
                         **self.content_settings}}}))
         self.server = subprocess.Popen([
             sys.executable, str(HERE / "server.py"), "--media-dir", str(self.media_dir),
-            "--port", str(PORT), "--event-log", str(self.event_path), *self.server_args])
+            "--port", str(PORT), "--event-log", str(self.event_path), *self.server_args,
+            # Last, so they win over the test's own choice of dreams.
+            *(("--playlist", PLAYLIST, "--dreams", "0", "--min-frames", "0") if PLAYLIST else ())])
 
         def healthy():
             if self.server.poll() is not None:
@@ -352,15 +354,49 @@ class Run:
 DEFAULT_MEDIA_DIR = "/Users/Shared/infinidream.ai/content/mp4"
 
 
+# A real playlist of a snapshot set to serve instead of made-up playlists (--playlist).
+PLAYLIST = None
+
+
 def add_media_args(parser):
     group = parser.add_mutually_exclusive_group()
     group.add_argument("--set", help="fixture set to serve (see fixtures.py), by name or path")
     group.add_argument("--media-dir", default=DEFAULT_MEDIA_DIR,
                        help="folder of <uuid>.mp4 to serve; defaults to the alpha client's cache")
+    parser.add_argument("--playlist", help="serve only this real playlist of a snapshot --set, all "
+                        "its dreams whatever their length, and start the client on it")
+
+
+def first_dream(media_dir, dreams):
+    """The record of the dream the client plays first: the start of the --playlist, or else
+    the first dream the server lists."""
+    if PLAYLIST:
+        import server
+        manifest = json.loads((Path(media_dir) / "manifest.json").read_text())
+        order = next(p["uuids"] for p in manifest["playlists"] if p["id"] == PLAYLIST)
+        records = server.snapshot_records(media_dir)
+        return next(records[u] for u in order if u in records)
+    return next(iter(dreams.values()))
+
+
+def load_dreams(media_dir, count, min_frames, pick="smallest"):
+    """The dreams a test's server will serve: server.load_dreams, or with --playlist up to count
+    of that playlist's dreams of any length."""
+    import server
+    if PLAYLIST:
+        dreams = server.load_dreams(media_dir, 0, 0, pick, PLAYLIST)
+        return dict(list(dreams.items())[:count])
+    return server.load_dreams(media_dir, count, min_frames, pick)
 
 
 def resolve_media(args):
     """Points args.media_dir at the chosen fixture set, after checking its md5s."""
+    global PLAYLIST
+    PLAYLIST = getattr(args, "playlist", None)
+    if PLAYLIST and not args.set:
+        sys.exit("--playlist needs --set, a snapshot fixture set")
+    if PLAYLIST:
+        print(f"Serving only playlist {PLAYLIST}", flush=True)
     if not args.set:
         return
     import fixtures

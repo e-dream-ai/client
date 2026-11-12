@@ -89,7 +89,7 @@ def main():
 
     # The server picks the same dreams every time from the same folder, so ask it once.
     import server
-    dreams = list(server.load_dreams(args.media_dir, 3, 900))
+    dreams = list(h.load_dreams(args.media_dir, 3, 900))
     chosen = cases(dreams)
     unknown = [c for c in args.case or [] if c not in chosen]
     if unknown:

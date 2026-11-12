@@ -123,7 +123,7 @@ MIN_START_RATE = 500_000
 MIN_STREAMED = 3  # plays that must start from a dream still downloading, or the run tested little
 
 
-def network_report(run, cache_gb):
+def network_report(run, cache_gb, require_eviction=True):
     """What the run did with the network, from the server's events and the client's log, and
     checks that it really exercised streaming, and eviction when the cache was limited."""
     ends = run.events("media_end")
@@ -137,7 +137,7 @@ def network_report(run, cache_gb):
           f"{log.count('Opening remote decoder')} remote opens, {evicted} evictions", flush=True)
     h.check(f"At least {MIN_STREAMED} plays started from a dream still downloading",
             streamed >= MIN_STREAMED, f"{streamed}")
-    if cache_gb:
+    if cache_gb and require_eviction:
         h.check(f"The client evicted videos to stay within {cache_gb} GB", evicted > 0,
                 f"{evicted} evictions, {served / 1e9:.2f} GB served")
 
@@ -202,7 +202,8 @@ def recover(run, actions):
         h.check("next still works after the chaos", False, f"stayed on {now[:8]}")
 
 
-def main(description=__doc__, commands=COMMANDS, rate_seconds=RATE_SECONDS, prefix="chaos"):
+def main(description=__doc__, commands=COMMANDS, rate_seconds=RATE_SECONDS, prefix="chaos",
+         require_eviction=True):
     parser = argparse.ArgumentParser(description=description,
                                      formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("--app", required=True, help="client binary inside the .app")
@@ -249,7 +250,7 @@ def main(description=__doc__, commands=COMMANDS, rate_seconds=RATE_SECONDS, pref
                 f"in {args.seconds:.0f} s", True,
                 ", ".join(f"{name} {n}" for name, n in counts.most_common()))
         recover(run, actions)
-        network_report(run, args.cache_gb)
+        network_report(run, args.cache_gb, require_eviction)
 
         played = {b["current"] for b in run.heartbeats() if b.get("current", "-") != "-"}
         h.check("Every dream played is one the server offered", played <= set(run.dreams),

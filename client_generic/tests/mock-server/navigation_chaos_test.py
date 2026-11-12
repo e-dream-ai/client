@@ -16,4 +16,6 @@ COMMANDS = [
 RATE_SECONDS = (1.0, 4.0)
 
 if __name__ == "__main__":
-    chaos_test.main(__doc__, COMMANDS, RATE_SECONDS, prefix="navigation")
+    # Skipping this often cancels most downloads before they finish, so the cache may never
+    # fill: report evictions, but don't require one.
+    chaos_test.main(__doc__, COMMANDS, RATE_SECONDS, prefix="navigation", require_eviction=False)

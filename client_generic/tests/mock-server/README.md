@@ -30,6 +30,10 @@ malformed ones, but no other faults or chaos yet. Mac only for now.
   starts where the current one ends, if there is one, and be seamless exactly when it does. A
   natural end may only go to a cached dream (by design, #269), so there only cached matches
   count. `--rate N` streams over a limited link.
+- `repro_test.py` reproduces client bugs found with these tests, one fresh client per case:
+  `seek-past-end` (#775), `seek-near-end` (its control), `previous-after-wrap` and
+  `previous-two-dreams` (#776). Each checks the right behavior, so it fails until the bug is
+  fixed and then guards against it coming back.
 - `crash_test.py` sends malformed remote-control messages, one per fresh client, and checks
   the client survives each. `--list` shows the cases; `--case NAME` runs one.
 - `throttle_test.py` serves the largest videos over a limited link, drops the rate below
@@ -128,6 +132,11 @@ venv/bin/python fixtures.py snapshot --set alpha-v1 --env-file ~/e-dream-ai/pyth
     --playlist d9726526-b8f2-4221-a0bf-67fbacc01f4d:40
 venv/bin/python chaos_test.py --app "$APP" --set alpha-v1 --dreams 0 --min-frames 0
 ```
+
+Every test also takes `--playlist ID` with a snapshot set: the server then serves only that
+real playlist's dreams, whatever their length, and starts the client on it. Tests that assume
+long dreams can fail there for reasons of their own; `throttle_test.py` says it doesn't apply
+when the first dream is shorter than 30 s.
 
 `alpha-v1` is 62 dreams and 2.8 GB: the first 20 of Infinite Visions (31-68 MB, 727 frames),
 the first 2 of Pink Floyd (605-787 MB, 11-12k frames) and the first 40 of Wankel Rotary Engine
