@@ -1746,10 +1746,35 @@ bool CPlayer::SetPlaylistAtDream(const std::string& playlistUUID, const std::str
     int64_t seekFrame;
     seekFrame = (int64_t)g_Settings()->Get(
         "settings.content.last_played_frame", uint64_t{});
-    // Guard against corrupted/wrapped values (e.g. uint32_t wrap from a previous VAAPI PTS bug).
-    // Any negative value or value implying > 24 hours of footage at 60fps is treated as invalid.
+
+    // Sanity check the resume position. A saved last_played_frame may be negative,
+    // stale, hand-edited, wrapped (the uint32_t wrap from a previous VAAPI PTS bug),
+    // or simply past the clip's real end — the frame index can reach or overrun the
+    // end at high playback speeds. A negative seek or one past EOF hangs the decoder:
+    // it decodes no frames and never starts. Anything we can't trust restarts the
+    // dream from the beginning, which costs the user their position but always plays.
+    //
+    // Two bounds, because neither covers the other. The dream's own frame count is
+    // the tight one, but it's server metadata: it's 0 when the payload omits it, so
+    // an absolute "no clip is remotely this long" bound has to apply unconditionally
+    // as well. Note we can't use the decoder's frame count here — it's unreliable for
+    // streamed clips.
     constexpr int64_t kMaxReasonableFrame = 24LL * 3600 * 60; // 24h @ 60fps
-    if (seekFrame < 0 || seekFrame > kMaxReasonableFrame) seekFrame = 0;
+    const int64_t dreamFrames = optionalDream->dream ? (int64_t)optionalDream->dream->frames : 0;
+
+    if (seekFrame < 0 || seekFrame > kMaxReasonableFrame) {
+        g_Log->Warning("Resume frame %lld is out of any sane range; restarting from the beginning",
+                       (long long)seekFrame);
+        seekFrame = 0;
+    } else if (dreamFrames > 0 && seekFrame >= dreamFrames) {
+        // Metadata can also under-report the real length (a re-encode, an fps
+        // mismatch), so restart rather than clamping to the last frame: resuming to a
+        // single frame that immediately skips on is worse than starting the dream over.
+        g_Log->Warning("Resume frame %lld past end of %s (length %lld); restarting from the beginning",
+                       (long long)seekFrame, optionalDream->dream->uuid.c_str(),
+                       (long long)dreamFrames);
+        seekFrame = 0;
+    }
 
     // If we've reached here, the playlist is set and positioned at the correct dream
     // Now we can start playing this dream
