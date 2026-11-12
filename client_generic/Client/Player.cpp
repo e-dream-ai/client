@@ -1115,8 +1115,20 @@ bool CPlayer::Update(uint32_t displayUnit)
             }
         }
 
+        // A seek target that finished without ever playing (no frames at the seek point)
+        // never stops buffering, so the pending seek would block every transition and the
+        // current dream would freeze on its last frame (client#775). Drop it and carry on.
+        if (m_pendingSeekCrossfade && m_nextClip->HasFinished() && !m_isTransitioning) {
+            g_Log->Warning("Seek target %s finished before it started; keeping %s",
+                           m_nextClip->GetClipMetadata().dreamData.uuid.c_str(),
+                           m_currentClip ? m_currentClip->GetClipMetadata().dreamData.uuid.c_str() : "nothing");
+            m_pendingSeekCrossfade = false;
+            destroyClipAsync(std::move(m_nextClip));
+            m_nextClip = nullptr;
+        }
+
         // Check if pending seek crossfade can now start (next clip finished buffering)
-        if (m_pendingSeekCrossfade && !m_nextClip->IsBuffering() && !freezePlayback) {
+        if (m_pendingSeekCrossfade && m_nextClip && !m_nextClip->IsBuffering() && !freezePlayback) {
             g_Log->Info("Pending seek crossfade: next clip ready, starting transition");
             m_pendingSeekCrossfade = false;
             m_isTransitioning = true;
@@ -1578,6 +1590,19 @@ void CPlayer::ApplyPreparedDream(
 {
     if (!dream)
         return;
+
+    // A seek at or past the end finds no frames, so the clip would never start (client#775).
+    // Start a little before the end instead, so the end of the dream still plays.
+    constexpr int64_t kMinFramesAfterSeek = 15;
+    if (frameNumber > 0 && dream->frames > 0 && frameNumber > dream->frames - kMinFramesAfterSeek)
+    {
+        const int64_t clamped = std::max<int64_t>(0, dream->frames - kMinFramesAfterSeek);
+        g_Log->Warning("Seek to frame %lld of %s is past its last %lld frames (%d in all); using %lld",
+                       static_cast<long long>(frameNumber), dream->uuid.c_str(),
+                       static_cast<long long>(kMinFramesAfterSeek), dream->frames,
+                       static_cast<long long>(clamped));
+        frameNumber = clamped;
+    }
 
     writer_lock lock(m_UpdateMutex);
     m_nextDreamDecision = std::nullopt;
