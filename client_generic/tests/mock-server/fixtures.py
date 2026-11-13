@@ -27,6 +27,16 @@ a real client chose to download from a playlist:
 
     fixtures.py snapshot --set wanderlust-v1 --env-file ... --playlist <uuid> \\
         --from-cache /Users/Shared/infinidream.ai/content/mp4 --only-cached
+
+The videos never go in git, but each set's manifest and recorded API responses do, under
+fixture-sets/<name>/ next to this script. "record" copies them there from a set, dropping the
+query strings of URLs (signed links into storage; the mock server doesn't use them). "fetch"
+rebuilds a set on another machine from that record: it downloads each video through the client
+API, as snapshot does, and checks every md5. If a dream was re-processed or deleted on the
+server, its md5 won't match and the set needs a new version.
+
+    fixtures.py record --set alpha-v1
+    fixtures.py fetch --set alpha-v1 --env-file ~/e-dream-ai/python-api/.env
 """
 import argparse
 import hashlib
@@ -43,6 +53,7 @@ from pathlib import Path
 import server
 
 DEFAULT_CACHE = "/Users/Shared/infinidream.ai/content/mp4"
+RECORDED = Path(__file__).resolve().parent / "fixture-sets"
 DEFAULT_SERVER = "https://api-alpha.infinidream.ai/api/v1"
 USER_AGENT = "infinidream-fixtures"
 
@@ -165,12 +176,16 @@ def download(url, target, expected_md5, size):
     part.rename(target)
 
 
-def snapshot(args):
+def api_from_args(args, default_server=None):
     env = read_env_file(args.env_file) if args.env_file else {}
     key = os.environ.get("INFINIDREAM_FIXTURES_KEY") or env.get("API_KEY")
     if not key:
         sys.exit("No API key: set INFINIDREAM_FIXTURES_KEY or pass --env-file with API_KEY=")
-    api = Api(args.server or env.get("BACKEND_URL") or DEFAULT_SERVER, key)
+    return Api(args.server or default_server or env.get("BACKEND_URL") or DEFAULT_SERVER, key)
+
+
+def snapshot(args):
+    api = api_from_args(args)
     target = set_dir(args.set)
     (target / "api").mkdir(parents=True, exist_ok=True)
 
@@ -237,6 +252,71 @@ def snapshot(args):
     print(f"Done: {len(order)} dreams in {target}")
 
 
+def strip_url_queries(value):
+    """value with the query string dropped from every http(s) URL in it."""
+    if isinstance(value, dict):
+        return {k: strip_url_queries(v) for k, v in value.items()}
+    if isinstance(value, list):
+        return [strip_url_queries(v) for v in value]
+    if isinstance(value, str) and value.startswith(("https://", "http://")) and "?" in value:
+        return value.split("?", 1)[0]
+    return value
+
+
+def recorded_files(folder):
+    """The files of a set that are recorded in git: its manifest and raw API responses."""
+    return [folder / "manifest.json", *sorted((folder / "api").glob("*.json"))]
+
+
+def record(args):
+    source = set_dir(args.set)
+    if not (source / "manifest.json").exists():
+        sys.exit(f"{source} has no manifest.json")
+    target = RECORDED / source.name
+    if target.exists():
+        shutil.rmtree(target)
+    for path in recorded_files(source):
+        out = target / path.relative_to(source)
+        out.parent.mkdir(parents=True, exist_ok=True)
+        data = strip_url_queries(json.loads(path.read_text()))
+        out.write_text(json.dumps(data, indent=2 if path.name == "manifest.json" else 1) + "\n")
+    print(f"Recorded {source.name} in {target}")
+
+
+def fetch(args):
+    recorded = RECORDED / args.set
+    if not (recorded / "manifest.json").exists():
+        sys.exit(f"No recorded set {args.set} in {RECORDED}")
+    manifest = json.loads((recorded / "manifest.json").read_text())
+    # Snapshot sets record the API they came from; sets imported from a cache came from alpha.
+    source = manifest.get("source", "")
+    api = api_from_args(args, source if source.startswith("https://") else None)
+    target = set_dir(args.set)
+    for path in recorded_files(recorded):
+        out = target / path.relative_to(recorded)
+        out.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copy2(path, out)
+    cache = Path(args.from_cache) if args.from_cache else None
+    dreams = manifest["dreams"]
+    print(f"{len(dreams)} dreams, {sum(d['size'] for d in dreams) / 1e9:.2f} GB in {target}", flush=True)
+    for number, dream in enumerate(dreams, 1):
+        uuid, path = dream["uuid"], target / f"{dream['uuid']}.mp4"
+        if path.exists() and md5_of(path) == dream["md5"]:
+            continue
+        cached = cache / f"{uuid}.mp4" if cache else None
+        if cached and cached.exists() and md5_of(cached) == dream["md5"]:
+            shutil.copy2(cached, path)
+            continue
+        print(f"[{number}/{len(dreams)}] {uuid} {dream.get('name') or ''!r}, "
+              f"{dream['size'] / 1e6:.0f} MB", flush=True)
+        url = api.get(f"/client/dream/{uuid}/url")["data"]["url"]
+        download(url, path, dream["md5"], dream["size"])
+    problems = verify(target)
+    if problems:
+        sys.exit(f"{target}: {'; '.join(problems[:3])}")
+    print(f"Done: {args.set} matches its manifest")
+
+
 def list_sets(args):
     root = fixtures_root()
     for folder in sorted(p for p in root.glob("*") if (p / "manifest.json").exists()):
@@ -276,6 +356,15 @@ def main():
                       help="with --from-cache, take only the dreams found there")
     snap.add_argument("--server", help=f"API base URL (default: BACKEND_URL from the env file, else {DEFAULT_SERVER})")
     snap.set_defaults(run=snapshot)
+    rec = commands.add_parser("record", help="copy a set's manifest and API responses into fixture-sets/")
+    rec.add_argument("--set", required=True)
+    rec.set_defaults(run=record)
+    fet = commands.add_parser("fetch", help="rebuild a recorded set here, downloading its videos")
+    fet.add_argument("--set", required=True, help="name of a set in fixture-sets/")
+    fet.add_argument("--env-file", help="file with API_KEY=, e.g. python-api/.env")
+    fet.add_argument("--from-cache", help="copy videos from this folder of <uuid>.mp4 when the md5 matches")
+    fet.add_argument("--server", help="API base URL (default: the one the set came from, else alpha)")
+    fet.set_defaults(run=fetch)
     ver = commands.add_parser("verify", help="check a set's videos against its manifest")
     ver.add_argument("--set", required=True)
     ver.set_defaults(run=verify_set)
