@@ -545,8 +545,7 @@ public:
                         m_spFpsText->SetRect(Base::Math::CRect(textX, textY, textX + textW, textY + textH));
                     }
                     m_spFpsText->SetEnabled(true);
-                    // Use renderer's DrawText to set color (osd-pill orange)
-                    spRenderer->DrawText(m_spFpsText, Base::Math::CVector4(1.0f, 0.855f, 0.722f, 1.0f));
+                    spRenderer->DrawText(m_spFpsText, TextColor());
                 }
             } else {
                 // Brightness - use original symbol, hide FPS text

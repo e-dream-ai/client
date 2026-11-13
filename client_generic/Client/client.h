@@ -550,14 +550,14 @@ class CElectricSheep
 
         // Add right-aligned stats with explicit alignment
         // Move most stats down one row to avoid overlap with long titles
-        creditsConsole->Add(new Hud::CStringStat("credits-track", "", ""), true, Base::Math::CVector4(1, 1, 1, 1), "credits-title");
-        creditsConsole->Add(new Hud::CStringStat("credits-time", "", ""), true, Base::Math::CVector4(1, 1, 1, 1), "credits-artist");
-        creditsConsole->Add(new Hud::CStringStat("credits-fps", "", ""), true, Base::Math::CVector4(1, 1, 1, 1), "credits-playlist");
+        creditsConsole->Add(new Hud::CStringStat("credits-track", "", ""), true, Hud::TextColor(), "credits-title");
+        creditsConsole->Add(new Hud::CStringStat("credits-time", "", ""), true, Hud::TextColor(), "credits-artist");
+        creditsConsole->Add(new Hud::CStringStat("credits-fps", "", ""), true, Hud::TextColor(), "credits-playlist");
         // Indicator order (left to right): Busy, Net, Remote, Disk, Update
         creditsConsole->Add(new Hud::CStringStat("credits-busy", "", ""), true, Base::Math::CVector4(1, 0, 0, 1), "credits-mode");  // Red busy indicator
-        creditsConsole->Add(new Hud::CStringStat("credits-net", "", ""), true, Base::Math::CVector4(1, 1, 1, 1), "credits-mode");
-        creditsConsole->Add(new Hud::CStringStat("credits-ws", "", ""), true, Base::Math::CVector4(1, 1, 1, 1), "credits-mode");
-        creditsConsole->Add(new Hud::CStringStat("credits-dsk", "", ""), true, Base::Math::CVector4(1, 1, 1, 1), "credits-mode");
+        creditsConsole->Add(new Hud::CStringStat("credits-net", "", ""), true, Hud::TextColor(), "credits-mode");
+        creditsConsole->Add(new Hud::CStringStat("credits-ws", "", ""), true, Hud::TextColor(), "credits-mode");
+        creditsConsole->Add(new Hud::CStringStat("credits-dsk", "", ""), true, Hud::TextColor(), "credits-mode");
         creditsConsole->Add(new Hud::CStringStat("credits-upd", "", ""), true, Base::Math::CVector4(1, 1, 0, 1), "credits-mode");  // Yellow update indicator
     }
     

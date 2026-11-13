@@ -9,6 +9,14 @@
 namespace Hud
 {
 
+// Color for all HUD and OSD text: the peach of the infinidream logo, the same
+// as the OSD icons (COLOR in osd-icons/make_osd_icons.py, #FFDAB8). Status
+// lights keep their own red/green/yellow.
+inline Base::Math::CVector4 TextColor()
+{
+    return Base::Math::CVector4(1.0f, 0.855f, 0.722f, 1.0f);
+}
+
 /*
  */
 class CHudEntry

@@ -256,7 +256,7 @@ class CStatsConsole : public CConsole
         CStat* stat;
         DisplayOutput::spCBaseText text;
         bool isRightAligned = false;
-        Base::Math::CVector4 color = {1, 1, 1, 1};  // Default white
+        Base::Math::CVector4 color = TextColor();
         std::string alignWithStat;  // For right-aligned stats and columns, which left stat to align with
         bool isColumn = false;  // Drawn to the right of alignWithStat, on the same rows
     };
@@ -294,7 +294,7 @@ class CStatsConsole : public CConsole
         m_Stats.clear();
     }
 
-    void Add(CStat* _pStat, bool _isRightAligned = false, Base::Math::CVector4 _color = {1, 1, 1, 1}, const std::string& _alignWithStat = "")
+    void Add(CStat* _pStat, bool _isRightAligned = false, Base::Math::CVector4 _color = TextColor(), const std::string& _alignWithStat = "")
     {
         // Check if stat already exists to prevent duplicates
         auto it = std::find_if(m_Stats.begin(), m_Stats.end(),
@@ -322,7 +322,7 @@ class CStatsConsole : public CConsole
     void AddColumn(CStat* _pStat, const std::string& _alignWithStat)
     {
         const size_t count = m_Stats.size();
-        Add(_pStat, false, {1, 1, 1, 1}, _alignWithStat);
+        Add(_pStat, false, TextColor(), _alignWithStat);
         if (m_Stats.size() > count)
             m_Stats.back().second.isColumn = true;
     }
