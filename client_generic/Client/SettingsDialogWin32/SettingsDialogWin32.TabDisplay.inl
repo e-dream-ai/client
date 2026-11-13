@@ -8,9 +8,13 @@ ImGui::SetCursorPosX(leftPadding);
 StyledCheckbox("Rotate On Portrait Displays", &g_rotatePortrait);
 
 ImGui::SetCursorPosX(leftPadding);
-StyledCheckbox("Spout Output", &g_spoutOutput);
+StyledCheckbox("Share video with", &g_spoutOutput);
 if (ImGui::IsItemHovered(ImGuiHoveredFlags_DelayNormal))
 {
     ImGui::SetTooltip(
         "Publish the primary display as Spout sender \"infinidream\" for OBS, Resolume, and other receivers.");
 }
+// "Spout" links to its home page; the checkbox's own text still toggles it.
+ImGui::SameLine(0.f, ImGui::GetStyle().ItemInnerSpacing.x);
+if (ImGui::TextLink("Spout"))
+    PlatformUtils::OpenURLExternally(kUrlSpout);

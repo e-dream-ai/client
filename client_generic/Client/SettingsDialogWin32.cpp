@@ -52,6 +52,7 @@ constexpr const char* kUrlHelp = "https://alpha.infinidream.ai/help";
 constexpr const char* kUrlWebRemote = "https://alpha.infinidream.ai/rc";
 constexpr const char* kUrlPlaylists = "https://alpha.infinidream.ai/playlists";
 #endif
+constexpr const char* kUrlSpout = "https://spout.zeal.co/";
 
 // Colors the settings dialog draws with beyond ImGui's base light/dark style.
 struct SettingsPalette
