@@ -1900,6 +1900,29 @@ void CPlayer::UpdateTransition(double currentTime)
 
     bool nextClipBuffering = (m_nextClip && m_nextClip->IsBuffering());
 
+    // Log a crossfade that's held partway, or whose progress goes back, which
+    // shows on screen as the new dream snapping back to the old one. The mock
+    // server's slow_link_test.py checks for these.
+    if (m_FadeTrackedClip.lock() != m_nextClip) {
+        m_FadeTrackedClip = m_nextClip;
+        m_FadeMaxProgress = 0.0;
+        m_FadeHoldLogged = false;
+    }
+    const std::string fadeTarget = m_nextClip->GetClipMetadata().dreamData.uuid;
+    if (transitionProgress < m_FadeMaxProgress - 0.05) {
+        g_Log->Warning("Crossfade to %s went back from %.0f%% to %.0f%%", fadeTarget.c_str(),
+                       m_FadeMaxProgress * 100.0, std::max(0.0, transitionProgress) * 100.0);
+        m_FadeMaxProgress = std::max(0.0, transitionProgress);
+    }
+    m_FadeMaxProgress = std::max(m_FadeMaxProgress, std::min(transitionProgress, 1.0));
+    if (nextClipBuffering && transitionProgress > 0.01 && !m_FadeHoldLogged) {
+        g_Log->Info("Crossfade to %s held at %.0f%%: incoming clip is buffering",
+                    fadeTarget.c_str(), transitionProgress * 100.0);
+        m_FadeHoldLogged = true;
+    } else if (!nextClipBuffering) {
+        m_FadeHoldLogged = false;
+    }
+
     // While the incoming clip is buffering, hold the crossfade where it is.
     // Before it has drawn anything that's 0, which keeps the outgoing clip
     // fully visible (snapping to a buffering replacement shows a black frame).

@@ -159,6 +159,10 @@ class CPlayer : public Base::CSingleton<CPlayer>
     bool m_PreloadingNextClip = false;
     std::atomic<uint64_t> m_ContentSettledCount{0};
     std::weak_ptr<ContentDecoder::CClip> m_LastSettledClip;  // last clip counted as appearing
+    // Crossfade logging for tests (UpdateTransition).
+    std::weak_ptr<ContentDecoder::CClip> m_FadeTrackedClip;
+    double m_FadeMaxProgress = 0.0;
+    bool m_FadeHoldLogged = false;
     std::string m_PreloadingDreamUUID;
 
     Base::CBlockingQueue<std::string> m_NextClipInfoQueue;

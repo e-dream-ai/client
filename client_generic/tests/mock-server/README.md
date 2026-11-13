@@ -37,9 +37,15 @@ malformed ones, but no other faults or chaos yet. Mac only for now.
 - `crash_test.py` sends malformed remote-control messages, one per fresh client, and checks
   the client survives each. `--list` shows the cases; `--case NAME` runs one.
 - `throttle_test.py` serves the largest videos over a limited link, drops the rate below
-  what the first dream needs and raises it again, and checks that the client rebuffers and
+  the client's 10% adaptive-speed floor and raises it again, and checks that the client rebuffers and
   recovers while its render loop keeps going. It takes about 45 seconds, and runs
   without screenshots, because taking them stalls the render loop.
+- `slow_link_test.py` checks adaptive playback speed (#770) over a limited link, on the
+  `alpha-v1` set's two long Pink Floyd dreams by default: at 0.6x the first dream's rate it
+  slows below 100% and keeps moving with at most 2 rebuffers; at 0.15x it goes below the old
+  25% floor; a `play_dream` into the middle of the other dream holds its crossfade while the
+  new dream buffers, and no crossfade goes back (the client logs both); and full speed
+  returns when the rate goes back up. About three minutes.
 - `fixtures.py` makes and checks fixture sets (see "Videos").
 - `screens.py` takes about one screenshot of the client's window a second, to catch a black
   or frozen picture. It can't see individual dropped frames.
@@ -56,6 +62,7 @@ venv/bin/python e2e_test.py --app "$APP"
 venv/bin/python commands_test.py --app "$APP"
 venv/bin/python crash_test.py --app "$APP"
 venv/bin/python throttle_test.py --app "$APP"
+venv/bin/python slow_link_test.py --app "$APP"
 ```
 
 Each takes `--set NAME` to serve a fixture set, and `--keep` to keep the run folder (logs,
