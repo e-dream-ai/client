@@ -11,6 +11,7 @@
 #define OSD_hpp
 
 #include <stdio.h>
+#include <algorithm>
 #include <cmath>
 #include <string>
 
@@ -41,7 +42,6 @@ enum OSDType {
     Like,
     Dislike,
     Report,
-    Buffering,
     Repeat,
     Shuffle
 };
@@ -177,14 +177,6 @@ public:
             m_spReportTexture->Upload(tmpReport);
         }
         
-        DisplayOutput::spCImage tmpBuffering(new DisplayOutput::CImage());
-        if (tmpBuffering->Load(g_Settings()->Get("settings.app.InstallDir", defaultDir) +
-                               "network.png", false))
-        {
-            m_spBufferingTexture = g_Player().Renderer()->NewTextureFlat();
-            m_spBufferingTexture->Upload(tmpBuffering);
-        }
-
         DisplayOutput::spCImage tmpRepeat(new DisplayOutput::CImage());
         if (tmpRepeat->Load(g_Settings()->Get("settings.app.InstallDir", defaultDir) +
                                "osd-repeat.png", false))
@@ -396,23 +388,6 @@ public:
         tmpLike = NULL;
         tmpDislike = NULL;
         tmpReport = NULL;
-        
-        // Set buffering icon position in top left
-        m_BufferingCRect = rect;
-        m_BufferingCRect.m_X1 *= aspect;
-
-        auto w_buffering = m_BufferingCRect.Width();
-        auto h_buffering = m_BufferingCRect.Height();
-        const float s_buffering = 0.05f;  // Scale for buffering icon
-
-        // Position in top left with padding
-        m_BufferingCRect.m_X0 = 0.02f;  // 2% from left edge
-        m_BufferingCRect.m_Y0 = 0.04f;  // 4% from top edge
-        m_BufferingCRect.m_X1 = m_BufferingCRect.m_X0 + (w_buffering * s_buffering);
-        m_BufferingCRect.m_Y1 = m_BufferingCRect.m_Y0 + (h_buffering * s_buffering);
-
-        // Remember to clean up the temporary image
-        tmpBuffering = NULL;
     };
 
     using CHudEntry::Visible;
@@ -452,32 +427,7 @@ public:
 
         DisplayOutput::spCRenderer spRenderer = _spRenderer;
 
-        if (type == Buffering) {
-            // Hide FPS text for non-Speed types
-            if (m_spFpsText != NULL) {
-                m_spFpsText->SetEnabled(false);
-            }
-            
-            // Use a sine wave for smooth pulsing
-            float pulse = (sin(_time * m_BufferingPulseSpeed) + 1.0f) * 0.5f; // Produces 0.0 to 1.0
-            float alpha = m_BufferingMinAlpha + pulse * (m_BufferingMaxAlpha - m_BufferingMinAlpha);
-            
-            // Draw just the buffering icon without background
-            spRenderer->Reset(DisplayOutput::eTexture | DisplayOutput::eShader);
-            spRenderer->SetTexture(m_spBufferingTexture, 0);
-            spRenderer->SetBlend("alphablend");
-            spRenderer->SetShader(NULL);
-            spRenderer->Apply();
-            
-            // Draw with pulsing alpha
-            spRenderer->DrawQuad(
-                m_BufferingCRect,
-                Base::Math::CVector4(1, 1, 1, alpha),
-                m_spBufferingTexture->GetRect()
-            );
-            
-            return true;
-        } else if (type == Speed || type == Brightness) {
+        if (type == Speed || type == Brightness) {
             // Setup & Draw background
             spRenderer->Reset(DisplayOutput::eTexture | DisplayOutput::eShader);
             spRenderer->SetTexture(m_spBgTexture, 0);
@@ -798,12 +748,6 @@ private:
 
     Base::Math::CRect m_BgSqCRect, m_LargeSymbolCRect;
 
-    // Buffering indicator
-    DisplayOutput::spCTextureFlat m_spBufferingTexture;
-    Base::Math::CRect m_BufferingCRect;
-    float m_BufferingPulseSpeed = 2.0f; // Speed of pulsing (adjust as needed)
-    float m_BufferingMinAlpha = 0.3f;   // Minimum alpha value
-    float m_BufferingMaxAlpha = 1.0f;   // Maximum alpha value
     
     // Turtle, Snail, Rabbit and Bird icons for speed OSD
     DisplayOutput::spCTextureFlat m_spTurtleTexture, m_spSnailTexture, m_spRabbitTexture, m_spBirdTexture;
@@ -826,6 +770,125 @@ private:
 
 // @TODO : clean those old pointers at some point
 MakeSmartPointers(COSD);
+
+// Lower-right moon shown while playback is stalled waiting for video data
+// (client#732). Draws one frame of osd-buffering.png, a sprite sheet that
+// osd-icons/make_osd_icons.py renders as kFrames phases (new -> full -> new) in a
+// kCols-wide grid; keep the two in step.
+//
+// It stays in the HudManager for the life of the app. The client calls
+// SetStalled() every frame, and Render() owns all the timing. Stalls often come
+// in bursts (buffer, play a few frames, buffer again), so gaps shorter than
+// kClearHold count as part of one stall. Nothing shows for the first
+// kShowDelay seconds (so a lone hiccup doesn't flash it), then it fades in, and
+// fades out once there has been no stall for kClearHold seconds. The phase runs
+// off the clock and never restarts, so the moon keeps going round.
+class CBufferingIndicator : public CHudEntry
+{
+  public:
+    static constexpr int kFrames = 24;
+    static constexpr int kCols = 6;
+    static constexpr int kRows = (kFrames + kCols - 1) / kCols;
+    static constexpr double kCycleSeconds = 2.4;  // one new -> full -> new
+    static constexpr double kShowDelay = 0.5;
+    static constexpr double kClearHold = 1.0;
+    static constexpr double kFadeIn = 0.25;
+    static constexpr double kFadeOut = 0.4;
+
+    // _fontHeight is the HUD console font size: the moon is sized and inset to
+    // sit on the bottom text row of the lower-right indicators.
+    explicit CBufferingIndicator(uint32_t _fontHeight)
+        : CHudEntry(Base::Math::CRect(1, 1)), m_FontHeight(_fontHeight)
+    {
+#ifndef LINUX_GNU
+        std::string defaultDir = PlatformUtils::GetWorkingDir();
+#else
+        std::string defaultDir = std::string("");
+#endif
+        DisplayOutput::spCImage img(new DisplayOutput::CImage());
+        if (img->Load(g_Settings()->Get("settings.app.InstallDir", defaultDir) +
+                          "osd-buffering.png",
+                      false))
+        {
+            m_spTexture = g_Player().Renderer()->NewTextureFlat();
+            m_spTexture->Upload(img);
+        }
+    }
+
+    // Call every frame. Also re-shows the entry, since HudManager::Toggle()
+    // hides every entry when an overlay is toggled.
+    void SetStalled(bool _stalled)
+    {
+        m_Stalled = _stalled;
+        Visible(true);
+    }
+
+    bool Render(const double _time, DisplayOutput::spCRenderer _spRenderer) override
+    {
+        if (!CHudEntry::Render(_time, _spRenderer))
+            return false;
+
+        const bool inStall = m_LastStalledTime >= 0 && _time - m_LastStalledTime < kClearHold;
+        if (m_Stalled)
+        {
+            if (!inStall)
+                m_StallStart = _time;
+            m_LastStalledTime = _time;
+        }
+
+        const double dt = m_LastTime < 0 ? 0 : std::max(0.0, _time - m_LastTime);
+        m_LastTime = _time;
+        const bool show = (m_Stalled || inStall) && _time - m_StallStart >= kShowDelay;
+        if (show)
+        {
+            m_Alpha = std::min(1.f, m_Alpha + static_cast<float>(dt / kFadeIn));
+        }
+        else
+        {
+            m_Alpha = std::max(0.f, m_Alpha - static_cast<float>(dt / kFadeOut));
+        }
+
+        if (m_Alpha <= 0.f || !m_spTexture || !_spRenderer)
+            return true;
+        auto spDisplay = _spRenderer->Display();
+        if (!spDisplay || spDisplay->Width() == 0 || spDisplay->Height() == 0)
+            return true;
+
+        // Same metrics as CStatsConsole, so the moon lines up with the right
+        // edge and bottom row of the indicator text above it.
+        const float screenW = static_cast<float>(spDisplay->Width());
+        const float screenH = static_cast<float>(spDisplay->Height());
+        const float px = m_FontHeight * screenH / 1080.f * 1.2f;
+        const float edge = m_FontHeight * screenH / 1080.f / screenW;
+        Base::Math::CRect rect(1.f - edge - px / screenW, 1.f - edge - px / screenH,
+                               1.f - edge, 1.f - edge);
+
+        const int frame =
+            static_cast<int>(std::fmod(_time, kCycleSeconds) / kCycleSeconds * kFrames) % kFrames;
+        const float u = static_cast<float>(frame % kCols) / kCols;
+        const float v = static_cast<float>(frame / kCols) / kRows;
+        Base::Math::CRect uv(u, v, u + 1.f / kCols, v + 1.f / kRows);
+
+        _spRenderer->Reset(DisplayOutput::eTexture | DisplayOutput::eShader);
+        _spRenderer->SetTexture(m_spTexture, 0);
+        _spRenderer->SetBlend("alphablend");
+        _spRenderer->SetShader(NULL);
+        _spRenderer->Apply();
+        _spRenderer->DrawQuad(rect, Base::Math::CVector4(1, 1, 1, m_Alpha), uv);
+        return true;
+    }
+
+  private:
+    DisplayOutput::spCTextureFlat m_spTexture;
+    uint32_t m_FontHeight;
+    bool m_Stalled = false;
+    double m_StallStart = 0;
+    double m_LastStalledTime = -1;
+    double m_LastTime = -1;
+    float m_Alpha = 0.f;
+};
+
+MakeSmartPointers(CBufferingIndicator);
 
 }
 

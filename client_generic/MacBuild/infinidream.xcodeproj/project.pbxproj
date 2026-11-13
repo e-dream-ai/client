@@ -347,10 +347,10 @@
 		F0B66AEC2E02DB8200751811 /* EmailStepViewController.mm in Sources */ = {isa = PBXBuildFile; fileRef = F0B66ADC2E02DB8200751811 /* EmailStepViewController.mm */; };
 		F0B66AED2E02DB8200751811 /* StartupWindowController.mm in Sources */ = {isa = PBXBuildFile; fileRef = F0B66ADD2E02DB8200751811 /* StartupWindowController.mm */; };
 		F0B66AEE2E02DB8200751811 /* ThanksStepViewController.mm in Sources */ = {isa = PBXBuildFile; fileRef = F0B66ADE2E02DB8200751811 /* ThanksStepViewController.mm */; };
-		F0B754512DBFCE4400C59D7A /* network.png in Resources */ = {isa = PBXBuildFile; fileRef = F0B754502DBFCE4400C59D7A /* network.png */; };
-		F0B754522DBFCE4400C59D7A /* network.png in Resources */ = {isa = PBXBuildFile; fileRef = F0B754502DBFCE4400C59D7A /* network.png */; };
-		F0B754532DBFCE4400C59D7A /* network.png in Resources */ = {isa = PBXBuildFile; fileRef = F0B754502DBFCE4400C59D7A /* network.png */; };
-		F0B754542DBFCE4400C59D7A /* network.png in Resources */ = {isa = PBXBuildFile; fileRef = F0B754502DBFCE4400C59D7A /* network.png */; };
+		F0B754512DBFCE4400C59D7A /* osd-buffering.png in Resources */ = {isa = PBXBuildFile; fileRef = F0B754502DBFCE4400C59D7A /* osd-buffering.png */; };
+		F0B754522DBFCE4400C59D7A /* osd-buffering.png in Resources */ = {isa = PBXBuildFile; fileRef = F0B754502DBFCE4400C59D7A /* osd-buffering.png */; };
+		F0B754532DBFCE4400C59D7A /* osd-buffering.png in Resources */ = {isa = PBXBuildFile; fileRef = F0B754502DBFCE4400C59D7A /* osd-buffering.png */; };
+		F0B754542DBFCE4400C59D7A /* osd-buffering.png in Resources */ = {isa = PBXBuildFile; fileRef = F0B754502DBFCE4400C59D7A /* osd-buffering.png */; };
 		F0C100002C1372C4007FA505 /* libboost_thread.a in Frameworks */ = {isa = PBXBuildFile; fileRef = F07071D32C0E052B008219A4 /* libboost_thread.a */; };
 		F0C100032C1372EF007FA506 /* SettingsDialog.xib in Resources */ = {isa = PBXBuildFile; fileRef = F0E9CE352C136B0500C4D695 /* SettingsDialog.xib */; };
 		F0C100052C1372EF007FA505 /* BuildData.json in Resources */ = {isa = PBXBuildFile; fileRef = 1243576B2B31FC1B00CCD62A /* BuildData.json */; };
@@ -947,7 +947,7 @@
 		F0B66ADC2E02DB8200751811 /* EmailStepViewController.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; path = EmailStepViewController.mm; sourceTree = "<group>"; };
 		F0B66ADD2E02DB8200751811 /* StartupWindowController.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; path = StartupWindowController.mm; sourceTree = "<group>"; };
 		F0B66ADE2E02DB8200751811 /* ThanksStepViewController.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; path = ThanksStepViewController.mm; sourceTree = "<group>"; };
-		F0B754502DBFCE4400C59D7A /* network.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = network.png; sourceTree = "<group>"; };
+		F0B754502DBFCE4400C59D7A /* osd-buffering.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "osd-buffering.png"; sourceTree = "<group>"; };
 		F0C100842C1372EF007FA505 /* infinidream-stage.saver */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = "infinidream-stage.saver"; sourceTree = BUILT_PRODUCTS_DIR; };
 		F0C100852C1372F0007FA505 /* Screensaver-Stage-Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = "Screensaver-Stage-Info.plist"; sourceTree = "<group>"; };
 		F0C16C102E01DE870039EC33 /* FirstTimeSetupManager.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = FirstTimeSetupManager.h; sourceTree = "<group>"; };
@@ -1429,7 +1429,7 @@
 				21ADBB211305D380000A9F20 /* green.tif */,
 				21ADBB221305D380000A9F20 /* red.tif */,
 				21ADBB231305D380000A9F20 /* yellow.tif */,
-				F0B754502DBFCE4400C59D7A /* network.png */,
+				F0B754502DBFCE4400C59D7A /* osd-buffering.png */,
 				F05994562BA0912300B018C7 /* osd-bg-700.png */,
 				F05994672BA0A07300B018C7 /* osd-brightness.png */,
 				F05994542BA0912200B018C7 /* osd-pill-u.png */,
@@ -1746,7 +1746,7 @@
 				3439486B2F4F00010000000E /* osd-bird.png in Resources */,
 				F059945A2BA0912300B018C7 /* osd-pill-u.png in Resources */,
 				F05994792BA0A07300B018C7 /* osd-back.png in Resources */,
-				F0B754542DBFCE4400C59D7A /* network.png in Resources */,
+				F0B754542DBFCE4400C59D7A /* osd-buffering.png in Resources */,
 				F059945E2BA0912300B018C7 /* osd-bg-700.png in Resources */,
 				F02C15172E0194BB00BFFFF4 /* ThanksStepViewController.xib in Resources */,
 				F059946F2BA0A07300B018C7 /* osd-play.png in Resources */,
@@ -1769,7 +1769,7 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				F0B754512DBFCE4400C59D7A /* network.png in Resources */,
+				F0B754512DBFCE4400C59D7A /* osd-buffering.png in Resources */,
 				F02C150B2E0194A000BFFFF4 /* CodeStepViewController.xib in Resources */,
 				1BEBFE3F2ECB6B2B00F39019 /* osd-next.png in Resources */,
 				F059945F2BA0912300B018C7 /* osd-bg-700.png in Resources */,
@@ -1833,7 +1833,7 @@
 				3439486D2F4F000100000010 /* osd-bird.png in Resources */,
 				F0C100102C1372EF007FA505 /* osd-pill-u.png in Resources */,
 				F0C100112C1372EF007FA505 /* osd-back.png in Resources */,
-				F0B754522DBFCE4400C59D7A /* network.png in Resources */,
+				F0B754522DBFCE4400C59D7A /* osd-buffering.png in Resources */,
 				F0C100142C1372EF007FA505 /* osd-bg-700.png in Resources */,
 				F02C15112E0194BB00BFFFF4 /* ThanksStepViewController.xib in Resources */,
 				F0C100162C1372EF007FA505 /* osd-play.png in Resources */,
@@ -1855,7 +1855,7 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				F0B754532DBFCE4400C59D7A /* network.png in Resources */,
+				F0B754532DBFCE4400C59D7A /* osd-buffering.png in Resources */,
 				F02C15082E0194A000BFFFF4 /* CodeStepViewController.xib in Resources */,
 				1BEBFE402ECB6B2B00F39019 /* osd-next.png in Resources */,
 				F0E9CE312C136B0500C4D694 /* osd-bg-700.png in Resources */,

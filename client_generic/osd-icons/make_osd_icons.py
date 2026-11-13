@@ -8,6 +8,7 @@ Needs rsvg-convert (macOS: `brew install librsvg`). See README.md for where the
 source SVGs come from and how to add an icon.
 """
 import argparse
+import math
 import re
 import shutil
 import struct
@@ -76,6 +77,41 @@ def pill():
     return doc(f'<rect x="0" y="0" width="16" height="45" rx="8" fill="{COLOR}"/>', w=16, h=45)
 
 
+# Buffering moon: a sprite sheet of MOON_FRAMES phases, new -> full -> new, in a
+# MOON_COLS-wide grid. OSD.hpp's CBufferingIndicator must use the same numbers.
+MOON_FRAMES = 24
+MOON_COLS = 6
+MOON_CELL = 48  # px per frame at scale 1
+
+
+def moon_phase(p, ox, oy):
+    """One moon on the 100x100 cell at (ox, oy): black disc, ring, and the lit part
+    for phase p (0 = new, 0.5 = full; lit on the right while waxing)."""
+    cx, cy, r = ox + 50, oy + 50, RING_RADIUS
+    parts = [f'<circle cx="{cx}" cy="{cy}" r="{r + RING_WIDTH / 2}" fill="#000"/>',
+             f'<circle cx="{cx}" cy="{cy}" r="{r}" fill="none" stroke="{COLOR}" '
+             f'stroke-width="{RING_WIDTH}"/>']
+    k = math.cos(p * 2 * math.pi)        # 1 at new, -1 at full
+    if k < 0.999:
+        side = 1 if p < 0.5 else -1      # lit limb
+        bulge = side if k > 0 else -side  # crescent: terminator bows toward the lit limb
+        rx = abs(k) * r
+        # SVG y points down, so sweep-flag 1 is clockwise.
+        limb = 1 if side > 0 else 0
+        term = 0 if bulge > 0 else 1
+        parts.append(f'<path fill="{COLOR}" d="M {cx} {cy - r} '
+                     f'A {r} {r} 0 0 {limb} {cx} {cy + r} '
+                     f'A {rx:.3f} {r} 0 0 {term} {cx} {cy - r} Z"/>')
+    return "".join(parts)
+
+
+def moon_sheet():
+    rows = math.ceil(MOON_FRAMES / MOON_COLS)
+    cells = [moon_phase(i / MOON_FRAMES, (i % MOON_COLS) * 100, (i // MOON_COLS) * 100)
+             for i in range(MOON_FRAMES)]
+    return doc(*cells, w=MOON_COLS * 100, h=rows * 100)
+
+
 # output name -> (svg, width, height at scale 1)
 def icons():
     big, animal, symbol = 135, 96, 65
@@ -96,7 +132,8 @@ def icons():
         "osd-snail": (plain("LuSnail"), animal, animal),
         "osd-bird": (plain("FlyingBird"), animal, animal),
         "osd-brightness": (plain("LuSun"), symbol, symbol),
-        "network": (plain("LuGlobe"), 121, 121),
+        "osd-buffering": (moon_sheet(), MOON_COLS * MOON_CELL,
+                          math.ceil(MOON_FRAMES / MOON_COLS) * MOON_CELL),
         "osd-pill": (pill(), 16, 45),
     }
 

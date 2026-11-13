@@ -432,6 +432,9 @@ class CPlayer : public Base::CSingleton<CPlayer>
 
     bool IsAnyClipBuffering() const;
     bool IsPreloading() const;
+    // The current clip has played to its end and is held on its last frame
+    // because the next clip is not ready yet.
+    bool IsStalledAtTransition() const;
     bool IsAnyClipStreaming() const;
 };
 
