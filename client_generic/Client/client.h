@@ -2287,10 +2287,10 @@ class CElectricSheep
 
                 //	Finally render hud.
                 const double hudStartTime = m_Timer.Time();
-#if defined(MAC) && !defined(SCREEN_SAVER)
-                // Publish Syphon from the video pass before OSD/icon quads are
-                // drawn into the framebuffer (CATextLayer HUD text is already
-                // excluded; Metal DrawQuad overlays are not).
+#if (defined(MAC) && !defined(SCREEN_SAVER)) || defined(WIN32)
+                // Publish Syphon/Spout from the video pass before OSD/icon quads
+                // are drawn into the framebuffer (local HUD overlays are not
+                // included in the external feed).
                 if (displayUnit == 0)
                 {
                     if (auto spRenderer = g_Player().Renderer())
