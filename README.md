@@ -389,8 +389,9 @@ Options:
 
 - **x64 Windows 10+** only; the installer aborts otherwise.
 - Installs to `%ProgramFiles%\Infinidream\` (admin required). A different folder chosen on the directory page always gets `\Infinidream` appended, so the program has a folder of its own.
+- Ships the VC++ runtime DLLs next to the app (the Release build copies them from Visual Studio's `Microsoft.VC143.CRT` redist folder), so no separate redistributable is needed.
 - Creates one Start Menu shortcut.
-- The finish page's "Run Infinidream and sign in" launches the app as the user, not elevated.
+- The finish page's "Run Infinidream and sign in" launches the app as the user, not elevated, by handing it to Explorer (`explorer.exe <app>`), and lets its window come to the front.
 - The app, not the installer, selects itself as the **current screensaver** on each launch (`HKCU\Control Panel\Desktop\SCRNSAVE.EXE`), unless "keep screensaver enabled" is turned off in its settings.
 - The uninstaller removes the program folder, shortcut and registry entries, and clears `SCRNSAVE.EXE` if it still points at our `.scr` (in either long or 8.3 form). It keeps the user's data in `%LOCALAPPDATA%\Infinidream\` (sign-in, downloaded content, logs), and removes the legacy `%ProgramData%\Infinidream\` from older builds.
 
