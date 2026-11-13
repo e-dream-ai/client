@@ -117,6 +117,7 @@ def icons():
     big, animal, symbol = 135, 96, 65
     return {
         "osd-play": (ringed("FaPlay", 38, dx=3), big, big),
+        "osd-playlist": (ringed("PlaylistPlay", 54), big, big),
         "osd-pause": (ringed("FaPause", 38), big, big),
         "osd-back": (ringed("FaStepBackward", 35, dx=-1), big, big),
         "osd-next": (ringed("FaStepForward", 35, dx=1), big, big),

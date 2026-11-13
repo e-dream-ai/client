@@ -43,7 +43,8 @@ enum OSDType {
     Dislike,
     Report,
     Repeat,
-    Shuffle
+    Shuffle,
+    PlayPlaylist
 };
 
 class COSD : public CHudEntry {
@@ -183,6 +184,14 @@ public:
         {
             m_spRepeatTexture = g_Player().Renderer()->NewTextureFlat();
             m_spRepeatTexture->Upload(tmpRepeat);
+        }
+
+        DisplayOutput::spCImage tmpPlaylist(new DisplayOutput::CImage());
+        if (tmpPlaylist->Load(g_Settings()->Get("settings.app.InstallDir", defaultDir) +
+                               "osd-playlist.png", false))
+        {
+            m_spPlaylistTexture = g_Player().Renderer()->NewTextureFlat();
+            m_spPlaylistTexture->Upload(tmpPlaylist);
         }
 
         DisplayOutput::spCImage tmpShuffle(new DisplayOutput::CImage());
@@ -677,6 +686,9 @@ public:
                 case Shuffle:
                     symbolTexture = m_spShuffleTexture;
                     break;
+                case PlayPlaylist:
+                    symbolTexture = m_spPlaylistTexture;
+                    break;
                 default:
                     symbolTexture = m_spPauseTexture;
                     break;
@@ -744,7 +756,7 @@ private:
     Base::Math::CRect m_BgCRect, m_DotCRect, m_SymbolCRect;
     
     // Textures and coordinates for mini hud (210sq)
-    DisplayOutput::spCTextureFlat m_spBgSqTexture, m_spPlayTexture, m_spPauseTexture, m_spBackTexture, m_spForwardTexture, m_spBack10Texture, m_spForward10Texture, m_spLikeTexture, m_spDislikeTexture, m_spReportTexture, m_spRepeatTexture, m_spShuffleTexture;
+    DisplayOutput::spCTextureFlat m_spBgSqTexture, m_spPlayTexture, m_spPauseTexture, m_spBackTexture, m_spForwardTexture, m_spBack10Texture, m_spForward10Texture, m_spLikeTexture, m_spDislikeTexture, m_spReportTexture, m_spRepeatTexture, m_spShuffleTexture, m_spPlaylistTexture;
 
     Base::Math::CRect m_BgSqCRect, m_LargeSymbolCRect;
 
@@ -815,11 +827,15 @@ class CBufferingIndicator : public CHudEntry
         }
     }
 
-    // Call every frame. Also re-shows the entry, since HudManager::Toggle()
-    // hides every entry when an overlay is toggled.
-    void SetStalled(bool _stalled)
+    // Call every frame. _stalled: playback is stuck waiting for video.
+    // _awaiting: a command asked for new content that hasn't started to
+    // appear yet (client#474); unlike a stall it has no clear hold, so the moon
+    // fades out as the new dream fades in. Also re-shows the entry, since
+    // HudManager::Toggle() hides every entry when an overlay is toggled.
+    void SetStalled(bool _stalled, bool _awaiting = false)
     {
         m_Stalled = _stalled;
+        m_Awaiting = _awaiting;
         Visible(true);
     }
 
@@ -828,17 +844,17 @@ class CBufferingIndicator : public CHudEntry
         if (!CHudEntry::Render(_time, _spRenderer))
             return false;
 
-        const bool inStall = m_LastStalledTime >= 0 && _time - m_LastStalledTime < kClearHold;
+        const bool holding = m_LastStalledTime >= 0 && _time - m_LastStalledTime < kClearHold;
         if (m_Stalled)
-        {
-            if (!inStall)
-                m_StallStart = _time;
             m_LastStalledTime = _time;
-        }
+        const bool active = m_Stalled || m_Awaiting || holding;
+        if (active && !m_WasActive)
+            m_ActiveStart = _time;
+        m_WasActive = active;
 
         const double dt = m_LastTime < 0 ? 0 : std::max(0.0, _time - m_LastTime);
         m_LastTime = _time;
-        const bool show = (m_Stalled || inStall) && _time - m_StallStart >= kShowDelay;
+        const bool show = active && _time - m_ActiveStart >= kShowDelay;
         if (show)
         {
             m_Alpha = std::min(1.f, m_Alpha + static_cast<float>(dt / kFadeIn));
@@ -882,7 +898,9 @@ class CBufferingIndicator : public CHudEntry
     DisplayOutput::spCTextureFlat m_spTexture;
     uint32_t m_FontHeight;
     bool m_Stalled = false;
-    double m_StallStart = 0;
+    bool m_Awaiting = false;
+    bool m_WasActive = false;
+    double m_ActiveStart = 0;
     double m_LastStalledTime = -1;
     double m_LastTime = -1;
     float m_Alpha = 0.f;
