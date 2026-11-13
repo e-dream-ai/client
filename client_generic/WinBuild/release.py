@@ -96,27 +96,34 @@ def normalize_version(value: str) -> str:
     return v
 
 
-def built_version(repo: Path) -> Optional[str]:
-    """The version build.py compiled into the binaries, from the header it writes."""
+def built_version(repo: Path) -> tuple[Optional[str], Optional[str]]:
+    """The version compiled into the binaries and where it came from ("cli" for
+    build.py -v, "git-tag" for a dev build), from the header
+    generate_build_version.py writes."""
     header = repo / "client_generic" / "MSVC" / "edream_build_version_generated.h"
     if not header.is_file():
-        return None
+        return None, None
     text = header.read_text(encoding="utf-8", errors="replace")
-    m = re.search(r'#define\s+EDREAM_BUILD_VERSION_SEMVER\s+"([^"]*)"', text)
-    return m.group(1) if m else None
+
+    def define(name: str) -> Optional[str]:
+        m = re.search(rf'#define\s+{name}\s+"([^"]*)"', text)
+        return m.group(1) if m else None
+
+    return define("EDREAM_BUILD_VERSION_SEMVER"), define("EDREAM_BUILD_VERSION_SOURCE")
 
 
 def resolve_version(repo: Path, requested: Optional[str]) -> str:
-    """The installer's version must match the one the app reports (Settings, About, API)."""
-    built = built_version(repo)
+    """The installer's version must match the one the app reports (Settings, About, API),
+    and must be a release version given to build.py, not a dev build's."""
+    built, source = built_version(repo)
+    if not built or source != "cli":
+        print_red(
+            "These binaries weren't built with a release version"
+            + (f" (they say {built}, from the latest git tag)" if built else "")
+            + ".\nBuild with: python client_generic/WinBuild/build.py -v X.Y.Z"
+        )
+        sys.exit(1)
     if requested is None:
-        if not built:
-            print_red(
-                "No version given and none recorded by build.py "
-                "(client_generic/MSVC/edream_build_version_generated.h is missing).\n"
-                "Build with: python client_generic/WinBuild/build.py -v X.Y.Z"
-            )
-            sys.exit(1)
         print_blue(f"Using the version the binaries were built with: {built}")
         return built
     version = normalize_version(requested)

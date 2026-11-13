@@ -302,7 +302,7 @@ winget install --id GitHub.cli -e
 | Package | Purpose | Notes |
 |---------|---------|-------|
 | `Git.Git` | Clone, submodules. | |
-| `Python.Python.3.12` | Drives [`WinBuild/build.py`](client_generic/WinBuild/build.py) and [`release.py`](client_generic/WinBuild/release.py). Any 3.10+ works. | |
+| `Python.Python.3.12` | Drives [`WinBuild/build.py`](client_generic/WinBuild/build.py) and [`release.py`](client_generic/WinBuild/release.py), and every MSBuild build runs [`generate_build_version.py`](client_generic/WinBuild/generate_build_version.py). Any 3.10+ works. | `python` must be on `PATH`, for Visual Studio builds too. |
 | `Microsoft.VisualStudio.2022.Community` | MSBuild, C++ toolchain, Windows 10/11 SDK, `signtool.exe`. Use `Microsoft.VisualStudio.2022.BuildTools` for headless/CI. | The winget install launches the VS Installer but **does not select workloads** — add **Desktop development with C++** (and the Windows SDK) in that UI, or pass `--override "--add Microsoft.VisualStudio.Workload.NativeDesktop --includeRecommended"` to winget. |
 | `NSIS.NSIS` | [`makensis`](client_generic/InstallerMSVC/nsis_installer.nsi) for the Windows installer. | Installs to `C:\Program Files (x86)\NSIS\` but does **not** add itself to `PATH`; [`release.py`](client_generic/WinBuild/release.py) auto-discovers it there, or honors `MAKENSIS=<path>`. |
 | `GitHub.cli` | `release.py -g` uploads artifacts via `gh`. | Run `gh auth login` once. |
@@ -316,6 +316,8 @@ winget install --id GitHub.cli -e
 Open `client_generic/MSVC/e-dream.sln`, choose **Release** and **x64**, build. Typical output directory:
 
 `client_generic/MSVC/Release/` → **`infinidream.exe`**, **`infinidream.scr`**
+
+**Version:** before compiling, every build runs [`WinBuild/generate_build_version.py`](client_generic/WinBuild/generate_build_version.py), which writes `MSVC/edream_build_version_generated.h` (gitignored). A Visual Studio build is a dev build: its version is the latest git tag and its revision is `git describe --tags --always --dirty` (e.g. `0.16.1-12-g4aeae8cf-dirty`), which Settings shows. Release builds come from `build.py -v`.
 
 **Toolsets:** the solution mixes toolsets — **x64** configurations use **v143**; **Win32** configurations may still reference **v140** and legacy **Boost** paths inside [`electricsheep.vcxproj`](client_generic/MSVC/electricsheep.vcxproj). Prefer **Release | x64** unless you maintain Win32 explicitly (the installer is 64-bit only).
 
@@ -336,7 +338,7 @@ Defaults: **Release**, **x64**, runs MSBuild **restore** then **build** (uses `M
 
 | Flag | Description |
 |------|-------------|
-| `-v SEMVER`, `--version SEMVER` | Embed this version in the binary (Settings / API). Omit to take `VER_*` from [`Common/clientversion.h`](client_generic/Common/clientversion.h). Also embeds `git rev-parse --short HEAD` (or `unknown` without a repo). |
+| `-v SEMVER`, `--version SEMVER` | Release version to embed in the binary (Settings, About, the server, the installer). Without it the build is a dev build, versioned from the latest git tag, and `release.py` won't package it. Either way the revision is `git describe --tags --always --dirty`. |
 | `-r`, `--release` | Configuration **Release** (default). |
 | `-d`, `--debug` | Configuration **Debug** (outputs `infinidreamd.exe`). |
 | `--configuration NAME` | Override configuration (e.g. `DebugMD`). |
@@ -359,7 +361,7 @@ python build.py --run-vcpkg --triplet x64-windows
 
 ### Release installer
 
-Build with the semver you will ship (writes `MSVC/edream_build_version_generated.h` then compiles). Without `-v`, the app reports the placeholder version in `Common/clientversion.h`:
+Build with the semver you will ship. `release.py` refuses a dev build (one built without `-v`):
 
 ```bat
 python client_generic\WinBuild\build.py -v 0.14.0
@@ -455,7 +457,7 @@ Push and Cloudflare will deploy in a few minutes.
 
 There is **no** Sparkle appcast on Windows in this repo. Typical flow:
 
-1. Build **Release \| x64** with the version: `python client_generic\WinBuild\build.py -v X.Y.Z`. (A Visual Studio build keeps whatever version the last `build.py` run wrote, and doesn't empty the output folder.)
+1. Build **Release \| x64** with the version: `python client_generic\WinBuild\build.py -v X.Y.Z`. (A Visual Studio build is a dev build, which `release.py` won't package, and doesn't empty the output folder.)
 2. Package:
 
    ```bat

@@ -55,7 +55,7 @@ vcpkg\bootstrap-vcpkg.bat
 vcpkg\vcpkg.exe install --triplet x64-windows
 cd client_generic\WinBuild
 python build.py                               :: Release | x64 (infinidream.exe / .scr)
-python build.py -v X.Y.Z                       :: build with embedded version
+python build.py -v X.Y.Z                       :: release build (without -v: dev build, versioned from the latest tag)
 python release.py                             :: NSIS Setup.exe, versioned as built
 ```
 

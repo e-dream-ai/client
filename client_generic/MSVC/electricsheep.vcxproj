@@ -825,6 +825,12 @@ copy /y "..\runtime\*.ttf" "$(OutDir)"
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <Import Project="$(MSBuildThisFileDirectory)..\..\vcpkg\scripts\buildsystems\msbuild\vcpkg.targets" />
   <ImportGroup Label="ExtensionTargets" />
+  <!-- Stamp the version, git revision and date into edream_build_version_generated.h before
+       every compile, for Visual Studio builds too (#633). build.py passes -v as EdreamVersion;
+       without it the version is the latest git tag. Needs python on PATH. -->
+  <Target Name="EdreamGenerateBuildVersion" BeforeTargets="ClCompile">
+    <Exec Command="python &quot;$(MSBuildProjectDirectory)\..\WinBuild\generate_build_version.py&quot; --version &quot;$(EdreamVersion)&quot;" />
+  </Target>
   <!-- Copy optional third-party DLLs from MSVC\dll\<Configuration>\ e.g. dll\Release, dll\Debug (flat into OutDir). -->
   <Target Name="CopyExtraDllsFromDllFolder" AfterTargets="PostBuildEvent" Condition="Exists('$(ProjectDir)dll\$(Configuration)')">
     <ItemGroup>
