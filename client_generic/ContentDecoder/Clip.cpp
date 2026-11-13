@@ -244,7 +244,7 @@ constexpr double kRateHalfLifeFast = 2.0;  // s
 constexpr double kRateHalfLifeSlow = 8.0;  // s
 constexpr double kTargetBuffer = 4.0;      // s of video ahead
 constexpr double kGain = 0.5;
-constexpr double kMinSpeed = 0.25;
+constexpr double kMinSpeed = 0.10;
 constexpr double kSlewDown = 0.5;          // speed units per second
 constexpr double kSlewUp = 0.1;
 }
