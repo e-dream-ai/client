@@ -285,7 +285,7 @@ The app bundle contains the embedded screensaver at `infinidream.app/Contents/Re
 
 ## Build on Windows
 
-Covers the native **MSVC** client ([`e-dream.sln`](client_generic/MSVC/e-dream.sln)), **vcpkg** manifest dependencies, and the **NSIS installer** / ZIP distribution via [`client_generic/WinBuild/`](client_generic/WinBuild/) (same style as [`MacBuild/build.py`](client_generic/MacBuild/build.py) and [`release.py`](client_generic/MacBuild/release.py)).
+Covers the native **MSVC** client ([`e-dream.sln`](client_generic/MSVC/e-dream.sln)), **vcpkg** manifest dependencies, and the **NSIS installer** via [`client_generic/WinBuild/`](client_generic/WinBuild/) (same style as [`MacBuild/build.py`](client_generic/MacBuild/build.py) and [`release.py`](client_generic/MacBuild/release.py)).
 
 ### Prerequisites
 
@@ -302,7 +302,7 @@ winget install --id GitHub.cli -e
 | Package | Purpose | Notes |
 |---------|---------|-------|
 | `Git.Git` | Clone, submodules. | |
-| `Python.Python.3.12` | Drives [`WinBuild/build.py`](client_generic/WinBuild/build.py) and [`release.py`](client_generic/WinBuild/release.py). Any 3.10+ works. | |
+| `Python.Python.3.12` | Drives [`WinBuild/build.py`](client_generic/WinBuild/build.py) and [`release.py`](client_generic/WinBuild/release.py), and every MSBuild build runs [`generate_build_version.py`](client_generic/WinBuild/generate_build_version.py). Any 3.10+ works. | `python` must be on `PATH`, for Visual Studio builds too. |
 | `Microsoft.VisualStudio.2022.Community` | MSBuild, C++ toolchain, Windows 10/11 SDK, `signtool.exe`. Use `Microsoft.VisualStudio.2022.BuildTools` for headless/CI. | The winget install launches the VS Installer but **does not select workloads** — add **Desktop development with C++** (and the Windows SDK) in that UI, or pass `--override "--add Microsoft.VisualStudio.Workload.NativeDesktop --includeRecommended"` to winget. |
 | `NSIS.NSIS` | [`makensis`](client_generic/InstallerMSVC/nsis_installer.nsi) for the Windows installer. | Installs to `C:\Program Files (x86)\NSIS\` but does **not** add itself to `PATH`; [`release.py`](client_generic/WinBuild/release.py) auto-discovers it there, or honors `MAKENSIS=<path>`. |
 | `GitHub.cli` | `release.py -g` uploads artifacts via `gh`. | Run `gh auth login` once. |
@@ -316,6 +316,8 @@ winget install --id GitHub.cli -e
 Open `client_generic/MSVC/e-dream.sln`, choose **Release** and **x64**, build. Typical output directory:
 
 `client_generic/MSVC/Release/` → **`infinidream.exe`**, **`infinidream.scr`**
+
+**Version:** before compiling, every build runs [`WinBuild/generate_build_version.py`](client_generic/WinBuild/generate_build_version.py), which writes `MSVC/edream_build_version_generated.h` (gitignored). A Visual Studio build is a dev build: its version is the latest git tag and its revision is `git describe --tags --always --dirty` (e.g. `0.16.1-12-g4aeae8cf-dirty`), which Settings shows. Release builds come from `build.py -v`.
 
 **Toolsets:** the solution mixes toolsets — **x64** configurations use **v143**; **Win32** configurations may still reference **v140** and legacy **Boost** paths inside [`electricsheep.vcxproj`](client_generic/MSVC/electricsheep.vcxproj). Prefer **Release | x64** unless you maintain Win32 explicitly (the installer is 64-bit only).
 
@@ -336,7 +338,7 @@ Defaults: **Release**, **x64**, runs MSBuild **restore** then **build** (uses `M
 
 | Flag | Description |
 |------|-------------|
-| `-v SEMVER`, `--version SEMVER` | Embed this version in the binary (Settings / API). Omit to take `VER_*` from [`Common/clientversion.h`](client_generic/Common/clientversion.h). Also embeds `git rev-parse --short HEAD` (or `unknown` without a repo). |
+| `-v SEMVER`, `--version SEMVER` | Release version to embed in the binary (Settings, About, the server, the installer). Without it the build is a dev build, versioned from the latest git tag, and `release.py` won't package it. Either way the revision is `git describe --tags --always --dirty`. |
 | `-r`, `--release` | Configuration **Release** (default). |
 | `-d`, `--debug` | Configuration **Debug** (outputs `infinidreamd.exe`). |
 | `--configuration NAME` | Override configuration (e.g. `DebugMD`). |
@@ -357,48 +359,43 @@ python build.py -d --platform x64
 python build.py --run-vcpkg --triplet x64-windows
 ```
 
-### Release installer and ZIP
+### Release installer
 
-Build with the same semver you will ship (writes `MSVC/edream_build_version_generated.h` then compiles):
+Build with the semver you will ship. `release.py` refuses a dev build (one built without `-v`):
 
 ```bat
 python client_generic\WinBuild\build.py -v 0.14.0
 ```
 
-Then package an NSIS `Setup.exe` (default) and optionally a portable ZIP:
+Then package the NSIS `Setup.exe`. It takes the version the binaries were built with; passing a different `-v` is an error, so the installer and the app always agree:
 
 ```bat
-python client_generic\WinBuild\release.py -v 0.14.0                        :: NSIS Setup.exe
-python client_generic\WinBuild\release.py -v 0.14.0 --zip                  :: also writes a portable ZIP
-python client_generic\WinBuild\release.py -v 0.14.0 --no-installer --zip   :: ZIP only
+python client_generic\WinBuild\release.py
 ```
 
-The installer packages the entire `client_generic\MSVC\Release\` directory (binaries, vcpkg-linked DLLs, fonts, OSD assets) directly — there is no separate staging step. License content is embedded from `client_generic\RuntimeMSVC\License.rtf`.
+The installer packages straight from `client_generic\MSVC\Release\`: the exe and scr plus every `*.dll`, `*.png` and `*.ttf` there. `build.py` empties that folder before every build (like the Mac build), so nothing left over from an older build ships; object files are kept, so builds stay incremental (`--clean` removes those too). After a Visual Studio build, which doesn't empty the folder, run `build.py` before packaging a release. License content is embedded from `client_generic\RuntimeMSVC\License.rtf`.
 
-Output:
-
-- `client_generic\WinBuild\dist\infinidream-windows-{version}-setup.exe` (NSIS)
-- `client_generic\WinBuild\dist\infinidream-windows-{version}.zip` (with `--zip`)
+Output: `client_generic\WinBuild\dist\infinidream-windows-{version}-setup.exe`
 
 Options:
 
 | Flag | Description |
 |------|-------------|
-| `-v`, `--version` | Version string baked into the installer and file names (default `0.0.0`). |
+| `-v`, `--version` | Version for the installer and file name. Defaults to the version `build.py` compiled in; a different value is an error. |
 | `--configuration` | MSVC folder to package (default **Release**). |
-| `--zip` | Also build the portable ZIP. |
-| `--no-installer` | Skip NSIS; useful when `makensis` is unavailable. |
 | `--output-dir DIR` | Where to write artifacts. |
-| `--sign` | Authenticode-sign artifacts via `SIGN_THUMBPRINT` or `SIGN_PFX`. |
-| `-g`, `--github-release` | Upload artifacts with `gh` to the release whose tag matches `--version`. |
+| `--sign` | Authenticode-sign the setup exe via `SIGN_THUMBPRINT` or `SIGN_PFX`. |
+| `-g`, `--github-release` | Upload the setup exe with `gh` to the release whose tag is the version (e.g. `0.16.2`). |
 
 #### Installer behavior
 
 - **x64 Windows 10+** only; the installer aborts otherwise.
-- Installs everything to `%ProgramFiles%\Infinidream\` (admin required).
-- Creates Start Menu shortcuts (launch, windowed launch, website, uninstall).
-- On the finish page, user can opt-in to set Infinidream as the **current screensaver** (writes `HKCU\Control Panel\Desktop\SCRNSAVE.EXE` to the full path of `infinidream.scr`).
-- Uninstaller prompts to preserve or delete `%ProgramData%\Infinidream\` (downloaded content and logs). Existing installs auto-migrate from the legacy `%ProgramData%\e-dream\` on first launch.
+- Installs to `%ProgramFiles%\Infinidream\` (admin required). A different folder chosen on the directory page always gets `\Infinidream` appended, so the program has a folder of its own.
+- Ships the VC++ runtime DLLs next to the app (the Release build copies them from Visual Studio's `Microsoft.VC143.CRT` redist folder), so no separate redistributable is needed.
+- Creates one Start Menu shortcut.
+- The finish page's "Run Infinidream and sign in" launches the app as the user, not elevated, by handing it to Explorer (`explorer.exe <app>`), and lets its window come to the front.
+- The app, not the installer, selects itself as the **current screensaver** on each launch (`HKCU\Control Panel\Desktop\SCRNSAVE.EXE`), unless "keep screensaver enabled" is turned off in its settings.
+- The uninstaller removes the program folder, shortcut and registry entries, and clears `SCRNSAVE.EXE` if it still points at our `.scr` (in either long or 8.3 form). It keeps the user's data in `%LOCALAPPDATA%\Infinidream\` (sign-in, downloaded content, logs), and removes the legacy `%ProgramData%\Infinidream\` from older builds.
 
 The NSIS script lives at [`client_generic/InstallerMSVC/nsis_installer.nsi`](client_generic/InstallerMSVC/nsis_installer.nsi).
 
@@ -460,15 +457,15 @@ Push and Cloudflare will deploy in a few minutes.
 
 There is **no** Sparkle appcast on Windows in this repo. Typical flow:
 
-1. Build **Release \| x64** (Visual Studio or `client_generic/WinBuild/build.py`).
+1. Build **Release \| x64** with the version: `python client_generic\WinBuild\build.py -v X.Y.Z`. (A Visual Studio build is a dev build, which `release.py` won't package, and doesn't empty the output folder.)
 2. Package:
 
    ```bat
    cd client_generic\WinBuild
-   python release.py -v X.Y.Z --github-release vX.Y.Z
+   python release.py -g
    ```
 
-   Produces **`client_generic/WinBuild/dist/infinidream-windows-X.Y.Z-setup.exe`** (NSIS) and uploads it to the release. Add `--zip` for the portable archive.
+   Produces **`client_generic/WinBuild/dist/infinidream-windows-X.Y.Z-setup.exe`** (NSIS) and uploads it to the GitHub release tagged `X.Y.Z`.
 
 See [Build on Windows](#build-on-windows) above for the full flag list, installer behavior, and signing notes.
 
