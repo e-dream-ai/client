@@ -27,6 +27,8 @@
 #pragma comment(lib, "shcore.lib")
 #pragma comment(lib, "dwmapi.lib")
 extern void ESShowPreferences();
+typedef void (*QuitCallback_t)();
+extern void ESSetQuitCallback(QuitCallback_t);
 #endif
 
 namespace DisplayOutput {
@@ -567,6 +569,17 @@ static void EnforceSizingAspect16By9(HWND hWnd, WPARAM edge, RECT* rc)
     }
 }
 
+#ifdef WIN32
+// The test-only "quit" remote-control command (client#733) arrives on a network thread.
+// Close the first window the way Ctrl+Q does: WM_CLOSE, then WM_DESTROY ends the message loop.
+static void QuitFromRemoteControl()
+{
+    std::lock_guard<std::mutex> lock(g_displaysMutex);
+    if (!g_displays.empty())
+        g_displays.front()->WindowClose();
+}
+#endif
+
 } // namespace
 
 CDisplayDX11::CDisplayDX11()
@@ -583,6 +596,7 @@ CDisplayDX11::CDisplayDX11()
 
 #ifdef WIN32
     m_customTitlebarHeightPx = GetSystemTitlebarHeightPx(GetDpiForSystem());
+    ESSetQuitCallback(QuitFromRemoteControl);
 #endif
 }
 

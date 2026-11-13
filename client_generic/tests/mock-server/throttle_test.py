@@ -4,7 +4,7 @@
 Serves the largest videos over a rate-limited link and changes the rate during the run:
 enough for the first dream, then well below it, then enough again. Checks that the client
 plays smoothly, rebuffers when starved, recovers, and keeps its render loop running
-throughout. Takes about 45 seconds. Mac only for now.
+throughout. Takes about 45 seconds. Runs on Mac and Windows.
 """
 import argparse
 import json

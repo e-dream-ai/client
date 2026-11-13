@@ -1,6 +1,7 @@
 """Shared parts of the mock server tests (client#733): launching the client against the mock
 server, driving it over the socket, and the checks every test makes, including crash and
-hang detection. Mac only for now.
+hang detection. Runs on Mac and Windows; crash reports, stack samples and screenshots are Mac
+only.
 """
 import hashlib
 import json
@@ -17,6 +18,7 @@ from datetime import datetime
 from pathlib import Path
 
 import screens
+import server
 
 HERE = Path(__file__).resolve().parent
 PORT = 8765
@@ -24,7 +26,8 @@ BASE = f"http://127.0.0.1:{PORT}"
 API_KEY = "mock-server-test-key"
 STORED_SESSION = "STORED_SESSION_MUST_NOT_BE_SENT"
 STORED_KEY = "STORED_KEY_MUST_NOT_BE_SENT"
-REAL_INSTALLS = [Path("/Users/Shared/infinidream.ai"), Path("/Users/Shared/infinidream.ai-stage")]
+IS_MAC = sys.platform == "darwin"
+REAL_INSTALLS = server.REAL_INSTALLS
 CRASH_REPORTS = Path.home() / "Library" / "Logs" / "DiagnosticReports"
 
 # Hang detection. Heartbeats come every second with INFINIDREAM_HEARTBEAT_SECONDS=1.
@@ -61,6 +64,8 @@ def wait_for(description, condition, timeout):
 
 
 def screen_locked():
+    if not IS_MAC:
+        return False  # Not detected on Windows: a hang there may be a locked screen.
     return b"CGSSessionScreenIsLocked" in subprocess.check_output(["ioreg", "-n", "Root", "-d1"])
 
 
@@ -295,7 +300,7 @@ class Run:
 
     def sample_stacks(self, label):
         """Saves a few seconds of the client's stacks, for a hang or a slow exit."""
-        if not self.alive():
+        if not self.alive() or not IS_MAC:
             return None
         path = self.work / f"stacks-{label}.txt"
         try:
@@ -351,7 +356,7 @@ class Run:
 
 # Command-line options every test shares.
 
-DEFAULT_MEDIA_DIR = "/Users/Shared/infinidream.ai/content/mp4"
+DEFAULT_MEDIA_DIR = server.CLIENT_CACHE
 
 
 # A real playlist of a snapshot set to serve instead of made-up playlists (--playlist).
@@ -413,6 +418,8 @@ def resolve_media(args):
 def describe_exit(code):
     if code is None:
         return "still running"
+    if code >= 0xC0000000:  # A Windows exception, such as 0xC0000005 for an access violation.
+        return f"crashed with exception 0x{code:08X}"
     if code < 0:
         try:
             return f"killed by {signal.Signals(-code).name}"

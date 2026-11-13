@@ -4,6 +4,7 @@ At about one screenshot a second this catches a black or frozen picture. It can'
 individual dropped frames. Mac only for now, and needs Screen Recording permission.
 """
 import subprocess
+import sys
 import threading
 import time
 from dataclasses import dataclass
@@ -60,6 +61,8 @@ def longest_frozen_run(samples):
 
 
 def can_capture():
+    if sys.platform != "darwin":
+        return False
     import Quartz
     return Quartz.CGPreflightScreenCaptureAccess()
 

@@ -23,12 +23,22 @@ import argparse
 import asyncio
 import hashlib
 import json
+import os
 import re
 import subprocess
+import sys
 import time
 from pathlib import Path
 
 from aiohttp import WSMsgType, web
+
+# Where the real alpha and stage clients keep their data on this machine.
+if sys.platform == "win32":
+    _local = Path(os.environ.get("LOCALAPPDATA", Path.home() / "AppData" / "Local"))
+    REAL_INSTALLS = [_local / "Infinidream", _local / "Infinidream-stage"]
+else:
+    REAL_INSTALLS = [Path("/Users/Shared/infinidream.ai"), Path("/Users/Shared/infinidream.ai-stage")]
+CLIENT_CACHE = str(REAL_INSTALLS[0] / "content" / "mp4")  # The alpha client's videos.
 
 PLAYLIST_UUID = "00000000-0000-4000-8000-000000000001"  # The default playlist.
 TIMESTAMP = 1700000000

@@ -52,7 +52,7 @@ from pathlib import Path
 
 import server
 
-DEFAULT_CACHE = "/Users/Shared/infinidream.ai/content/mp4"
+DEFAULT_CACHE = server.CLIENT_CACHE
 RECORDED = Path(__file__).resolve().parent / "fixture-sets"
 DEFAULT_SERVER = "https://api-alpha.infinidream.ai/api/v1"
 USER_AGENT = "infinidream-fixtures"
