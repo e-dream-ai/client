@@ -435,7 +435,8 @@ class CPlayer : public Base::CSingleton<CPlayer>
     bool IsAnyClipBuffering() const;
     bool IsPreloading() const;
     // The current clip has played to its end and is held on its last frame
-    // because the next clip is not ready yet.
+    // because the next clip is not ready yet, or a crossfade is held because
+    // the incoming clip ran out of frames partway through it.
     bool IsStalledAtTransition() const;
 
     // Ticks when a change of what's on screen settles: a new clip starts to

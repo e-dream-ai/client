@@ -1900,10 +1900,15 @@ void CPlayer::UpdateTransition(double currentTime)
 
     bool nextClipBuffering = (m_nextClip && m_nextClip->IsBuffering());
 
-    // Keep the outgoing clip visible until the incoming clip can draw. Snapping
-    // to a buffering replacement produces a persistent black frame.
+    // While the incoming clip is buffering, hold the crossfade where it is.
+    // Before it has drawn anything that's 0, which keeps the outgoing clip
+    // fully visible (snapping to a buffering replacement shows a black frame).
+    // Partway through the fade it's wherever the fade had got to: resetting
+    // to 0 there snapped back to the old dream and then faded in again once
+    // the new one refilled.
     if (nextClipBuffering) {
-        m_transitionStartTime = currentTime;
+        const double held = std::clamp(transitionProgress, 0.0, 1.0);
+        m_transitionStartTime = currentTime - held * m_transitionDuration;
         return;
     }
 
@@ -2734,6 +2739,12 @@ bool CPlayer::IsPreloading() const {
 bool CPlayer::IsStalledAtTransition() const {
     // Unlocked, like IsPreloading() and IsAnyClipBuffering(), which the
     // client reads at the same point in its frame.
+
+    // A crossfade held because the incoming clip ran out of frames.
+    if (m_isTransitioning && m_nextClip && m_nextClip->HasStartedPlaying() &&
+        m_nextClip->IsBuffering())
+        return true;
+
     if (!m_currentClip || !m_currentClip->HasFinished())
         return false;
     if (IsPreloading())
@@ -2748,6 +2759,10 @@ double CPlayer::GetPlaybackSpeed() const {
 }
 
 bool CPlayer::IsPlaybackSlowed() const {
+    // During a crossfade the incoming clip counts too: it's the one on its way in.
+    if (m_isTransitioning && m_nextClip && m_nextClip->HasStartedPlaying() &&
+        m_nextClip->GetPlaybackSpeed() < 1.0)
+        return true;
     return GetPlaybackSpeed() < 1.0;
 }
 
