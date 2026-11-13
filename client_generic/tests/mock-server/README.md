@@ -102,6 +102,30 @@ the screen-lock check are Mac only, so on Windows a locked screen shows up as a 
 `.tmp` download can be left after a clean quit, because the shutdown watchdog ends the process
 before the decoder that would delete it is torn down; the client removes it on its next start.
 
+### On Linux
+
+All the tests except `chaos_test.py`, `navigation_chaos_test.py` and `keyframe_test.py` have
+been run on Linux (Ubuntu 26.04, Vulkan build). You need `ffmpeg` (for `ffprobe`) and
+`python3-venv`. The video cache defaults to `~/.config/infinidream/content/mp4`, and the
+real-installs check looks at `~/.config/infinidream` and `~/.config/infinidream-stage`.
+
+```bash
+APP=~/e-dream-ai/client/client_generic/LinuxBuild/build/infinidream
+mkdir -p ~/.cache/infinidream-tests
+export TMPDIR=~/.cache/infinidream-tests   # see below
+venv/bin/python fixtures.py fetch --set alpha-v1 --env-file ~/e-dream-ai/python-api/.env \
+    --from-cache ~/.config/infinidream/content/mp4
+venv/bin/python e2e_test.py --app "$APP" --set alpha-v1 --playlist e45d0e8c-ac8d-47c4-b32b-c615066d3663
+```
+
+Run folders, including each test client's video cache, go in the temp folder. On Ubuntu `/tmp`
+is a RAM disk of half the memory, and a few kept runs fill it past the client's 5 GB
+low-disk limit, which turns on the red Disk light. Set `TMPDIR` to a folder on disk.
+
+Crash reports, stack samples, screenshots and the screen-lock check are Mac only.
+`repro_test.py`'s `previous-*` cases need exactly 2 or 3 dreams, so they skip with
+`--playlist`; run them on the default media folder instead.
+
 ## Crashes and hangs
 
 Every test ends with these checks:

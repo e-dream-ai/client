@@ -1527,6 +1527,21 @@ bool CRendererVulkan::EndFrame(bool /*drawn*/)
 // ---------------------------------------------------------------------------
 // DrawQuad helpers
 // ---------------------------------------------------------------------------
+// The swapchain is an _SRGB format, so the GPU sRGB-encodes everything the
+// shaders write. Colors given by callers (HUD text, tints, status lights) are
+// already sRGB, as on Mac and Windows; decode them first or they come out
+// washed out (the HUD peach #FFDAB8 showed as #FFEEDD, nearly white).
+static float SrgbToLinear(float c)
+{
+    return c <= 0.04045f ? c / 12.92f : std::pow((c + 0.055f) / 1.055f, 2.4f);
+}
+
+static Base::Math::CVector4 SrgbToLinear(const Base::Math::CVector4& c)
+{
+    return Base::Math::CVector4(SrgbToLinear(c.m_X), SrgbToLinear(c.m_Y),
+                                SrgbToLinear(c.m_Z), c.m_W);
+}
+
 static void writeQuad(void* dest, uint32_t& count,
                       float x0, float y0, float x1, float y1,
                       float u0, float v0, float u1, float v1)
@@ -1551,10 +1566,11 @@ void CRendererVulkan::DrawQuad(const Base::Math::CRect& _rect,
 }
 
 void CRendererVulkan::DrawQuad(const Base::Math::CRect& _rect,
-                                const Base::Math::CVector4& _color,
+                                const Base::Math::CVector4& _srgbColor,
                                 const Base::Math::CRect& _uvRect)
 {
     if (!m_inFrame) return;
+    const Base::Math::CVector4 _color = SrgbToLinear(_srgbColor);
     if (m_vertexCount + 6 > static_cast<uint32_t>(MAX_QUADS_PER_FRAME * 6)) return;
 
     VkCommandBuffer cmd = m_commandBuffers[m_currentFrame];
@@ -1828,8 +1844,9 @@ void CRendererVulkan::DrawText(spCBaseText _text,
     ImVec2 cursor{r.m_X0 * static_cast<float>(m_swapExtent.width),
                   r.m_Y0 * static_cast<float>(m_swapExtent.height)};
 
+    const Base::Math::CVector4 linear = SrgbToLinear(_color);
     ImU32 col       = ImGui::ColorConvertFloat4ToU32(
-        ImVec4(_color.m_X, _color.m_Y, _color.m_Z, _color.m_W));
+        ImVec4(linear.m_X, linear.m_Y, linear.m_Z, linear.m_W));
 
     ImDrawList*        dl   = ImGui::GetBackgroundDrawList();
     const std::string& text = spTV->Text();

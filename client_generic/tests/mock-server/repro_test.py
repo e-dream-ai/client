@@ -153,6 +153,12 @@ def main():
     for name in args.case or list(CASES):
         dreams, body = CASES[name]
         print(f"\n== {name}", flush=True)
+        # The previous-* cases count on exactly this many dreams, so the nexts wrap around.
+        # --playlist serves the whole playlist instead.
+        if h.PLAYLIST and name.startswith("previous-"):
+            print(f"SKIP  {name}: needs exactly {dreams} dreams, so it can't run with --playlist",
+                  flush=True)
+            continue
         # A stuck frame is what seek-past-end looks for, so give the hang check room.
         run = h.Run(root / name, args.app, args.media_dir, screenshots=False,
                     max_stuck=MOVE_ON_TIMEOUT + 10, server_args=("--dreams", str(dreams)))
