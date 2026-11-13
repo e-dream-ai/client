@@ -157,6 +157,8 @@ class CPlayer : public Base::CSingleton<CPlayer>
     std::atomic<bool> m_firstRunWizardPlaybackHold{false};
     
     bool m_PreloadingNextClip = false;
+    std::atomic<uint64_t> m_ContentSettledCount{0};
+    std::weak_ptr<ContentDecoder::CClip> m_LastSettledClip;  // last clip counted as appearing
     std::string m_PreloadingDreamUUID;
 
     Base::CBlockingQueue<std::string> m_NextClipInfoQueue;
@@ -435,6 +437,19 @@ class CPlayer : public Base::CSingleton<CPlayer>
     // The current clip has played to its end and is held on its last frame
     // because the next clip is not ready yet.
     bool IsStalledAtTransition() const;
+
+    // Ticks when a change of what's on screen settles: a new clip starts to
+    // appear (its crossfade begins, a seamless swap, or a hard cut), or a
+    // requested change is given up (nothing to play, fetch or decoder failed).
+    // The client records it when a command asks for new content and shows the
+    // buffering moon until it moves (client#474). Natural transitions tick it
+    // too, which is harmless: they also mean new content is on screen.
+    uint64_t GetContentSettledCount() const { return m_ContentSettledCount.load(); }
+    // The clip waiting to fade in plays from a local file. Seeking into one
+    // still takes up to a couple of seconds (decode from the keyframe), but
+    // it isn't waiting on the network.
+    bool IsIncomingClipLocal() const;
+    void NoteContentSettled() { m_ContentSettledCount.fetch_add(1); }
     bool IsAnyClipStreaming() const;
 };
 

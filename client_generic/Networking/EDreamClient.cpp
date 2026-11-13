@@ -2048,6 +2048,7 @@ std::future<bool> EDreamClient::EnqueuePlaylistAsync(const std::string& uuid) {
         
         if (!fetchSuccess) {
             g_Log->Error("Failed to fetch playlist. UUID: %s", uuid.c_str());
+            g_Player().NoteContentSettled();  // ends the wait the play_playlist command started
             return false;
         }
 
@@ -2058,6 +2059,7 @@ std::future<bool> EDreamClient::EnqueuePlaylistAsync(const std::string& uuid) {
         auto entries = ParsePlaylist(uuid);
         if (entries.empty()) {
             g_Log->Error("Failed to prepare playlist. UUID: %s", uuid.c_str());
+            g_Player().NoteContentSettled();
             return false;
         }
 
@@ -2834,6 +2836,8 @@ static void OnWebSocketMessage(sio::event& _wsEvent)
         }
 
         g_Log->Info("should play : %s", uuid->c_str());
+        g_Client()->EnqueueCommand(
+            CElectricSheep::eClientCommand::CLIENT_COMMAND_PLAY_DREAM_RECEIVED);
         g_Player().EnqueuePlayDream(*uuid, frameNumber);
     }
     else if (event == WsEvent::kPlayPlaylist)
@@ -2845,6 +2849,8 @@ static void OnWebSocketMessage(sio::event& _wsEvent)
             return;
         }
         g_Log->Info("should play : %s", uuid->c_str());
+        g_Client()->EnqueueCommand(
+            CElectricSheep::eClientCommand::CLIENT_COMMAND_PLAY_PLAYLIST_RECEIVED);
         EDreamClient::EnqueuePlaylistAsync(uuid->c_str());
     }
     else if (event == WsEvent::kLike)

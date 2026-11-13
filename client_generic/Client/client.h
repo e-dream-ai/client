@@ -257,6 +257,9 @@ class CElectricSheep
     // Our OSD
     Hud::spCOSD m_spOSD;
     Hud::spCBufferingIndicator m_spBufferingIndicator;
+    uint64_t m_AwaitContentBaseline = 0;
+    double m_AwaitContentDeadline = 0.0;  // 0 = not waiting for new content
+    double m_AwaitContentStart = 0.0;
 
     // Splash PNG
     Hud::spCSplashImage m_spSplashPNG;
@@ -1829,11 +1832,21 @@ class CElectricSheep
                 // video: the streaming clip on screen ran dry, or it ended and
                 // the next clip isn't ready. Preloading ahead of a transition
                 // is not a stall; it is reported on the F2 overlay instead.
+                bool awaitingContent = false;
+                if (m_AwaitContentDeadline > 0.0) {
+                    if (g_Player().GetContentSettledCount() != m_AwaitContentBaseline ||
+                        m_Timer.Time() >= m_AwaitContentDeadline)
+                        m_AwaitContentDeadline = 0.0;
+                    else
+                        awaitingContent = !g_Player().IsIncomingClipLocal() ||
+                                          m_Timer.Time() - m_AwaitContentStart >= kAwaitLocalGrace;
+                }
                 if (m_spBufferingIndicator)
                     m_spBufferingIndicator->SetStalled(
                         ((isStreamingCurrent && isBuffering) ||
                          g_Player().IsStalledAtTransition()) &&
-                        !IsPreview());
+                            !IsPreview(),
+                        awaitingContent && !IsPreview());
 
                 // Simple pause/unpause logic - any buffering means pause
                 if (isBuffering && !g_Player().IsPausedForBuffering()) {
@@ -2373,8 +2386,27 @@ class CElectricSheep
         CLIENT_COMMAND_SPEED_7,
         CLIENT_COMMAND_SPEED_8,
         CLIENT_COMMAND_SPEED_9,
-        CLIENT_COMMAND_RESET_PLAYLIST
+        CLIENT_COMMAND_RESET_PLAYLIST,
+        // Server asked to play a dream / playlist: show feedback (client#474).
+        // The play itself goes through the player's own queue.
+        CLIENT_COMMAND_PLAY_DREAM_RECEIVED,
+        CLIENT_COMMAND_PLAY_PLAYLIST_RECEIVED
     };
+
+    // A command asked for new content (next, previous, jump, play dream or
+    // playlist). Show the buffering moon until the player reports the change
+    // has settled: the new clip starts to fade in, or the change was given up.
+    // The deadline is a backstop for a failure path that doesn't report.
+    static constexpr double kAwaitContentTimeout = 30.0;
+    // A seek into a cached dream can take ~2 s to decode up to the target
+    // frame, so the moon waits this long before counting a local load as slow.
+    static constexpr double kAwaitLocalGrace = 1.5;
+    void BeginAwaitingContent()
+    {
+        m_AwaitContentBaseline = g_Player().GetContentSettledCount();
+        m_AwaitContentStart = m_Timer.Time();
+        m_AwaitContentDeadline = m_AwaitContentStart + kAwaitContentTimeout;
+    }
 
     void popOSD(Hud::OSDType type) {
         if (type == Hud::Brightness) {
@@ -2470,6 +2502,7 @@ class CElectricSheep
                 return true;
             case CLIENT_COMMAND_PREVIOUS:
                 popOSD(Hud::Previous);
+                BeginAwaitingContent();
 
                 g_Player().ReturnToPrevious();
                 EDreamClient::SendStateUpdate();
@@ -2521,6 +2554,14 @@ class CElectricSheep
                 g_Player().SetPerceptualFPS(SpeedToPerceptualFPS(9));
                 EDreamClient::SendStateUpdate();
                 return true;
+            case CLIENT_COMMAND_PLAY_DREAM_RECEIVED:
+                popOSD(Hud::Play);
+                BeginAwaitingContent();
+                return true;
+            case CLIENT_COMMAND_PLAY_PLAYLIST_RECEIVED:
+                popOSD(Hud::PlayPlaylist);
+                BeginAwaitingContent();
+                return true;
             case CLIENT_COMMAND_RESET_PLAYLIST:
                 printf("RESET PLAYLIST\n");
                 g_Settings()->Set("settings.content.current_playlist_uuid", std::string(""));
@@ -2529,6 +2570,7 @@ class CElectricSheep
                 //  Force Next Sheep
             case CLIENT_COMMAND_NEXT:
                 popOSD(Hud::Next);
+                BeginAwaitingContent();
 
                 /*if (g_Player().m_CurrentClips.size() > 1) {
                     auto [fadeInTime, _] =
@@ -2598,6 +2640,7 @@ class CElectricSheep
             case CLIENT_COMMAND_SKIP_FW:
                 if (!g_Player().IsJumpDisabled()) {
                     popOSD(Hud::Forward10);
+                    BeginAwaitingContent();
                 }
                 g_Player().SkipForward(10);
                 EDreamClient::SendStateUpdate();
@@ -2605,6 +2648,7 @@ class CElectricSheep
             case CLIENT_COMMAND_SKIP_BW:
                 if (!g_Player().IsJumpDisabled()) {
                     popOSD(Hud::Back10);
+                    BeginAwaitingContent();
                 }
                 g_Player().SkipForward(-10);
                 return true;
