@@ -1,6 +1,7 @@
 #include "RendererDX11.h"
 #include "DisplayDX11.h"
 #include "Log.h"
+#include "StepTimer.h"
 #include "base.h"
 #include "GlyphAtlasDX11.h"
 #include "Settings.h"
@@ -1429,7 +1430,10 @@ bool CRendererDX11::BeginFrame() {
         if (!display->WaitForNextFrame())
             return false;
 
+    // The decoder threads take this lock too (D3D11VA), so time the wait (client#798).
+    Base::CStepTimer lockTimer("renderer BeginFrame context lock wait");
     std::lock_guard<std::recursive_mutex> d3dLock(GetD3D11ImmediateContextMutex());
+    lockTimer.Stop();
     m_pendingTextDraws.clear();
     m_renderedToSpoutOffscreen = false;
     m_spoutCaptureThisFrame = false;

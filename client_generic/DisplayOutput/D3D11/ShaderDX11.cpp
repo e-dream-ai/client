@@ -2,6 +2,9 @@
 #include "Log.h"
 #include <cstring>
 #include <d3dcompiler.h>
+#include <mutex>
+#include <string>
+#include <unordered_map>
 
 namespace DisplayOutput {
 
@@ -63,8 +66,26 @@ CShaderDX11::CShaderDX11(ComPtr<ID3D11Device> device, ComPtr<ID3D11DeviceContext
 CShaderDX11::~CShaderDX11() {
 }
 
-bool CShaderDX11::CompileShader(const char* source, const char* entryPoint, 
+bool CShaderDX11::CompileShader(const char* source, const char* entryPoint,
                                const char* target, ID3DBlob** blob) {
+    // Every new clip builds its frame-display shaders, and compiling the cubic blend
+    // shader and its YUV variant from HLSL took ~16 ms on the render thread: one missed
+    // refresh at every dream change (client#798). Bytecode depends only on the source,
+    // entry point and target, not on the device, so compile each once per run and reuse
+    // it. The shader objects are still created per clip, from the cached bytecode.
+    static std::mutex s_cacheMutex;
+    static std::unordered_map<std::string, ComPtr<ID3DBlob>> s_bytecodeCache;
+    std::string key = std::string(target) + '\0' + entryPoint + '\0' + source;
+    {
+        std::lock_guard<std::mutex> lock(s_cacheMutex);
+        auto it = s_bytecodeCache.find(key);
+        if (it != s_bytecodeCache.end()) {
+            *blob = it->second.Get();
+            (*blob)->AddRef();
+            return true;
+        }
+    }
+
     UINT flags = D3DCOMPILE_ENABLE_STRICTNESS;
 #ifdef _DEBUG
     flags |= D3DCOMPILE_DEBUG;
@@ -76,11 +97,13 @@ bool CShaderDX11::CompileShader(const char* source, const char* entryPoint,
     
     if (FAILED(hr)) {
         if (errorBlob) {
-            g_Log->Error("Shader compilation failed: %s", 
+            g_Log->Error("Shader compilation failed: %s",
                         (char*)errorBlob->GetBufferPointer());
         }
         return false;
     }
+    std::lock_guard<std::mutex> lock(s_cacheMutex);
+    s_bytecodeCache.emplace(std::move(key), *blob);
     return true;
 }
 
