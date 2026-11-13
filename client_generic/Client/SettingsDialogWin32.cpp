@@ -137,7 +137,6 @@ double g_playerFps = 23.0;
 bool g_preserveAR = false;
 bool g_rotatePortrait = false;
 bool g_blackoutMonitors = true;
-bool g_quietMode = true;
 bool g_showAttribution = false;
 
 char g_contentDirBuf[512] = {};

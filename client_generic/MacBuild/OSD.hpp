@@ -20,6 +20,7 @@
 #include "fastbez.h"
 #include "Settings.h"
 #include "Player.h"
+#include "PlatformUtils.h"
 #include "../Client/StringFormat.h"
 
 namespace Hud {

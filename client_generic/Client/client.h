@@ -33,8 +33,6 @@
 #include "EDreamClient.h"
 #include "Hud.h"
 #include "Matrix.h"
-#include "ServerMessage.h"
-#include "MessageQueue.h"
 #include "Splash.h"
 #include "../MacBuild/OSD.hpp"
 #include "StartupScreen.h"
@@ -140,7 +138,6 @@ inline const char* HudIndicatorBulletUtf8() noexcept {
 class CElectricSheep
 {
   private:
-    Cache::MessageQueue m_MessageQueue;
     std::atomic<bool> m_TimecodeUpdaterRunning{false};
     std::thread m_TimecodeUpdaterThread;
     std::mutex m_TimecodeHudMutex;
@@ -267,7 +264,6 @@ class CElectricSheep
 
     Hud::spCCrossFade m_spCrossFade;
 
-    std::deque<std::string> m_ConnectionErrors;
     std::string m_HudFontName;
     // HUD text height in font units (see CFontDescription::Height). Windows units draw larger
     // than Mac points on a similar screen, so it uses a smaller number for the same size.
@@ -531,7 +527,6 @@ class CElectricSheep
                 "displayfps",
                 rendererDesc + " display at ", " fps",
                 1.0));
-        spStats->Add(new Hud::CStringStat(std::string("zconnerror"), "", ""));
     }
     
     void AddCreditsHud()
@@ -1610,8 +1605,6 @@ class CElectricSheep
                         pTmp->Visible(false);
                 }
                 //	Process any server messages.
-                std::string msg;
-                double duration;
 /*
                 // TODO : Is that some old splash screen mechanism ?
                 if (m_spSplashPNG)
@@ -1653,32 +1646,6 @@ class CElectricSheep
                     }
                 }
 */
-                if (m_MessageQueue.PopMessage(msg, duration))
-                {
-                    bool addtohud = true;
-                    time_t lt = time(nullptr);
-
-                    if ((msg == "error connecting to server") ||
-                        (msg == "server request failed, using free one"))
-                    {
-                        std::string temptime = ctime(&lt);
-                        msg = temptime.substr(0, temptime.length() - strlen("\n")) + " " + msg;
-                        g_Log->Error(msg.c_str());
-                        if (m_ConnectionErrors.size() > 20)
-                            m_ConnectionErrors.pop_front();
-                        m_ConnectionErrors.push_back(msg);
-                        if (g_Settings()->Get("settings.player.quiet_mode", true) == true)
-                            addtohud = false;
-                    }
-
-                    if (addtohud == true)
-                    {
-                        m_HudManager->Add("servermessage",
-                                          std::make_shared<Hud::CServerMessage>(
-                                              msg, Base::Math::CRect(1, 1), 24),
-                                          duration);
-                    }
-                }
                 if (m_F1F4Timer.Time() > 20 * 60)
                 {
                     m_F1F4Timer.Reset();
@@ -2278,25 +2245,6 @@ class CElectricSheep
                     pTmp->Visible(visible);
                 }
 
-
-                pTmp = (Hud::CStringStat*)spStats->Get("zconnerror");
-                if (pTmp)
-                {
-                    if (m_ConnectionErrors.size() > 0)
-                    {
-                        std::string allConnectionErrors;
-                        for (size_t ii = 0; ii < m_ConnectionErrors.size();
-                             ++ii)
-                            allConnectionErrors +=
-                                m_ConnectionErrors.at(ii) + "\n";
-                        if (allConnectionErrors.size() > 0)
-                            allConnectionErrors.erase(
-                                allConnectionErrors.size() - 1);
-                        pTmp->SetSample(allConnectionErrors);
-                    }
-                    else
-                        pTmp->SetSample("");
-                }
 
                 Hud::CTimeCountDownStat* pTcd =
                     (Hud::CTimeCountDownStat*)spStats->Get("svstat");

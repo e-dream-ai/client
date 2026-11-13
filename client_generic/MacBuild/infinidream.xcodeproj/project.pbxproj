@@ -235,10 +235,6 @@
 		F0141B7B2C5925C900DBA60E /* ServerConfig.cpp in Sources */ = {isa = PBXBuildFile; fileRef = F0141B792C5925C900DBA60E /* ServerConfig.cpp */; };
 		F0141B7C2C5925C900DBA60E /* ServerConfig.cpp in Sources */ = {isa = PBXBuildFile; fileRef = F0141B792C5925C900DBA60E /* ServerConfig.cpp */; };
 		F0141B7D2C5925C900DBA60E /* ServerConfig.cpp in Sources */ = {isa = PBXBuildFile; fileRef = F0141B792C5925C900DBA60E /* ServerConfig.cpp */; };
-		F0141B802C594A2D00DBA60E /* MessageQueue.cpp in Sources */ = {isa = PBXBuildFile; fileRef = F0141B7F2C594A2D00DBA60E /* MessageQueue.cpp */; };
-		F0141B812C594A2D00DBA60E /* MessageQueue.cpp in Sources */ = {isa = PBXBuildFile; fileRef = F0141B7F2C594A2D00DBA60E /* MessageQueue.cpp */; };
-		F0141B822C594A2D00DBA60E /* MessageQueue.cpp in Sources */ = {isa = PBXBuildFile; fileRef = F0141B7F2C594A2D00DBA60E /* MessageQueue.cpp */; };
-		F0141B832C594A2D00DBA60E /* MessageQueue.cpp in Sources */ = {isa = PBXBuildFile; fileRef = F0141B7F2C594A2D00DBA60E /* MessageQueue.cpp */; };
 		F0141B942C663E2700DBA60E /* libavformat.a in Frameworks */ = {isa = PBXBuildFile; fileRef = F0141B8E2C663DE800DBA60E /* libavformat.a */; };
 		F0141B952C663E2700DBA60E /* libavcodec.a in Frameworks */ = {isa = PBXBuildFile; fileRef = F0141B8B2C663DE800DBA60E /* libavcodec.a */; };
 		F0141B962C663E2700DBA60E /* libavutil.a in Frameworks */ = {isa = PBXBuildFile; fileRef = F0141B8F2C663DE800DBA60E /* libavutil.a */; };
@@ -738,7 +734,6 @@
 		12478A822B03B57E006A8669 /* PlayCounter.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = PlayCounter.h; path = ../Client/PlayCounter.h; sourceTree = "<group>"; };
 		12478A832B03B584006A8669 /* Player.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = Player.h; path = ../Client/Player.h; sourceTree = "<group>"; };
 		12478A842B03B5BB006A8669 /* MonoInstance.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = MonoInstance.h; path = ../Client/MonoInstance.h; sourceTree = "<group>"; };
-		12478A852B03B5C8006A8669 /* ServerMessage.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = ServerMessage.h; path = ../Client/ServerMessage.h; sourceTree = "<group>"; };
 		12478A862B03B5EF006A8669 /* StatsConsole.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = StatsConsole.h; path = ../Client/StatsConsole.h; sourceTree = "<group>"; };
 		12478A882B03B60A006A8669 /* ContentDecoder.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = ContentDecoder.h; path = ../ContentDecoder/ContentDecoder.h; sourceTree = "<group>"; };
 		12478A892B03B61B006A8669 /* SimplePlaylist.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = SimplePlaylist.h; path = ../ContentDecoder/SimplePlaylist.h; sourceTree = "<group>"; };
@@ -896,8 +891,6 @@
 		F0141B732C59115400DBA60E /* PathManager.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = PathManager.cpp; sourceTree = "<group>"; };
 		F0141B782C5925C900DBA60E /* ServerConfig.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = ServerConfig.h; sourceTree = "<group>"; };
 		F0141B792C5925C900DBA60E /* ServerConfig.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = ServerConfig.cpp; sourceTree = "<group>"; };
-		F0141B7E2C594A2D00DBA60E /* MessageQueue.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = MessageQueue.h; sourceTree = "<group>"; };
-		F0141B7F2C594A2D00DBA60E /* MessageQueue.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = MessageQueue.cpp; sourceTree = "<group>"; };
 		F0141B842C5A79F800DBA60E /* Dream.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = Dream.h; sourceTree = "<group>"; };
 		F0141B8B2C663DE800DBA60E /* libavcodec.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libavcodec.a; path = "../../cache/univ-osx/lib/libavcodec.a"; sourceTree = "<group>"; };
 		F0141B8E2C663DE800DBA60E /* libavformat.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libavformat.a; path = "../../cache/univ-osx/lib/libavformat.a"; sourceTree = "<group>"; };
@@ -1228,8 +1221,6 @@
 				F0141B722C59115400DBA60E /* PathManager.h */,
 				F0141B792C5925C900DBA60E /* ServerConfig.cpp */,
 				F0141B782C5925C900DBA60E /* ServerConfig.h */,
-				F0141B7F2C594A2D00DBA60E /* MessageQueue.cpp */,
-				F0141B7E2C594A2D00DBA60E /* MessageQueue.h */,
 				F0141B842C5A79F800DBA60E /* Dream.h */,
 				F0141BAE2C6BBB9D00DBA60E /* PlaylistManager.h */,
 				F0141BAF2C6BBB9D00DBA60E /* PlaylistManager.cpp */,
@@ -1331,7 +1322,6 @@
 				461614182AEBEA57008AC64A /* DreamPlaylist.h */,
 				12478A822B03B57E006A8669 /* PlayCounter.h */,
 				12478A842B03B5BB006A8669 /* MonoInstance.h */,
-				12478A852B03B5C8006A8669 /* ServerMessage.h */,
 				12478A862B03B5EF006A8669 /* StatsConsole.h */,
 				1270D0EA2B28960500E1DCE3 /* PlatformUtils.h */,
 				1270D0EE2B28975400E1DCE3 /* PlatformUtils_Mac.mm */,
@@ -2087,7 +2077,6 @@
 				2160FAD60F30F45100B2C27A /* Renderer.cpp in Sources */,
 				1270D0F02B28975500E1DCE3 /* PlatformUtils_Mac.mm in Sources */,
 				2160FAD70F30F45100B2C27A /* Shader.cpp in Sources */,
-				F0141B822C594A2D00DBA60E /* MessageQueue.cpp in Sources */,
 				2160FAD80F30F45100B2C27A /* Texture.cpp in Sources */,
 				F01CCF192C3D5E9D004E6DE9 /* CacheManager.cpp in Sources */,
 				F0917E0A2E32764C000DBED8 /* ESAppDelegate.mm in Sources */,
@@ -2134,7 +2123,6 @@
 				218878EF0EC6CDE2001ABD2E /* DisplayOutput.cpp in Sources */,
 				F0141B7B2C5925C900DBA60E /* ServerConfig.cpp in Sources */,
 				218878F00EC6CDE2001ABD2E /* Image.cpp in Sources */,
-				F0141B802C594A2D00DBA60E /* MessageQueue.cpp in Sources */,
 				218878F10EC6CDE2001ABD2E /* LoadDDS.cpp in Sources */,
 				F01CCF182C3D5E9D004E6DE9 /* CacheManager.cpp in Sources */,
 				F0141B742C59115400DBA60E /* PathManager.cpp in Sources */,
@@ -2197,7 +2185,6 @@
 				F0C1002C2C1372EF007FA505 /* DisplayOutput.cpp in Sources */,
 				F0141B7D2C5925C900DBA60E /* ServerConfig.cpp in Sources */,
 				F0C1002D2C1372EF007FA505 /* Image.cpp in Sources */,
-				F0141B832C594A2D00DBA60E /* MessageQueue.cpp in Sources */,
 				F0C1002E2C1372EF007FA505 /* LoadDDS.cpp in Sources */,
 				F01CCF1A2C3D5E9D004E6DE9 /* CacheManager.cpp in Sources */,
 				F0141B762C59115500DBA60E /* PathManager.cpp in Sources */,
@@ -2280,7 +2267,6 @@
 				F0E9CE622C136B0500C4D694 /* Renderer.cpp in Sources */,
 				F0E9CE632C136B0500C4D694 /* PlatformUtils_Mac.mm in Sources */,
 				F0E9CE642C136B0500C4D694 /* Shader.cpp in Sources */,
-				F0141B812C594A2D00DBA60E /* MessageQueue.cpp in Sources */,
 				F0E9CE652C136B0500C4D694 /* Texture.cpp in Sources */,
 				F01CCF172C3D5E9D004E6DE9 /* CacheManager.cpp in Sources */,
 				F0917E092E32764C000DBED8 /* ESAppDelegate.mm in Sources */,

@@ -677,7 +677,6 @@ copy /y "..\runtime\*.ttf" "$(OutDir)"
     <ClCompile Include="..\Client\main.cpp" />
     <ClCompile Include="..\Client\StringFormat.cpp" />
     <ClCompile Include="..\ContentDownloader\DreamDownloader.cpp" />
-    <ClCompile Include="..\ContentDownloader\MessageQueue.cpp" />
     <ClCompile Include="..\ContentDownloader\PathManager.cpp" />
     <ClCompile Include="..\ContentDownloader\PlaylistManager.cpp" />
     <ClCompile Include="..\ContentDownloader\ServerConfig.cpp" />
@@ -722,7 +721,6 @@ copy /y "..\runtime\*.ttf" "$(OutDir)"
     <ClInclude Include="..\ContentDownloader\ContentDownloader.h" />
     <ClInclude Include="..\ContentDownloader\Dream.h" />
     <ClInclude Include="..\ContentDownloader\DreamDownloader.h" />
-    <ClInclude Include="..\ContentDownloader\MessageQueue.h" />
     <ClInclude Include="..\ContentDownloader\PathManager.h" />
     <ClInclude Include="..\ContentDownloader\PlaylistManager.h" />
     <ClInclude Include="..\ContentDownloader\ServerConfig.h" />
@@ -792,7 +790,6 @@ copy /y "..\runtime\*.ttf" "$(OutDir)"
     <ClInclude Include="msvc_fix.h" />
     <ClInclude Include="..\Client\PlayCounter.h" />
     <ClInclude Include="..\Client\Player.h" />
-    <ClInclude Include="..\Client\ServerMessage.h" />
     <ClInclude Include="..\Client\Splash.h" />
     <ClInclude Include="..\Client\StartupScreen.h" />
     <ClInclude Include="..\Client\StatsConsole.h" />
