@@ -371,7 +371,7 @@ Then package the NSIS `Setup.exe`. It takes the version the binaries were built 
 python client_generic\WinBuild\release.py
 ```
 
-The installer packages straight from `client_generic\MSVC\Release\`: the exe and scr plus every `*.dll`, `*.png` and `*.ttf` there. There is no separate staging step, so leftovers from older builds ship too; start from a clean output folder (`build.py --clean`) for a release. License content is embedded from `client_generic\RuntimeMSVC\License.rtf`.
+The installer packages straight from `client_generic\MSVC\Release\`: the exe and scr plus every `*.dll`, `*.png` and `*.ttf` there. `build.py` empties that folder before every build (like the Mac build), so nothing left over from an older build ships; object files are kept, so builds stay incremental (`--clean` removes those too). After a Visual Studio build, which doesn't empty the folder, run `build.py` before packaging a release. License content is embedded from `client_generic\RuntimeMSVC\License.rtf`.
 
 Output: `client_generic\WinBuild\dist\infinidream-windows-{version}-setup.exe`
 
@@ -454,7 +454,7 @@ Push and Cloudflare will deploy in a few minutes.
 
 There is **no** Sparkle appcast on Windows in this repo. Typical flow:
 
-1. Build **Release \| x64** with the version: `python client_generic\WinBuild\build.py --clean -v X.Y.Z`. (A Visual Studio build keeps whatever version the last `build.py` run wrote.)
+1. Build **Release \| x64** with the version: `python client_generic\WinBuild\build.py -v X.Y.Z`. (A Visual Studio build keeps whatever version the last `build.py` run wrote, and doesn't empty the output folder.)
 2. Package:
 
    ```bat

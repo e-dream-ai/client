@@ -304,7 +304,10 @@ def main() -> None:
     parser.add_argument(
         "--clean",
         action="store_true",
-        help="Remove build product directories before building.",
+        help=(
+            "Also remove the intermediate (object file) directory, for a full rebuild. "
+            "The output directory is always emptied first."
+        ),
     )
     parser.add_argument(
         "--target",
@@ -339,17 +342,23 @@ def main() -> None:
         print_red(f"Solution not found: {sln}")
         sys.exit(1)
 
+    # Always start from an empty output directory, like MacBuild/build.py: the installer
+    # packs every DLL/PNG/TTF in it, so files left by older builds would ship (#722).
+    # The intermediate directory (object files) stays unless --clean, so builds remain
+    # incremental; the output is just relinked and recopied.
+    msvc_dir = sln.parent
+    clean_dirs = [msvc_dir / configuration]
     if args.clean:
-        msvc_dir = sln.parent
-        clean_dirs = [
-            msvc_dir / configuration,
-            msvc_dir / f"{configuration}{args.platform}",
-        ]
-        for d in clean_dirs:
-            if d.is_dir():
-                print_blue(f"Removing {d} ...")
+        clean_dirs.append(msvc_dir / f"{configuration}{args.platform}")
+    for d in clean_dirs:
+        if d.is_dir():
+            print_blue(f"Removing {d} ...")
+            try:
                 shutil.rmtree(d)
-        print_green("Clean finished.")
+            except PermissionError as e:
+                print_red(f"Couldn't remove {d}: {e}")
+                print_red("Is infinidream running from there? Quit it and build again.")
+                sys.exit(1)
 
     vcpkg_root_path = Path(args.vcpkg_root) if args.vcpkg_root else None
     vcpkg_env_root = os.environ.get("VCPKG_ROOT")
