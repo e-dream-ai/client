@@ -1,0 +1,69 @@
+{
+ "success": true,
+ "data": {
+  "playlist": {
+   "id": 8,
+   "name": "Pink Floyd",
+   "artist": "Hueman Instrument",
+   "thumbnail": "https://edream-worker-alpha.infinidream.ai/b909fcb6-4cc4-4817-b82a-2ab66c3f71f9/pl-8/thumbnail.undefined",
+   "nsfw": false,
+   "loops": 0,
+   "transitionTime": null,
+   "contents": [
+    {
+     "uuid": "5d41d3c5-da1f-4040-884a-4f1c5bf3c0a1",
+     "timestamp": 1794428242094
+    },
+    {
+     "uuid": "e8958970-501b-42e8-8005-e9768e951603",
+     "timestamp": 1793737151073
+    },
+    {
+     "uuid": "d4bfc7da-6c13-407e-b80b-ed8b91ac5b44",
+     "timestamp": 1791109954054
+    },
+    {
+     "uuid": "d7154de6-d570-4ade-97dc-1e463ba07f8c",
+     "timestamp": 1793735478228
+    },
+    {
+     "uuid": "2936f37a-8ee6-4d29-be97-928d61cc1d3d",
+     "timestamp": 1791109969606
+    },
+    {
+     "uuid": "7e397b5e-6e48-467d-915b-09bbaa567d56",
+     "timestamp": 1793991982718
+    },
+    {
+     "uuid": "4ddc9e2f-62c4-475c-8eb9-73dd9a427647",
+     "timestamp": 1793128394759
+    },
+    {
+     "uuid": "5e75cd59-fb2d-4926-95df-622d9680937a",
+     "timestamp": 1794252445731
+    },
+    {
+     "uuid": "9c352143-d163-4c1e-948d-836eda24392c",
+     "timestamp": 1792207464871
+    },
+    {
+     "uuid": "8d9cc836-23c3-4b6e-8ab6-45833231695f",
+     "timestamp": 1794317459760
+    },
+    {
+     "uuid": "f25d3d38-b700-4f13-898f-e294836c84c4",
+     "timestamp": 1767607540494
+    },
+    {
+     "uuid": "2b88ba6a-0e70-4b76-8cd1-69268d785daf",
+     "timestamp": 1793442805740
+    },
+    {
+     "uuid": "3cc2a793-f352-477b-a120-a65787a5227e",
+     "timestamp": 1790899192762
+    }
+   ],
+   "timestamp": 1765044018072
+  }
+ }
+}

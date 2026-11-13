@@ -142,3 +142,22 @@ when the first dream is shorter than 30 s.
 the first 2 of Pink Floyd (605-787 MB, 11-12k frames) and the first 40 of Wankel Rotary Engine
 (4-9 MB, 193 frames). Most are shorter than 900 frames, so they end by themselves during a
 run; tests that rely on a dream not ending can still pick long ones with `--min-frames 900`.
+
+### Getting the sets on another machine
+
+The videos aren't in git, but each set's manifest and recorded API responses are, in
+`fixture-sets/<name>/`: `alpha-v1`, `wanderlust-v1` and `local-v1`. `fixtures.py fetch`
+rebuilds a set from that record into `~/edream-fixtures/<name>/`, downloading every video
+through alpha's client API (`--env-file` or `INFINIDREAM_FIXTURES_KEY`, as for `snapshot`) and
+checking every md5. It skips videos already there, and `--from-cache DIR` copies matching ones
+from a folder instead of downloading.
+
+```bash
+venv/bin/python fixtures.py fetch --set alpha-v1 --env-file ~/e-dream-ai/python-api/.env
+```
+
+After making a new set, `fixtures.py record --set NAME` copies its manifest and API responses
+into `fixture-sets/` to commit. It drops URL query strings on the way, since those are signed
+links into storage and this repo is public; the mock server doesn't use those URLs. If alpha
+re-processes or deletes a dream in a set, `fetch` fails its md5 check, and the set needs a new
+version (`-v2`).

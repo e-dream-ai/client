@@ -1,0 +1,181 @@
+{
+ "success": true,
+ "data": {
+  "playlist": {
+   "id": 20,
+   "name": "Infinite Visions",
+   "artist": "Surrealism Today",
+   "thumbnail": "https://edream-worker-alpha.infinidream.ai/b909fcb6-4cc4-4817-b82a-2ab66c3f71f9/pl-20/thumbnail.png",
+   "nsfw": false,
+   "loops": 0,
+   "transitionTime": null,
+   "contents": [
+    {
+     "uuid": "eb107f71-77b6-4079-8afc-6cf30355c403",
+     "timestamp": 1793252541242
+    },
+    {
+     "uuid": "169d090b-ebd6-4eb0-9b85-ba160178ec6b",
+     "timestamp": 1794263708362
+    },
+    {
+     "uuid": "57451648-9b17-4252-9a32-509b27c14af2",
+     "timestamp": 1791781831683
+    },
+    {
+     "uuid": "6ebde710-fb2d-49d1-9e8c-d50e6bc9c77f",
+     "timestamp": 1794263708583
+    },
+    {
+     "uuid": "0eaed980-8563-4ab9-b5a7-66078cb506cf",
+     "timestamp": 1791013082433
+    },
+    {
+     "uuid": "e04655fd-46f9-4338-8150-022dde7355e5",
+     "timestamp": 1791012588718
+    },
+    {
+     "uuid": "41b0d4f1-af3c-426d-9cd4-6bae2b3edfa2",
+     "timestamp": 1791013551035
+    },
+    {
+     "uuid": "582c2783-a45d-4fe5-b019-cbc09884f38b",
+     "timestamp": 1792169333950
+    },
+    {
+     "uuid": "5926b911-072d-41be-9006-b7c22aced663",
+     "timestamp": 1791048685072
+    },
+    {
+     "uuid": "379b94c1-72f6-440a-a6b2-6786b5289d6b",
+     "timestamp": 1791012068331
+    },
+    {
+     "uuid": "d7dacca2-f130-4dab-8432-d9746f84e5a9",
+     "timestamp": 1791013416943
+    },
+    {
+     "uuid": "b229a305-be61-40f4-94ef-b68c35ee6324",
+     "timestamp": 1791013038599
+    },
+    {
+     "uuid": "a2d7d3a0-ccd1-49b3-bdac-ec87210808d4",
+     "timestamp": 1791013093488
+    },
+    {
+     "uuid": "18e346e2-63b8-4429-beb6-0166d5f29f1f",
+     "timestamp": 1791048060793
+    },
+    {
+     "uuid": "7fadc168-c73f-4a62-807a-dfe2b6402004",
+     "timestamp": 1770524577406
+    },
+    {
+     "uuid": "0bcfe891-200f-4299-96c4-15e301fd0ec4",
+     "timestamp": 1791013624485
+    },
+    {
+     "uuid": "7e70ce92-6dc2-4b97-84ca-3050d5187976",
+     "timestamp": 1791013515386
+    },
+    {
+     "uuid": "e6014f82-69a0-4446-9352-71cf6c5a22ab",
+     "timestamp": 1791013410261
+    },
+    {
+     "uuid": "693f12a1-4104-4f4d-b41a-deda7a5ca146",
+     "timestamp": 1776069372338
+    },
+    {
+     "uuid": "d7cb1a60-4441-4144-938c-bc4cffeb74c3",
+     "timestamp": 1791011465573
+    },
+    {
+     "uuid": "0a1d00f2-50c1-4904-a180-18238dc3aacc",
+     "timestamp": 1777411854137
+    },
+    {
+     "uuid": "b569a981-00c8-4fcc-8a2e-1a14c9d3db7e",
+     "timestamp": 1757517749460
+    },
+    {
+     "uuid": "2cd73219-7406-4f2c-97a2-a867aed756e8",
+     "timestamp": 1791012586188
+    },
+    {
+     "uuid": "d5c2385f-9b7e-425a-992e-76c12ed5b190",
+     "timestamp": 1791013412531
+    },
+    {
+     "uuid": "e5e3aa72-f540-4f18-95eb-0c4128ff585a",
+     "timestamp": 1791013567358
+    },
+    {
+     "uuid": "507c03a9-3ad0-4657-96b6-ba5312adf7dc",
+     "timestamp": 1791012698355
+    },
+    {
+     "uuid": "f4e18dcd-85f9-456d-8d55-08e78c1c64bd",
+     "timestamp": 1779859613514
+    },
+    {
+     "uuid": "4b2ab129-af65-4943-8c48-97142ba836f5",
+     "timestamp": 1791849027777
+    },
+    {
+     "uuid": "d42b0a39-9a3d-44aa-885b-06cadbcb03ff",
+     "timestamp": 1791013597618
+    },
+    {
+     "uuid": "014b204f-870d-4f08-b797-da6edfa95eea",
+     "timestamp": 1791012606618
+    },
+    {
+     "uuid": "7f3a6117-2547-4961-8d75-4a1220dbcf1a",
+     "timestamp": 1791132609120
+    },
+    {
+     "uuid": "ad8c4e7c-8149-4a0d-8668-9a4b888eda8a",
+     "timestamp": 1791013045891
+    },
+    {
+     "uuid": "b2f21b52-bdb0-4ed7-8449-0ef09b262878",
+     "timestamp": 1791075202969
+    },
+    {
+     "uuid": "7a6e5619-51cb-4178-b5cc-54939199a5a3",
+     "timestamp": 1790963477454
+    },
+    {
+     "uuid": "32a4d573-0db2-4f40-9edc-3ca2aa3aa127",
+     "timestamp": 1780975304443
+    },
+    {
+     "uuid": "b4ebcd62-0103-483c-b03a-d8fe9a44e5e2",
+     "timestamp": 1791012522612
+    },
+    {
+     "uuid": "62fefd95-b016-4069-a9e1-6b01ac1b7da7",
+     "timestamp": 1791225950592
+    },
+    {
+     "uuid": "d7cc6dec-7d31-4cf2-90fe-24e9d61fd427",
+     "timestamp": 1791012472401
+    },
+    {
+     "uuid": "97ab6319-d73d-4c03-a035-d93f627d88cf",
+     "timestamp": 1791938741975
+    },
+    {
+     "uuid": "7e68027b-1b63-4b4d-bdcb-a002010a26d4",
+     "timestamp": 1791011175526
+    },
+    {
+     "uuid": "164f46fe-84ff-44b4-bfd2-dc33b8d18c97",
+     "timestamp": 1792097632552
+    }
+   ],
+   "timestamp": 1757623312586
+  }
+ }
+}
