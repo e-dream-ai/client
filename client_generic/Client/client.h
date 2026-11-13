@@ -132,12 +132,6 @@ inline float TapsToBrightness(double taps) {
 inline const char* HudIndicatorBulletUtf8() noexcept {
     return "\xE2\x97\x8F"; // U+25CF BLACK CIRCLE ●
 }
-inline const char* HudBufferingArrowUtf8() noexcept {
-    return "\xE2\x86\xBB"; // U+21BB CLOCKWISE OPEN CIRCLE ARROW ↻
-}
-inline const char* HudPreloadingArrowUtf8() noexcept {
-    return "\xE2\x86\x93"; // U+2193 DOWNWARDS ARROW ↓
-}
 
 /*
         CElectricSheep().
@@ -147,7 +141,6 @@ class CElectricSheep
 {
   private:
     Cache::MessageQueue m_MessageQueue;
-    bool wasShowingBufferIndicator = false;
     std::atomic<bool> m_TimecodeUpdaterRunning{false};
     std::thread m_TimecodeUpdaterThread;
     std::mutex m_TimecodeHudMutex;
@@ -263,6 +256,7 @@ class CElectricSheep
 
     // Our OSD
     Hud::spCOSD m_spOSD;
+    Hud::spCBufferingIndicator m_spBufferingIndicator;
 
     // Splash PNG
     Hud::spCSplashImage m_spSplashPNG;
@@ -496,6 +490,7 @@ class CElectricSheep
         else
             spStats->Add(new Hud::CTimeCountDownStat(
                 "svstat", "", "Preparing downloader..."));
+        spStats->Add(new Hud::CStringStat("preloading", "", ""));
 
         spStats->Add(new Hud::CStringStat("zzacpu", "CPU: ", "measuring..."));
         spStats->Add(new Hud::CStringStat("zzagpu2", "GPU: ", "measuring..."));
@@ -552,7 +547,8 @@ class CElectricSheep
         creditsConsole->Add(new Hud::CStringStat("credits-artist", "", ""));
         creditsConsole->Add(new Hud::CStringStat("credits-playlist", "", ""));
         creditsConsole->Add(new Hud::CStringStat("credits-mode", "", ""));
-        creditsConsole->Add(new Hud::CStringStat("credits-download-base", "", " "));  // Base for download line
+        // Empty bottom row: the buffering moon (CBufferingIndicator) sits at its right end.
+        creditsConsole->Add(new Hud::CStringStat("credits-download-base", "", " "));
 
         // Add right-aligned stats with explicit alignment
         // Move most stats down one row to avoid overlap with long titles
@@ -565,7 +561,6 @@ class CElectricSheep
         creditsConsole->Add(new Hud::CStringStat("credits-ws", "", ""), true, Base::Math::CVector4(1, 1, 1, 1), "credits-mode");
         creditsConsole->Add(new Hud::CStringStat("credits-dsk", "", ""), true, Base::Math::CVector4(1, 1, 1, 1), "credits-mode");
         creditsConsole->Add(new Hud::CStringStat("credits-upd", "", ""), true, Base::Math::CVector4(1, 1, 0, 1), "credits-mode");  // Yellow update indicator
-        creditsConsole->Add(new Hud::CStringStat("credits-download", "", ""), true, Base::Math::CVector4(1, 1, 1, 1), "credits-download-base");
     }
     
     void AddNetworkIndicatorHud()
@@ -779,6 +774,11 @@ class CElectricSheep
     {
         // We pass min max values for speed and brightness
         m_spOSD = std::make_shared<Hud::COSD>(Base::Math::CRect(1, 1), 0, 9, -13, 13);
+
+        // Its own entry, never shared with m_spOSD: the two used to be one
+        // object, so any OSD popup cancelled the buffering icon (client#732).
+        m_spBufferingIndicator = std::make_shared<Hud::CBufferingIndicator>(kHudFontSize);
+        m_HudManager->Add("buffering-indicator", m_spBufferingIndicator);
     }
     
     void AddSplashHud()
@@ -1149,6 +1149,7 @@ class CElectricSheep
         m_spCrossFade = nullptr;
         m_StartupScreen = nullptr;
         m_spOSD = nullptr;
+        m_spBufferingIndicator = nullptr;
         m_HudManager = nullptr;
         m_bPaused = false;
 
@@ -1823,23 +1824,16 @@ class CElectricSheep
 
                 // Buffering and preloading checks
                 bool isBuffering = g_Player().IsAnyClipBuffering();
-                bool isPreloading = g_Player().IsPreloading();
-                bool isCurrentClipStreaming = isStreamingCurrent; // Use existing variable that tracks if current clip is streaming
-                
-                // Show indicator only if current clip is buffering (not preloading next clip)
-                bool shouldShowBufferIndicator = isCurrentClipStreaming && isBuffering;
 
-                // Manage the buffering icon
-                if (shouldShowBufferIndicator && !wasShowingBufferIndicator) {
-                    // Buffering or preloading started on a streaming clip - show the icon
-                    m_spOSD->SetType(Hud::Buffering);
-                    m_HudManager->Add("osd-rebuffering", m_spOSD, 60);
-                    wasShowingBufferIndicator = true;
-                } else if (!shouldShowBufferIndicator && wasShowingBufferIndicator) {
-                    // Buffering/preloading ended or not streaming anymore - hide the icon
-                    m_HudManager->Hide("osd-rebuffering");
-                    wasShowingBufferIndicator = false;
-                }
+                // Lower-right moon while the picture is stalled waiting for
+                // video: the streaming clip on screen ran dry, or it ended and
+                // the next clip isn't ready. Preloading ahead of a transition
+                // is not a stall; it is reported on the F2 overlay instead.
+                if (m_spBufferingIndicator)
+                    m_spBufferingIndicator->SetStalled(
+                        ((isStreamingCurrent && isBuffering) ||
+                         g_Player().IsStalledAtTransition()) &&
+                        !IsPreview());
 
                 // Simple pause/unpause logic - any buffering means pause
                 if (isBuffering && !g_Player().IsPausedForBuffering()) {
@@ -2148,17 +2142,6 @@ class CElectricSheep
                         ((Hud::CStringStat*)spStats->Get("credits-upd"))
                             ->SetSample("");  // Hide when no update available
                     }
-
-                    // Update download indicator
-                    if (isStreamingCurrent && isBuffering) {
-                        ((Hud::CStringStat*)spStats->Get("credits-download"))
-                            ->SetSample(std::string(HudBufferingArrowUtf8()) + " buffering");
-                    } else if (isPreloading) {
-                        ((Hud::CStringStat*)spStats->Get("credits-download"))
-                            ->SetSample(std::string(HudPreloadingArrowUtf8()) + " preloading");
-                    } else {
-                        ((Hud::CStringStat*)spStats->Get("credits-download"))->SetSample("");  // Clear
-                    }
                 }
 
                 if (clipMetadata && spStats && creditsVisible)
@@ -2263,6 +2246,12 @@ class CElectricSheep
                         m_RuntimeDiagnostics.serverStatus;
                     pTmp->SetSample(serverStatus.empty() ? " \n " : serverStatus);
                 }
+
+                // Fetching and decoding the next dream ahead of its transition.
+                // Normal, not a stall (stalls show the lower-right moon).
+                pTmp = (Hud::CStringStat*)spStats->Get("preloading");
+                if (pTmp)
+                    pTmp->SetSample(g_Player().IsPreloading() ? "Preloading the next dream" : "");
 
                 pTmp = (Hud::CStringStat*)spStats->Get("loginstatus");
                 if (pTmp)

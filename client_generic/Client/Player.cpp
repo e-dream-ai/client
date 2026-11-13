@@ -2703,6 +2703,16 @@ bool CPlayer::IsPreloading() const {
     return false;
 }
 
+bool CPlayer::IsStalledAtTransition() const {
+    // Unlocked, like IsPreloading() and IsAnyClipBuffering(), which the
+    // client reads at the same point in its frame.
+    if (!m_currentClip || !m_currentClip->HasFinished())
+        return false;
+    if (IsPreloading())
+        return true;
+    return m_nextClip && (!m_nextClip->IsPreloadComplete() || m_nextClip->IsBuffering());
+}
+
 bool CPlayer::IsAnyClipStreaming() const {
     // Check if current clip is streaming
     if (m_currentClip) {

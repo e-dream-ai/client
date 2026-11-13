@@ -25,6 +25,12 @@ rather than taken as-is from an icon set (see Sources); edit them directly.
   animals, 65 px brightness symbol). `--scale` renders larger, but the renderer
   has no mipmaps for these textures, so larger PNGs alias on small screens.
 
+- `osd-buffering.png` is a sprite sheet, not a single icon: 24 moon phases
+  (new → full → new) in a 6-wide grid, drawn by `moon_sheet()` rather than from
+  an SVG in `src/`. Each frame is a black disc with a peach ring and the lit part
+  in peach, so it reads on dark and bright dreams alike. `CBufferingIndicator`
+  in `OSD.hpp` hard-codes the frame count and grid; change both together.
+
 Not generated (hand-made, unchanged): `osd-bg-700.png`, `osd-bg-sq.png` (the grey
 panels) and `osd-pill-u.png` (unlit speed dot).
 
