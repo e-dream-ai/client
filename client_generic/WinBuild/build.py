@@ -235,93 +235,6 @@ def find_msbuild() -> Path:
     sys.exit(1)
 
 
-def pe_dll_imports(path: Path) -> list[str]:
-    """DLL names in a PE file's import and delay-import tables."""
-    data = path.read_bytes()
-
-    def u16(off: int) -> int:
-        return int.from_bytes(data[off:off + 2], "little")
-
-    def u32(off: int) -> int:
-        return int.from_bytes(data[off:off + 4], "little")
-
-    pe = u32(0x3C)
-    if data[pe:pe + 4] != b"PE\0\0":
-        return []
-    coff = pe + 4
-    opt = coff + 20
-    is64 = u16(opt) == 0x20B
-    num_dirs = u32(opt + (108 if is64 else 92))
-    dirs = opt + (112 if is64 else 96)
-    first_section = opt + u16(coff + 16)
-    sections = [
-        (u32(s + 12), max(u32(s + 8), u32(s + 16)), u32(s + 20))  # VA, size, file offset
-        for s in (first_section + 40 * i for i in range(u16(coff + 2)))
-    ]
-
-    def offset(rva: int) -> int:
-        for va, size, raw in sections:
-            if va <= rva < va + size:
-                return rva - va + raw
-        raise ValueError(f"{path}: RVA {rva:#x} outside every section")
-
-    def name_at(rva: int) -> str:
-        off = offset(rva)
-        return data[off:data.index(b"\0", off)].decode("ascii")
-
-    names: list[str] = []
-    if num_dirs > 1 and u32(dirs + 8):  # import directory
-        off = offset(u32(dirs + 8))
-        while u32(off + 12):  # IMAGE_IMPORT_DESCRIPTOR.Name
-            names.append(name_at(u32(off + 12)))
-            off += 20
-    if num_dirs > 13 and u32(dirs + 13 * 8):  # delay-import directory
-        off = offset(u32(dirs + 13 * 8))
-        while u32(off + 4):  # ImgDelayDescr.rvaDLLName
-            names.append(name_at(u32(off + 4)))
-            off += 32
-    return names
-
-
-def find_vc_crt_dir(msbuild: Path, platform: str) -> Optional[Path]:
-    """Visual Studio's app-local VC++ runtime folder (VC\\Redist\\MSVC\\<ver>\\<arch>\\Microsoft.VC*.CRT)
-    for the toolset this build used."""
-    vs_root = next((p for p in msbuild.parents if (p / "VC" / "Redist" / "MSVC").is_dir()), None)
-    if not vs_root:
-        return None
-    version_file = vs_root / "VC" / "Auxiliary" / "Build" / "Microsoft.VCRedistVersion.default.txt"
-    if not version_file.is_file():
-        return None
-    version = version_file.read_text(encoding="utf-8").strip()
-    arch = {"x64": "x64", "win32": "x86", "x86": "x86", "arm64": "arm64"}.get(platform.lower(), platform)
-    crt = sorted((vs_root / "VC" / "Redist" / "MSVC" / version / arch).glob("Microsoft.VC*.CRT"))
-    return crt[-1] if crt else None
-
-
-def deploy_vc_runtime(out_dir: Path, crt_dir: Path) -> None:
-    """Copy the VC++ runtime DLLs the app and its DLLs import into the output folder, so the
-    app runs on machines that never installed the redistributable (#722). The installer
-    picks them up with its *.dll glob."""
-    available = {p.name.lower(): p for p in crt_dir.glob("*.dll")}
-    deployed: set[str] = set()
-    scanned: set[str] = set()
-    pending = [*out_dir.glob("*.exe"), *out_dir.glob("*.dll")]
-    while pending:
-        binary = pending.pop()
-        if binary.name.lower() in scanned:
-            continue
-        scanned.add(binary.name.lower())
-        for name in pe_dll_imports(binary):
-            key = name.lower()
-            if key in available and key not in deployed:
-                target = out_dir / available[key].name
-                shutil.copy2(available[key], target)
-                deployed.add(key)
-                pending.append(target)
-    if deployed:
-        print_blue(f"VC++ runtime from {crt_dir}: {', '.join(sorted(deployed))}")
-
-
 def run_vcpkg_install(repo_root: Path, triplet: str, vcpkg_root: Optional[Path]) -> None:
     root = vcpkg_root or (repo_root / "vcpkg")
     exe = root / "vcpkg.exe"
@@ -489,16 +402,6 @@ def main() -> None:
         sys.exit(1)
 
     out_dir = sln.parent / configuration
-    # Release builds only: the debug runtime (msvcp140d.dll etc.) isn't redistributable.
-    if not configuration.lower().startswith("debug") and out_dir.is_dir():
-        crt_dir = find_vc_crt_dir(msbuild, args.platform)
-        if crt_dir:
-            deploy_vc_runtime(out_dir, crt_dir)
-        else:
-            print_yellow(
-                "VC++ runtime redist folder not found; the installer won't include the runtime "
-                "DLLs and the app needs the VC++ redistributable on the target machine."
-            )
     print_green("Build succeeded.")
     print_green(f"Output directory (typical): {out_dir}")
 
