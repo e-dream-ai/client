@@ -1743,7 +1743,7 @@ class CElectricSheep
                     // frames actually advance, and say why.
                     ((Hud::CStringStat*)spStats->Get("decodefps"))
                         ->SetSample(string_format(
-                            " %.2f fps (streaming, slowed to %.0f%% to keep up with the network)",
+                            " %.2f fps (streaming, slowed to %.0f%%)",
                             realFps * playbackSpeed, playbackSpeed * 100.0));
                 }
                 else if (isStreamingCurrent) {
