@@ -19,6 +19,7 @@
 
 #include "Exception.h"
 #include "Log.h"
+#include "StepTimer.h"
 #include "Networking.h"
 #include "PlayCounter.h"
 #include "Player.h"
@@ -1522,8 +1523,16 @@ class CElectricSheep
 // MARK: Main per frame update loop
     virtual bool DoRealFrameUpdate(uint32_t displayUnit)
     {
+        // Begin/EndDisplayFrame can wait for the next drawable or for vsync
+        // every frame, so with step timing on they only log when they take
+        // longer than a late tick (1.5 display intervals).
+        const double displayFps = g_Player().GetDisplayFps();
+        const double frameWaitMinMs = displayFps > 0.0 ? 1500.0 / displayFps : 0.0;
+
+        Base::CStepTimer beginFrameTimer("frame BeginDisplayFrame", frameWaitMinMs);
         if (!g_Player().BeginDisplayFrame(displayUnit))
             return true;
+        beginFrameTimer.Stop();
 
         const double frameStartTime = m_Timer.Time();
 
@@ -2297,7 +2306,10 @@ class CElectricSheep
                         spRenderer->CaptureExternalOutputBeforeOverlay();
                 }
 #endif
-                m_HudManager->Render(g_Player().Renderer());
+                {
+                    Base::CStepTimer timer("frame HUD Render");
+                    m_HudManager->Render(g_Player().Renderer());
+                }
                 MaybeLogFramePerf(m_Timer.Time(), frameStartTime, hudStartTime);
 
                 //	Update display events.
@@ -2309,6 +2321,7 @@ class CElectricSheep
             if (displayUnit == 0 && (showStartup || drawn))
                 frameDrawn = true;
 
+            Base::CStepTimer endFrameTimer("frame EndDisplayFrame", frameWaitMinMs);
             g_Player().EndDisplayFrame(displayUnit, frameDrawn);
         }
 

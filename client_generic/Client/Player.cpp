@@ -21,6 +21,7 @@
 #include <unordered_set>
 
 #include "Log.h"
+#include "StepTimer.h"
 #include "MathBase.h"
 #include "Player.h"
 #include "client.h"
@@ -976,8 +977,11 @@ bool CPlayer::Update(uint32_t displayUnit)
         du = m_displayUnits[displayUnit];
     }
 
+    Base::CStepTimer updateTimer("player Update total");
+
     if (displayUnit == 0)
     {
+        Base::CStepTimer timer("player ProcessPendingCommands");
         ProcessPendingCommands();
         UpdateDisplayFps(du->spDisplay);
     }
@@ -1034,7 +1038,10 @@ bool CPlayer::Update(uint32_t displayUnit)
     const bool freezePlayback = m_bPaused || IsFirstRunWizardPlaybackHold();
 
     if (m_currentClip) {
-        m_currentClip->Update(m_TimelineTime, freezePlayback);
+        {
+            Base::CStepTimer timer("player current clip Update");
+            m_currentClip->Update(m_TimelineTime, freezePlayback);
+        }
         
         // Only check for transition if we're not buffering anything
         if (!freezePlayback && !IsAnyClipBuffering()) {
@@ -1051,8 +1058,12 @@ bool CPlayer::Update(uint32_t displayUnit)
                 } else {
                     // Get the next dream decision
                     g_Log->Info("Update will preflight");
+                    Base::CStepTimer preflightTimer("player preflight + prepare transition");
                     // Natural transition - don't allow streaming
-                    m_nextDreamDecision = m_playlistManager->preflightNextDream(false);
+                    {
+                        Base::CStepTimer timer("player preflightNextDream");
+                        m_nextDreamDecision = m_playlistManager->preflightNextDream(false);
+                    }
                     if (!m_nextDreamDecision)
                         m_nextTransitionPreflight = std::chrono::steady_clock::now() + std::chrono::seconds(1);
                     
@@ -1111,6 +1122,7 @@ bool CPlayer::Update(uint32_t displayUnit)
             // to the backpressure cap; playback then starts from near frame 0 rather
             // than mid-stream after the preload period drains the buffer.
             if (m_nextClip->IsBuffering() || m_isTransitioning) {
+                Base::CStepTimer timer("player next clip Update");
                 m_nextClip->Update(m_TimelineTime, freezePlayback);
             }
         }
@@ -1176,6 +1188,7 @@ bool CPlayer::Update(uint32_t displayUnit)
     
     LogHeartbeat();
 
+    Base::CStepTimer renderTimer("player RenderFrame");
     bool drew = RenderFrame(du->spRenderer);
 
     return drew;
@@ -1231,7 +1244,13 @@ void CPlayer::LogHeartbeat()
     m_HeartbeatMaxTickMs = std::max(m_HeartbeatMaxTickMs, tickMs);
     // A tick over 1.5 display intervals means at least one vsync was missed.
     if (m_DisplayFps > 0.0 && tickMs > 1500.0 / m_DisplayFps)
+    {
         ++m_HeartbeatLateTicks;
+        // With step timing on (client#798), mark each late tick so the slow
+        // steps logged just before it can be matched to it.
+        if (Base::StepTimingEnabled())
+            g_Log->Info("Late tick ms=%.1f display_fps=%.1f", tickMs, m_DisplayFps);
+    }
 
     // Every 60 s normally; the test harness (client#733) asks for 1 s to catch hangs quickly.
     static const std::chrono::seconds interval = []() {
@@ -1324,16 +1343,20 @@ bool CPlayer::PlayClip(const std::shared_ptr<const Cache::Dream>& dream, double 
         return false;
     }
     
+    Base::CStepTimer newClipTimer("player PlayClip new CClip");
     auto newClip = std::make_shared<ContentDecoder::CClip>(
         ContentDecoder::sClipMetadata{path, m_PerceptualFPS / dream->activityLevel, *dream},
         du->spRenderer, displayMode, du->spDisplay->Width(),
         du->spDisplay->Height());
+    newClipTimer.Stop();
     
     // Update internal decoder fps counter
     m_DecoderFps = m_PerceptualFPS / dream->activityLevel;
 
+    Base::CStepTimer startTimer("player PlayClip clip Start");
     if (!newClip->Start(_seekFrame))
         return false;
+    startTimer.Stop();
     
     newClip->SetStartTime(_startTime);
     
@@ -1367,6 +1390,7 @@ bool CPlayer::PlayClip(const std::shared_ptr<const Cache::Dream>& dream, double 
 
 void CPlayer::PlayNextDream(bool quickFade) {
     if (!m_playlistManager) return;
+    Base::CStepTimer playNextTimer("player PlayNextDream");
 
     // After leaving a clip, retry deferred MP4 deletes that were blocked while decoding.
     FlushPendingVideoInvalidations();
@@ -2703,16 +2727,21 @@ bool CPlayer::PreloadClip(const std::shared_ptr<const Cache::Dream>& dream) {
         return false;
     }
     
+    Base::CStepTimer newClipTimer("player PreloadClip new CClip");
     auto newClip = std::make_shared<ContentDecoder::CClip>(
         ContentDecoder::sClipMetadata{path, m_PerceptualFPS / dream->activityLevel, *dream},
         du->spRenderer, displayMode, du->spDisplay->Width(),
         du->spDisplay->Height());
+    newClipTimer.Stop();
     
     // Update internal decoder fps counter
     m_DecoderFps = m_PerceptualFPS / dream->activityLevel;
 
     // If preload succeeds, set the clip
-    if (newClip->Preload()) {
+    Base::CStepTimer preloadTimer("player PreloadClip clip Preload");
+    const bool preloaded = newClip->Preload();
+    preloadTimer.Stop();
+    if (preloaded) {
         m_nextClip = newClip;
         g_Log->Info("Preloading initiated for %s", dream->uuid.c_str());
         return true;
