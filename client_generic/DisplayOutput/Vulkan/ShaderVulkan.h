@@ -52,6 +52,7 @@ class CShaderVulkan : public CShader
 
   private:
     BlendMode m_blendMode = kNone;
+    bool m_decodedFrame = false;  // draws video (the drawDecodedFrame* shaders)
 
   public:
     CShaderVulkan() {}
@@ -68,6 +69,8 @@ class CShaderVulkan : public CShader
 
     void SetBlendMode(BlendMode m) { m_blendMode = m; }
     BlendMode GetBlendMode() const { return m_blendMode; }
+    void SetDecodedFrame(bool b) { m_decodedFrame = b; }
+    bool IsDecodedFrame() const { return m_decodedFrame; }
 
     // Register a named uniform so CShader::Set() can store its value.
     void AddUniform(const std::string& name, eUniformType type)
