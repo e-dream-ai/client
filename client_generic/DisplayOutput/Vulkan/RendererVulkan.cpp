@@ -7,6 +7,7 @@
 #include "Log.h"
 #include "PlatformUtils.h"
 #include "Rect.h"
+#include "Settings.h"
 
 #include <imgui.h>
 #include <backends/imgui_impl_vulkan.h>
@@ -21,6 +22,7 @@
 #include <fstream>
 #include <limits>
 #include <stdexcept>
+#include <utility>
 #include <vector>
 
 namespace DisplayOutput
@@ -1542,20 +1544,70 @@ static Base::Math::CVector4 SrgbToLinear(const Base::Math::CVector4& c)
                                 SrgbToLinear(c.m_Z), c.m_W);
 }
 
+// With rotate90, the texture is turned 90 degrees clockwise: a corner at quad
+// position (s, t) samples (t, 1 - s), as rotatedUV() does in the Metal and DX11
+// shaders (#623).
 static void writeQuad(void* dest, uint32_t& count,
                       float x0, float y0, float x1, float y1,
-                      float u0, float v0, float u1, float v1)
+                      float u0, float v0, float u1, float v1,
+                      bool rotate90 = false)
 {
+    auto uv = [&](float s, float t) {
+        if (rotate90)
+        {
+            const float rs = t, rt = 1.f - s;
+            s = rs;
+            t = rt;
+        }
+        return std::pair<float, float>{u0 + s * (u1 - u0), v0 + t * (v1 - v0)};
+    };
+    const auto [tlU, tlV] = uv(0.f, 0.f);
+    const auto [trU, trV] = uv(1.f, 0.f);
+    const auto [brU, brV] = uv(1.f, 1.f);
+    const auto [blU, blV] = uv(0.f, 1.f);
+
     QuadVertex* v = reinterpret_cast<QuadVertex*>(dest) + count;
     // Triangle 1
-    v[0] = {x0, y0, u0, v0};
-    v[1] = {x1, y0, u1, v0};
-    v[2] = {x1, y1, u1, v1};
+    v[0] = {x0, y0, tlU, tlV};
+    v[1] = {x1, y0, trU, trV};
+    v[2] = {x1, y1, brU, brV};
     // Triangle 2
-    v[3] = {x0, y0, u0, v0};
-    v[4] = {x1, y1, u1, v1};
-    v[5] = {x0, y1, u0, v1};
+    v[3] = {x0, y0, tlU, tlV};
+    v[4] = {x1, y1, brU, brV};
+    v[5] = {x0, y1, blU, blV};
     count += 6;
+}
+
+// "Rotate On Portrait Displays" (#623): on a display taller than it is wide,
+// video is turned 90 degrees. With Preserve Aspect Ratio it fits a centered 9:16
+// box instead of FrameDisplay's 16:9 one; without, it fills the display. Returns
+// false, leaving _rect alone, when the video isn't rotated.
+static bool RotateForPortrait(uint32_t width, uint32_t height, Base::Math::CRect& _rect)
+{
+    if (!g_Settings() || !g_Settings()->Get("settings.player.rotate_portrait", false))
+        return false;
+    if (width == 0 || height <= width)
+        return false;
+
+    _rect = Base::Math::CRect(0.f, 0.f, 1.f, 1.f);
+    if (g_Settings()->Get("settings.player.preserve_AR", false))
+    {
+        const float targetAspect  = 9.f / 16.f;
+        const float displayAspect = static_cast<float>(width) / static_cast<float>(height);
+        if (displayAspect > targetAspect)
+        {
+            const float pad = (1.f - targetAspect / displayAspect) * 0.5f;
+            _rect.m_X0 = pad;
+            _rect.m_X1 = 1.f - pad;
+        }
+        else
+        {
+            const float pad = (1.f - displayAspect / targetAspect) * 0.5f;
+            _rect.m_Y0 = pad;
+            _rect.m_Y1 = 1.f - pad;
+        }
+    }
+    return true;
 }
 
 void CRendererVulkan::DrawQuad(const Base::Math::CRect& _rect,
@@ -1575,12 +1627,15 @@ void CRendererVulkan::DrawQuad(const Base::Math::CRect& _rect,
 
     VkCommandBuffer cmd = m_commandBuffers[m_currentFrame];
 
-    writeQuad(m_mappedVertex[m_currentFrame], m_vertexCount,
-              _rect.m_X0, _rect.m_Y0, _rect.m_X1, _rect.m_Y1,
-              _uvRect.m_X0, _uvRect.m_Y0, _uvRect.m_X1, _uvRect.m_Y1);
-
     // Determine blend mode from the currently active shader.
     CShaderVulkan* vkShader = dynamic_cast<CShaderVulkan*>(m_spActiveShader.get());
+
+    Base::Math::CRect rect = _rect;
+    const bool rotate90 = vkShader && vkShader->IsDecodedFrame() &&
+                          RotateForPortrait(m_swapExtent.width, m_swapExtent.height, rect);
+    writeQuad(m_mappedVertex[m_currentFrame], m_vertexCount,
+              rect.m_X0, rect.m_Y0, rect.m_X1, rect.m_Y1,
+              _uvRect.m_X0, _uvRect.m_Y0, _uvRect.m_X1, _uvRect.m_Y1, rotate90);
     CShaderVulkan::BlendMode blendMode =
         vkShader ? vkShader->GetBlendMode() : CShaderVulkan::kNone;
 
@@ -1939,6 +1994,7 @@ spCShader CRendererVulkan::NewShader(
     if (_pFrag)
     {
         std::string frag(_pFrag);
+        shader->SetDecodedFrame(frag.rfind("drawDecodedFrame", 0) == 0);
         if (frag == "drawDecodedFrameLinearFrameBlendFragment")
         {
             shader->SetBlendMode(CShaderVulkan::kLinear);

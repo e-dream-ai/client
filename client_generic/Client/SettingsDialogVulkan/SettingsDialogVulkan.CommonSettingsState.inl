@@ -19,6 +19,7 @@ static void LoadSettingsForShow()
 
     g_playerFps = g_Settings()->Get("settings.player.player_fps", 23.0);
     g_preserveAR = g_Settings()->Get("settings.player.preserve_AR", false);
+    g_rotatePortrait = g_Settings()->Get("settings.player.rotate_portrait", false);
     g_showAttribution = g_Settings()->Get("settings.app.attributionpng", false);
 
     CopySettingToBuf("settings.content.sheepdir", std::string(), g_contentDirBuf, sizeof g_contentDirBuf);
@@ -49,6 +50,7 @@ static void SaveSettings()
     g_Settings()->Set("settings.player.player_fps", g_playerFps);
     g_Settings()->Set("settings.player.DisplayMode", 2);
     g_Settings()->Set("settings.player.preserve_AR", g_preserveAR);
+    g_Settings()->Set("settings.player.rotate_portrait", g_rotatePortrait);
     g_Settings()->Set("settings.app.attributionpng", g_showAttribution);
 
     g_Settings()->Set("settings.content.sheepdir", std::string(g_contentDirBuf));
