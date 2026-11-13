@@ -1894,7 +1894,11 @@ void CDisplayDX11::Title(const std::string& title) {
 
 void CDisplayDX11::Update() {
     MSG msg = {};
-    while (PeekMessageW(&msg, nullptr, 0, 0, PM_REMOVE)) {
+    // During a modal loop (popup menu, window move/resize), frames are driven from WM_TIMER
+    // and this runs inside that loop. Pumping here would take the loop's own messages: the
+    // popup menu never saw the click on an item, so no menu item worked. The modal loop
+    // dispatches our window's messages itself.
+    while (!m_bMenuRenderInProgress && PeekMessageW(&msg, nullptr, 0, 0, PM_REMOVE)) {
         if (msg.message == WM_QUIT) {
             m_bClosed = true;
             return;
