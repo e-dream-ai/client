@@ -5,6 +5,8 @@
 //  Created by Tibi Hencz on 5.1.2024.
 //
 
+#include <algorithm>
+#include <cmath>
 #include <memory>
 #include <numeric>
 
@@ -217,6 +219,119 @@ bool CClip::StartPlayback(int64_t _seekFrame)
 
 //    Calculate how many frames we need to advance based on elapsed time
 //    Returns: 0 = no new frame needed, 1+ = number of frames to advance
+// Adaptive playback speed (client#770). "Adaptive media playout": the speed
+// is the rate the link can sustain (feedforward), corrected by how much video
+// is buffered ahead (feedback), so a slow link plays slower instead of
+// stopping and starting.
+//
+//   R  link rate, bytes/s: two smoothed rates of download progress, the lower
+//      of the two, so drops are felt fast and recoveries trusted slowly
+//   C  bytes/s this dream needs at the requested speed: bytes per frame
+//      (file size / frames) * decode fps
+//   B  seconds of video buffered ahead at the requested speed: downloaded
+//      bytes the decoder hasn't read, plus the decoded frame queue
+//
+//   target = clamp((R / C) * (1 + kGain * (B - kTargetBuffer) / kTargetBuffer),
+//                  kMinSpeed, 1)
+//
+// The speed moves toward the target at limited rates, faster down than up.
+// Below kMinSpeed the existing rebuffer pause takes over when the queue runs
+// dry. Cached clips and finished downloads play at the requested speed.
+namespace
+{
+constexpr double kSampleInterval = 0.25;   // s between samples
+constexpr double kRateHalfLifeFast = 2.0;  // s
+constexpr double kRateHalfLifeSlow = 8.0;  // s
+constexpr double kTargetBuffer = 4.0;      // s of video ahead
+constexpr double kGain = 0.5;
+constexpr double kMinSpeed = 0.25;
+constexpr double kSlewDown = 0.5;          // speed units per second
+constexpr double kSlewUp = 0.1;
+}
+
+void CClip::UpdatePlaybackSpeed(double _timelineTime)
+{
+    ContentDecoder::CContentDecoder::StreamStats stats;
+    const auto& dream = m_ClipMetadata.dreamData;
+    const double fps = m_ClipMetadata.decodeFps;
+    const bool streaming = m_spDecoder && m_spDecoder->GetStreamStats(stats);
+    if (!streaming || stats.finished || dream.size <= 0 || dream.frames <= 0 || fps <= 0)
+    {
+        if (m_PlaybackSpeed != 1.0)
+            g_Log->Info("Adaptive speed: back to 1.00x for %s (%s)", dream.uuid.c_str(),
+                        streaming && stats.finished ? "download finished" : "not streaming");
+        m_PlaybackSpeed = 1.0;
+        m_Adapt.lastLoggedSpeed = 1.0;
+        return;
+    }
+
+    if (m_Adapt.lastSampleTime >= 0 && _timelineTime - m_Adapt.lastSampleTime < kSampleInterval)
+        return;
+    const double dt = m_Adapt.lastSampleTime < 0 ? 0 : _timelineTime - m_Adapt.lastSampleTime;
+    if (dt > 2.0)
+    {
+        // A long gap (pause, rebuffer, timeline jump): start the rate over.
+        m_Adapt.lastSampleTime = _timelineTime;
+        m_Adapt.lastBytes = stats.bytesDownloaded;
+        return;
+    }
+
+    if (dt > 0 && m_Adapt.lastBytes >= 0)
+    {
+        const double inst = static_cast<double>(stats.bytesDownloaded - m_Adapt.lastBytes) / dt;
+        const double aFast = 1.0 - std::exp(-dt * std::log(2.0) / kRateHalfLifeFast);
+        const double aSlow = 1.0 - std::exp(-dt * std::log(2.0) / kRateHalfLifeSlow);
+        if (!m_Adapt.haveRate)
+        {
+            m_Adapt.rateFast = m_Adapt.rateSlow = inst;
+            m_Adapt.haveRate = true;
+        }
+        else
+        {
+            m_Adapt.rateFast += aFast * (inst - m_Adapt.rateFast);
+            m_Adapt.rateSlow += aSlow * (inst - m_Adapt.rateSlow);
+        }
+    }
+    m_Adapt.lastSampleTime = _timelineTime;
+    m_Adapt.lastBytes = stats.bytesDownloaded;
+
+    const double bytesPerFrame = static_cast<double>(dream.size) / dream.frames;
+    const double needed = bytesPerFrame * fps;  // C
+    const double bufferAhead =
+        (static_cast<double>(stats.bytesAhead) / bytesPerFrame + m_spDecoder->QueueLength()) / fps;  // B
+    // Before the first rate sample, steer by the buffer alone.
+    const double sustainable = m_Adapt.haveRate
+                                   ? std::min(m_Adapt.rateFast, m_Adapt.rateSlow) / needed
+                                   : 1.0;  // R / C
+    double target = sustainable * (1.0 + kGain * (bufferAhead - kTargetBuffer) / kTargetBuffer);
+    target = std::clamp(target, kMinSpeed, 1.0);
+
+    if (target < m_PlaybackSpeed)
+        m_PlaybackSpeed = std::max(target, m_PlaybackSpeed - kSlewDown * dt);
+    else
+        m_PlaybackSpeed = std::min(target, m_PlaybackSpeed + kSlewUp * dt);
+
+    if (std::fabs(m_PlaybackSpeed - m_Adapt.lastLoggedSpeed) >= 0.1 ||
+        (m_PlaybackSpeed >= 1.0 && m_Adapt.lastLoggedSpeed < 1.0))
+    {
+        g_Log->Info("Adaptive speed: %.2fx for %s (link %.0f KB/s, needs %.0f KB/s, %.1f s ahead, target %.2fx)",
+                    m_PlaybackSpeed, dream.uuid.c_str(),
+                    std::min(m_Adapt.rateFast, m_Adapt.rateSlow) / 1024.0, needed / 1024.0,
+                    bufferAhead, target);
+        m_Adapt.lastLoggedSpeed = m_PlaybackSpeed;
+    }
+}
+
+// Resume from a rebuffer once about a second of frames is decoded, not just a
+// handful, so a starved link doesn't cycle on/off every few frames (client#770).
+uint32_t CClip::RebufferResumeFrames() const
+{
+    const uint32_t capacity = m_spDecoder ? m_spDecoder->QueueCapacity() : 25;
+    const uint32_t oneSecond = static_cast<uint32_t>(std::ceil(m_ClipMetadata.decodeFps));
+    const uint32_t ceiling = capacity > 3 ? capacity - 2 : capacity;
+    return std::clamp<uint32_t>(oneSecond, std::min<uint32_t>(5, ceiling), ceiling);
+}
+
 int CClip::GetFramesToAdvance(double _timelineTime,
                               DecoderClock* _decoderClock) const
 {
@@ -238,7 +353,7 @@ int CClip::GetFramesToAdvance(double _timelineTime,
         g_Log->Info("First frame timing - reinit acc and force grab");
         return 1;  // Need first frame
     }
-    _decoderClock->acc += deltaTime;
+    _decoderClock->acc += deltaTime * m_PlaybackSpeed;
 
     const double dt = 1.0 / m_ClipMetadata.decodeFps;
     
@@ -307,11 +422,12 @@ bool CClip::Update(double _timelineTime, bool isPaused)
                 StartPlayback(m_spDecoder->GetVideoInfo()->m_SeekTargetFrame);
             }
         }
-        else if (m_BufferingState == BufferingState::Rebuffering && (queueLength >= 5 || (decoderEnded && queueLength > 0))) {
+        else if (m_BufferingState == BufferingState::Rebuffering &&
+                 (queueLength >= RebufferResumeFrames() || (decoderEnded && queueLength > 0))) {
             // Rebuffer filled, resume playback
-            if (decoderEnded && queueLength < 5) {
-                g_Log->Info("Decoder ended with only %d frames (less than target 5), resuming playback anyway for %s",
-                            queueLength, m_ClipMetadata.dreamData.uuid.c_str());
+            if (decoderEnded && queueLength < RebufferResumeFrames()) {
+                g_Log->Info("Decoder ended with only %d frames (less than target %u), resuming playback anyway for %s",
+                            queueLength, RebufferResumeFrames(), m_ClipMetadata.dreamData.uuid.c_str());
             } else {
                 g_Log->Info("Buffer refilled (%d frames), resuming playback for %s",
                             queueLength, m_ClipMetadata.dreamData.uuid.c_str());
@@ -363,6 +479,9 @@ bool CClip::Update(double _timelineTime, bool isPaused)
         return false;
     }
     
+    if (!isPaused)
+        UpdatePlaybackSpeed(_timelineTime);
+
     int framesToAdvance = GetFramesToAdvance(_timelineTime, &m_DecoderClock);
     
     if (framesToAdvance > 0)

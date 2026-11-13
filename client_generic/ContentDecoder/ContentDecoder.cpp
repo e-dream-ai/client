@@ -448,6 +448,12 @@ bool CContentDecoder::Open()
                         m_httpStream->Label().c_str(), registered ? 1 : 0);
         }
 
+        m_httpReadPos.store(0);
+        {
+            std::lock_guard<std::mutex> statsLock(m_httpStatsMutex);
+            m_httpStatsStream = m_httpStream;
+        }
+
         constexpr int kIOBufferSize = 32768;
         unsigned char* buffer = static_cast<unsigned char*>(av_malloc(kIOBufferSize));
         if (!buffer) {
@@ -718,7 +724,9 @@ int CContentDecoder::ReadPacket(void* opaque, uint8_t* buf, int buf_size)
     CContentDecoder* decoder = static_cast<CContentDecoder*>(opaque);
     if (!decoder->m_httpStream)
         return AVERROR(EIO);
-    return decoder->m_httpStream->Read(decoder->m_httpCursor, buf, buf_size);
+    const int n = decoder->m_httpStream->Read(decoder->m_httpCursor, buf, buf_size);
+    decoder->m_httpReadPos.store(decoder->m_httpCursor.pos);
+    return n;
 }
 
 int64_t CContentDecoder::SeekPacket(void* opaque, int64_t offset, int whence)
@@ -726,7 +734,24 @@ int64_t CContentDecoder::SeekPacket(void* opaque, int64_t offset, int whence)
     CContentDecoder* decoder = static_cast<CContentDecoder*>(opaque);
     if (!decoder->m_httpStream)
         return -1;
-    return decoder->m_httpStream->Seek(decoder->m_httpCursor, offset, whence);
+    const int64_t r = decoder->m_httpStream->Seek(decoder->m_httpCursor, offset, whence);
+    decoder->m_httpReadPos.store(decoder->m_httpCursor.pos);
+    return r;
+}
+
+bool CContentDecoder::GetStreamStats(StreamStats& _out) const
+{
+    std::shared_ptr<Network::ProgressiveHttpStream> stream;
+    {
+        std::lock_guard<std::mutex> lock(m_httpStatsMutex);
+        stream = m_httpStatsStream;
+    }
+    if (!stream)
+        return false;
+    _out.bytesDownloaded = stream->BytesDownloaded();
+    _out.finished = stream->Finished();
+    _out.bytesAhead = stream->AvailableFrom(m_httpReadPos.load());
+    return true;
 }
 
 void CContentDecoder::StopOwnedStream()
@@ -739,6 +764,10 @@ void CContentDecoder::StopOwnedStream()
 
 void CContentDecoder::ReleaseStream()
 {
+    {
+        std::lock_guard<std::mutex> statsLock(m_httpStatsMutex);
+        m_httpStatsStream.reset();
+    }
     if (!m_httpStream)
         return;
     g_Log->Info("Releasing %s download of %s (%s, readers=%d done=%d finished=%d)",

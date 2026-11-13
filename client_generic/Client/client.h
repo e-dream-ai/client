@@ -1737,7 +1737,16 @@ class CElectricSheep
                 m_RuntimeDiagnostics.downloadStatus =
                     g_ContentDownloader().m_gDownloader.GetDownloadStatus();
                 updateNextCheckTimeDisplay();
-                if (isStreamingCurrent) {
+                const double playbackSpeed = g_Player().GetPlaybackSpeed();
+                if (isStreamingCurrent && playbackSpeed < 1.0) {
+                    // Slowed to match the network (client#770): show the rate
+                    // frames actually advance, and say why.
+                    ((Hud::CStringStat*)spStats->Get("decodefps"))
+                        ->SetSample(string_format(
+                            " %.2f fps (streaming, slowed to %.0f%% to keep up with the network)",
+                            realFps * playbackSpeed, playbackSpeed * 100.0));
+                }
+                else if (isStreamingCurrent) {
                     ((Hud::CStringStat*)spStats->Get("decodefps"))
                         ->SetSample(
                             string_format(" %.2f fps (streaming)", realFps));
@@ -1811,7 +1820,8 @@ class CElectricSheep
                 if (m_spBufferingIndicator)
                     m_spBufferingIndicator->SetStalled(
                         ((isStreamingCurrent && isBuffering) ||
-                         g_Player().IsStalledAtTransition()) &&
+                         g_Player().IsStalledAtTransition() ||
+                         g_Player().IsPlaybackSlowed()) &&
                             !IsPreview(),
                         awaitingContent && !IsPreview());
 
