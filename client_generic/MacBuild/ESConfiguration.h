@@ -12,6 +12,7 @@
     IBOutlet NSButton* preserveAR;
     IBOutlet NSButton* rotatePortrait;
     IBOutlet NSButton* syphonOutput;
+    IBOutlet NSButton* syphonLink;  // "Syphon" after the checkbox, opens its site
 
     // login buttons
     IBOutlet NSButton* signInButton;
@@ -93,6 +94,7 @@
 - (IBAction)goToHelpPage:(id)sender;
 - (IBAction)openRemoteControl:(id)sender;
 - (IBAction)openBrowsePlaylist:(id)sender;
+- (IBAction)openSyphonSite:(id)sender;
 - (IBAction)chooseContentFolder:(id)sender;
 - (IBAction)restartLogin:(id)sender;
 - (IBAction)validateLogin:(id)sender;

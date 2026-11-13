@@ -27,6 +27,7 @@
                 <outlet property="preserveAR" destination="1191" id="1193"/>
                 <outlet property="rotatePortrait" destination="Rp1-bt-n01" id="Rp3-ol-n03"/>
                 <outlet property="syphonOutput" destination="Sy1-bt-n01" id="Sy3-ol-n03"/>
+                <outlet property="syphonLink" destination="Sy6-lk-n06" id="Sy9-ol-n09"/>
                 <outlet property="proxyHost" destination="Q3k-U6-7Ad" id="ALD-hu-lzP"/>
                 <outlet property="proxyLogin" destination="gY4-Mj-Ffb" id="vlU-Ky-EMd"/>
                 <outlet property="proxyPassword" destination="q9Y-KC-fux" id="7Jk-w6-4dx"/>
@@ -559,12 +560,22 @@ room for new ones</string>
                                                 <font key="font" metaFont="system"/>
                                             </buttonCell>
                                         </button>
-                                        <button toolTip="Publish the primary display to Syphon as &quot;infinidream&quot; for use in other apps (OBS, Resolume, etc.)." translatesAutoresizingMaskIntoConstraints="NO" id="Sy1-bt-n01">
-                                            <rect key="frame" x="158" y="140" width="200" height="18"/>
-                                            <buttonCell key="cell" type="check" title="Syphon Output" bezelStyle="regularSquare" imagePosition="left" alignment="left" inset="2" id="Sy2-cl-n02">
+                                        <button translatesAutoresizingMaskIntoConstraints="NO" id="Sy1-bt-n01">
+                                            <rect key="frame" x="158" y="140" width="120" height="18"/>
+                                            <buttonCell key="cell" type="check" title="Share video with" bezelStyle="regularSquare" imagePosition="left" alignment="left" inset="2" id="Sy2-cl-n02">
                                                 <behavior key="behavior" changeContents="YES" doesNotDimImage="YES" lightByContents="YES"/>
                                                 <font key="font" metaFont="system"/>
                                             </buttonCell>
+                                        </button>
+                                        <button translatesAutoresizingMaskIntoConstraints="NO" id="Sy6-lk-n06">
+                                            <rect key="frame" x="280" y="140" width="48" height="18"/>
+                                            <buttonCell key="cell" type="square" title="Syphon" bezelStyle="shadowlessSquare" alignment="left" imageScaling="proportionallyDown" inset="2" id="Sy7-lc-n07">
+                                                <behavior key="behavior" pushIn="YES" lightByBackground="YES" lightByGray="YES"/>
+                                                <font key="font" metaFont="system"/>
+                                            </buttonCell>
+                                            <connections>
+                                                <action selector="openSyphonSite:" target="-2" id="Sy8-ac-n08"/>
+                                            </connections>
                                         </button>
                                     </subviews>
                                     <constraints>
@@ -576,6 +587,8 @@ room for new ones</string>
                                         <constraint firstItem="Rp1-bt-n01" firstAttribute="leading" secondItem="324" secondAttribute="leading" constant="160" id="Rp5-ld-n05"/>
                                         <constraint firstItem="Sy1-bt-n01" firstAttribute="top" secondItem="Rp1-bt-n01" secondAttribute="bottom" constant="8" id="Sy4-tp-n04"/>
                                         <constraint firstItem="Sy1-bt-n01" firstAttribute="leading" secondItem="324" secondAttribute="leading" constant="160" id="Sy5-ld-n05"/>
+                                        <constraint firstItem="Sy6-lk-n06" firstAttribute="leading" secondItem="Sy1-bt-n01" secondAttribute="trailing" constant="2" id="Sy10-ld-n10"/>
+                                        <constraint firstItem="Sy6-lk-n06" firstAttribute="firstBaseline" secondItem="Sy1-bt-n01" secondAttribute="firstBaseline" id="Sy11-bl-n11"/>
                                         <constraint firstItem="1191" firstAttribute="top" secondItem="1185" secondAttribute="bottom" constant="8" id="pGU-aw-jVg"/>
                                         <constraint firstItem="1185" firstAttribute="leading" secondItem="324" secondAttribute="leading" constant="200" id="pOq-Gj-AEO"/>
                                     </constraints>

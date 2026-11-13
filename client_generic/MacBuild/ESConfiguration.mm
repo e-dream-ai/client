@@ -284,10 +284,23 @@
 
     syphonOutput.state =
         ESScreensaver_GetBoolSetting("settings.player.syphon_output", false);
+    // "Share video with" [Syphon]: the word is a link to Syphon's site, like
+    // "Share video with Spout" on Windows. Clicking the checkbox's own text
+    // still toggles it.
+    syphonLink.bordered = NO;
+    syphonLink.attributedTitle = [[NSAttributedString alloc]
+        initWithString:@"Syphon"
+            attributes:@{
+                NSForegroundColorAttributeName : NSColor.linkColor,
+                NSUnderlineStyleAttributeName : @(NSUnderlineStyleSingle),
+                NSFontAttributeName : syphonOutput.font ?: [NSFont systemFontOfSize:0],
+            }];
 #ifndef SCREEN_SAVER
     [syphonOutput setHidden:NO];
+    [syphonLink setHidden:NO];
 #else
     [syphonOutput setHidden:YES];
+    [syphonLink setHidden:YES];
 #endif
 
     blackoutMonitors.state =
@@ -440,6 +453,11 @@
     
     ESScreensaver_SetBoolSetting("settings.app.auto_install_screensaver", installAndUpdateScreensaverButton.state);
     ESScreensaver_SetBoolSetting("settings.app.keep_screensaver_enabled", keepScreensaverEnabledButton.state);
+}
+
+- (IBAction)openSyphonSite:(id)__unused sender
+{
+    [[NSWorkspace sharedWorkspace] openURL:[NSURL URLWithString:@"https://syphon.info/"]];
 }
 
 // MARK: Create Account
