@@ -21,22 +21,24 @@ inline Base::Math::CVector4 TextColor()
  */
 class CHudEntry
 {
-    bool m_bVisible;
+    bool m_bVisible = false;
 
   protected:
     Base::Math::CRect m_Rect;
-    double m_StartTime, m_Duration, m_Delta;
+    double m_StartTime = 0, m_Duration = -1, m_Delta = 0;
 
   public:
     CHudEntry(Base::Math::CRect _rect) : m_Rect(_rect){};
     virtual ~CHudEntry(){};
 
+    // Only CHudManager::Add calls this, and it shows the entry right after.
+    // Don't hide it here: re-adding an entry that's on screen (pressing A/D
+    // repeatedly re-pops the OSD) would hide its text for a frame (client#783).
     void SetTime(double _startTime, double _duration)
     {
         m_StartTime = _startTime;
         m_Duration = _duration;
         m_Delta = 0;
-        Visible(false);
     };
     virtual bool Render(const double _time,
                         DisplayOutput::spCRenderer /*_spRenderer*/)
