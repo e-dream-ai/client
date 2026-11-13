@@ -36,6 +36,8 @@ from aiohttp import WSMsgType, web
 if sys.platform == "win32":
     _local = Path(os.environ.get("LOCALAPPDATA", Path.home() / "AppData" / "Local"))
     REAL_INSTALLS = [_local / "Infinidream", _local / "Infinidream-stage"]
+elif sys.platform.startswith("linux"):
+    REAL_INSTALLS = [Path.home() / ".config" / "infinidream", Path.home() / ".config" / "infinidream-stage"]
 else:
     REAL_INSTALLS = [Path("/Users/Shared/infinidream.ai"), Path("/Users/Shared/infinidream.ai-stage")]
 CLIENT_CACHE = str(REAL_INSTALLS[0] / "content" / "mp4")  # The alpha client's videos.

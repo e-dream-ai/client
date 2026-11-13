@@ -19,6 +19,7 @@
 #include "Timer.h"
 #include "base.h"
 #include "storage.h"
+#include <atomic>
 #include <cstdio>
 #include <string>
 
@@ -29,6 +30,11 @@
 class CElectricSheep_Linux : public CElectricSheep
 {
     /*	std::vector<uint32_t> m_glContextList;*/
+
+    // Set by the test-only "quit" remote-control command (client#733), which arrives on a
+    // network thread. HandleEvents acts on it on the main thread, the same way Ctrl+Q does.
+    static inline std::atomic<bool> s_quitRequested{false};
+    static void QuitFromRemoteControl() { s_quitRequested = true; }
 
   public:
     CElectricSheep_Linux() : CElectricSheep()
@@ -78,6 +84,7 @@ class CElectricSheep_Linux : public CElectricSheep
 
         FirstTimeSetupVulkan_Register();
         SettingsDialogVulkan_Register();
+        ESSetQuitCallback(QuitFromRemoteControl);
 
         if (CElectricSheep::Startup() == false)
             return false;
@@ -212,6 +219,9 @@ class CElectricSheep_Linux : public CElectricSheep
         }
 
         ProcessCommandQueue();
+
+        if (s_quitRequested.exchange(false))
+            spDisplay->Close();
         return true;
     }
 

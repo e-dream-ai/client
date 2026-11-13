@@ -65,8 +65,11 @@ def scenario(run):
 def verify_screen(run):
     """Checks what reached the screen, independently of what the client logged."""
     if not run.watcher:
-        print("SKIP  Screen checks: this terminal has no Screen Recording permission "
-              "(System Settings > Privacy & Security)", flush=True)
+        if sys.platform != "darwin":
+            print("SKIP  Screen checks: Mac only for now", flush=True)
+        else:
+            print("SKIP  Screen checks: this terminal has no Screen Recording permission "
+                  "(System Settings > Privacy & Security)", flush=True)
         return
     watcher = run.watcher
     brightness = [round(s.brightness) for s in watcher.samples]
