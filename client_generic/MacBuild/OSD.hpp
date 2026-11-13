@@ -408,20 +408,50 @@ public:
     virtual void Visible(const bool _bState) override
     {
         CHudEntry::Visible(_bState);
-        if (!_bState && m_spFpsText != NULL)
+        if (!_bState)
+        {
+            if (m_spFpsText != NULL)
+                m_spFpsText->SetEnabled(false);
+            ResetFade();
+        }
+    }
+
+    void ResetFade()
+    {
+        m_Alpha = 0.f;
+        m_LastFadeTime = -1;
+        if (m_spFpsText != NULL)
             m_spFpsText->SetEnabled(false);
     }
 
+    // Popups fade in quickly and fade out more slowly (client#782). The
+    // HudManager duration is how long the popup stays fully up; the fade-out
+    // runs after it, so the entry lives kFadeOut longer. A popup re-shown while
+    // it's still on screen (e.g. repeated A/D) keeps its current alpha instead
+    // of fading in again.
+    static constexpr double kFadeIn = kHudFadeIn;
+    static constexpr double kFadeOut = kHudFadeOut;
+
     bool Render(const double _time, DisplayOutput::spCRenderer _spRenderer)
     {
-        if (!CHudEntry::Render(_time, _spRenderer))
+        const double elapsed = _time - m_StartTime;
+        const bool holding = m_Duration <= 0.0 || elapsed < m_Duration;
+        if (!holding && (m_Alpha <= 0.f || elapsed >= m_Duration + kFadeOut))
         {
-            // OSD is being hidden, disable FPS text
-            if (m_spFpsText != NULL) {
-                m_spFpsText->SetEnabled(false);
-            }
+            // Faded out: let the HudManager drop the entry.
+            ResetFade();
             return false;
         }
+        const double dt = m_LastFadeTime < 0 ? 0 : std::max(0.0, _time - m_LastFadeTime);
+        m_LastFadeTime = _time;
+        if (holding)
+            m_Alpha = std::min(1.f, m_Alpha + static_cast<float>(dt / kFadeIn));
+        else
+            m_Alpha = std::max(0.f, m_Alpha - static_cast<float>(dt / kFadeOut));
+        // The first frame after a pop draws at a small alpha instead of nothing.
+        if (holding && m_Alpha <= 0.f)
+            m_Alpha = 0.01f;
+        const Base::Math::CVector4 tint(1, 1, 1, m_Alpha);
 
         if (m_spBgTexture == NULL)
             return false;
@@ -445,7 +475,7 @@ public:
             spRenderer->SetShader(NULL);
             spRenderer->Apply();
 
-            spRenderer->DrawQuad(m_BgCRect, Base::Math::CVector4(1, 1, 1, 1), m_spBgTexture->GetRect());
+            spRenderer->DrawQuad(m_BgCRect, tint, m_spBgTexture->GetRect());
             
             // Setup & Draw symbol/text based on type
             if (type == Speed) {
@@ -460,37 +490,37 @@ public:
                     if (m_spRabbitTexture != NULL) {
                         spRenderer->SetTexture(m_spRabbitTexture, 0);
                         spRenderer->Apply();
-                        spRenderer->DrawQuad(m_TurtleCRect, Base::Math::CVector4(1, 1, 1, 1), m_spRabbitTexture->GetRect());
+                        spRenderer->DrawQuad(m_TurtleCRect, tint, m_spRabbitTexture->GetRect());
                     }
                     if (m_spBirdTexture != NULL) {
                         spRenderer->SetTexture(m_spBirdTexture, 0);
                         spRenderer->Apply();
-                        spRenderer->DrawQuad(m_RabbitCRect, Base::Math::CVector4(1, 1, 1, 1), m_spBirdTexture->GetRect());
+                        spRenderer->DrawQuad(m_RabbitCRect, tint, m_spBirdTexture->GetRect());
                     }
                 } else if (isSlowZone) {
                     // Slow zone: One snail on left, one turtle on right
                     if (m_spSnailTexture != NULL) {
                         spRenderer->SetTexture(m_spSnailTexture, 0);
                         spRenderer->Apply();
-                        spRenderer->DrawQuad(m_TurtleCRect, Base::Math::CVector4(1, 1, 1, 1), m_spSnailTexture->GetRect());
+                        spRenderer->DrawQuad(m_TurtleCRect, tint, m_spSnailTexture->GetRect());
                     }
                     if (m_spTurtleTexture != NULL) {
                         spRenderer->SetTexture(m_spTurtleTexture, 0);
                         spRenderer->Apply();
-                        spRenderer->DrawQuad(m_RabbitCRect, Base::Math::CVector4(1, 1, 1, 1), m_spTurtleTexture->GetRect());
+                        spRenderer->DrawQuad(m_RabbitCRect, tint, m_spTurtleTexture->GetRect());
                     }
                 } else {
                     // Normal zone: One turtle on left, one rabbit on right
                     if (m_spTurtleTexture != NULL) {
                         spRenderer->SetTexture(m_spTurtleTexture, 0);
                         spRenderer->Apply();
-                        spRenderer->DrawQuad(m_TurtleCRect, Base::Math::CVector4(1, 1, 1, 1), m_spTurtleTexture->GetRect());
+                        spRenderer->DrawQuad(m_TurtleCRect, tint, m_spTurtleTexture->GetRect());
                     }
                     
                     if (m_spRabbitTexture != NULL) {
                         spRenderer->SetTexture(m_spRabbitTexture, 0);
                         spRenderer->Apply();
-                        spRenderer->DrawQuad(m_RabbitCRect, Base::Math::CVector4(1, 1, 1, 1), m_spRabbitTexture->GetRect());
+                        spRenderer->DrawQuad(m_RabbitCRect, tint, m_spRabbitTexture->GetRect());
                     }
                 }
                 
@@ -545,7 +575,9 @@ public:
                         m_spFpsText->SetRect(Base::Math::CRect(textX, textY, textX + textW, textY + textH));
                     }
                     m_spFpsText->SetEnabled(true);
-                    spRenderer->DrawText(m_spFpsText, TextColor());
+                    Base::Math::CVector4 textColor = TextColor();
+                    textColor.m_W *= m_Alpha;
+                    spRenderer->DrawText(m_spFpsText, textColor);
                 }
             } else {
                 // Brightness - use original symbol, hide FPS text
@@ -555,7 +587,7 @@ public:
                 // Blend and shader already set from background draw
                 spRenderer->SetTexture(m_spSymbolBrightnessTexture, 0);
                 spRenderer->Apply();
-                spRenderer->DrawQuad(m_SymbolCRect, Base::Math::CVector4(1, 1, 1, 1), m_spSymbolBrightnessTexture->GetRect());
+                spRenderer->DrawQuad(m_SymbolCRect, tint, m_spSymbolBrightnessTexture->GetRect());
             }
             
             // Setup & Draw dots (batched to minimize Apply() calls)
@@ -602,7 +634,7 @@ public:
                                 m_DotCRect.m_Y0,
                                 m_DotCRect.m_X1 + i * dotGap,
                                 m_DotCRect.m_Y1),
-                            Base::Math::CVector4(1, 1, 1, 1),
+                            tint,
                             m_spDotTexture->GetRect());
                     }
                 }
@@ -629,7 +661,7 @@ public:
                                 m_DotCRect.m_Y0,
                                 m_DotCRect.m_X1 + i * dotGap,
                                 m_DotCRect.m_Y1),
-                            Base::Math::CVector4(1, 1, 1, 1),
+                            tint,
                             m_spDotTexture_u->GetRect());
                     }
                 }
@@ -648,7 +680,7 @@ public:
             spRenderer->SetShader(NULL);
             spRenderer->Apply();
 
-            spRenderer->DrawQuad(m_BgSqCRect, Base::Math::CVector4(1, 1, 1, 1), m_spBgSqTexture->GetRect());
+            spRenderer->DrawQuad(m_BgSqCRect, tint, m_spBgSqTexture->GetRect());
             
             // Setup & Draw symbol (blend and shader already set from background)
             DisplayOutput::spCTextureFlat symbolTexture;
@@ -697,7 +729,7 @@ public:
             if (symbolTexture != NULL) {
                 spRenderer->SetTexture(symbolTexture, 0);
                 spRenderer->Apply();
-                spRenderer->DrawQuad(m_LargeSymbolCRect, Base::Math::CVector4(1, 1, 1, 1), symbolTexture->GetRect());
+                spRenderer->DrawQuad(m_LargeSymbolCRect, tint, symbolTexture->GetRect());
             }
         }
         
@@ -778,6 +810,9 @@ private:
     
     // Precalculations for rendering
     float dotGap;
+
+    float m_Alpha = 0.f;          // current fade level
+    double m_LastFadeTime = -1;   // _time of the last Render, for the fade step
 };
 
 // @TODO : clean those old pointers at some point
