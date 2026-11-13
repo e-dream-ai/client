@@ -11,6 +11,7 @@
 #include <numeric>
 
 #include "Clip.h"
+#include "StepTimer.h"
 #include "CubicFrameDisplay.h"
 #include "LinearFrameDisplay.h"
 
@@ -141,8 +142,12 @@ void CClip::Stop() { m_spDecoder->Stop(); }
 
 void CClip::ReleaseRenderResources()
 {
+    Base::CStepTimer totalTimer("clip ReleaseRenderResources total");
     if (m_spRenderer)
+    {
+        Base::CStepTimer timer("clip ReleaseRenderResources WaitForIdle");
         m_spRenderer->WaitForIdle();
+    }
 
     // Vulkan textures and command buffers are owned by the frame display. Release
     // them while serialized with rendering; decoder teardown may then happen on a

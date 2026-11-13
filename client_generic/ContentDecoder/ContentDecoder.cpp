@@ -36,6 +36,7 @@
 
 #include "ContentDecoder.h"
 #include "Log.h"
+#include "StepTimer.h"
 #include "PlatformUtils.h"
 #include "PathManager.h"
 #include "EDreamClient.h"
@@ -398,6 +399,10 @@ bool CContentDecoder::Open()
     std::string _filename = ovi->m_Path;
     ovi->m_TotalFrameCount = 0;
     g_Log->Info("Opening: %s", _filename.c_str());
+    // Local files open on the caller (player/render) thread; remote ones on
+    // the decoder thread (see Start). client#798.
+    Base::CStepTimer openTimer(IsURL(_filename) ? "decoder Open total (remote, decoder thread)"
+                                                : "decoder Open total (local, caller thread)");
 
     if (IsURL(_filename))
     {
@@ -488,7 +493,12 @@ bool CContentDecoder::Open()
     AVDictionary* options = nullptr;
     av_dict_set(&options, "probesize", "10000000", 0);  //
     av_dict_set(&options, "analyzeduration", "0", 0);
-    if (DumpError(avformat_open_input(&ovi->m_pFormatContext, m_IsStreaming ? nullptr : _filename.c_str(), nullptr, &options)) < 0)
+    int openInputResult;
+    {
+        Base::CStepTimer timer("decoder avformat_open_input");
+        openInputResult = avformat_open_input(&ovi->m_pFormatContext, m_IsStreaming ? nullptr : _filename.c_str(), nullptr, &options);
+    }
+    if (DumpError(openInputResult) < 0)
     {
         g_Log->Warning("Failed to open %s...", _filename.c_str());
         return false;
@@ -496,7 +506,12 @@ bool CContentDecoder::Open()
 
     av_dict_free(&options);
 
-    if (DumpError(avformat_find_stream_info(ovi->m_pFormatContext, nullptr)) < 0)
+    int streamInfoResult;
+    {
+        Base::CStepTimer timer("decoder avformat_find_stream_info");
+        streamInfoResult = avformat_find_stream_info(ovi->m_pFormatContext, nullptr);
+    }
+    if (DumpError(streamInfoResult) < 0)
     {
         g_Log->Error("av_find_stream_info failed with %s...", _filename.c_str());
         return false;
@@ -567,6 +582,7 @@ bool CContentDecoder::Open()
         g_Log->Error("unknown codec? ");
         return false;
     }
+    Base::CStepTimer hwDeviceTimer("decoder hw device setup");
 #if USE_HW_ACCELERATION
 #if defined(WIN32) || defined(_WIN32) || defined(_WIN64)
     // D3D11VA: share the renderer's ID3D11Device so decoded textures stay on
@@ -650,6 +666,7 @@ bool CContentDecoder::Open()
     }
 #endif
 #endif
+    hwDeviceTimer.Stop();
     // Copy codec parameters before open. When mp4toannexb BSF is active, use
     // par_out (annex-B extradata) — stream codecpar is HVCC/AVCC length-prefixed
     // and mismatches annex-B packets, causing "Invalid NAL unit size" and zero frames.
@@ -666,8 +683,12 @@ bool CContentDecoder::Open()
     ovi->m_pFormatContext->flags |= AVFMT_FLAG_IGNIDX;   //	Ignore index.
     ovi->m_pFormatContext->flags |= AVFMT_FLAG_NONBLOCK; //	Do not
     // block when reading packets from input.
-    if (DumpError(avcodec_open2(ovi->m_pVideoCodecContext, ovi->m_pVideoCodec,
-                                nullptr)) < 0)
+    int codecOpenResult;
+    {
+        Base::CStepTimer timer("decoder avcodec_open2");
+        codecOpenResult = avcodec_open2(ovi->m_pVideoCodecContext, ovi->m_pVideoCodec, nullptr);
+    }
+    if (DumpError(codecOpenResult) < 0)
     {
         g_Log->Error("avcodec_open failed for %s", _filename.c_str());
         return false;

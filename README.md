@@ -53,6 +53,47 @@ screensaver. The staging targets have their own directory
 /Users/Shared/infinidream.ai-stage that can coexist with the normal one
 /Users/Shared/infinidream.ai
 
+## Timing diagnostics
+
+These environment variables add timing detail to the log, on every platform.
+All are off unless set. They are read once at startup, so set them before
+launching, e.g. from a terminal:
+
+```bash
+INFINIDREAM_HEARTBEAT_SECONDS=1 INFINIDREAM_STEP_TIMING_MS=5 \
+  ./infinidream.app/Contents/MacOS/infinidream
+```
+
+| Variable | Effect |
+|---|---|
+| `INFINIDREAM_HEARTBEAT_SECONDS=N` | `Heartbeat` line every N seconds (default 60) with tick counts, `max_tick_ms`, `late_ticks` (ticks over 1.5 display intervals), clamped ticks, `display_fps` and the state of each clip. |
+| `INFINIDREAM_STEP_TIMING_MS=N` | Logs `Slow step <label> ms=<n>` for any timed step taking N ms or more, and `Late tick ms=<n>` for every late tick. `0` logs every timed step on every frame. |
+| `INFINIDREAM_TEST_STALL_MS=N` | Spins the render thread for N ms every `INFINIDREAM_TEST_STALL_EVERY_MS` (default 5000), to check the counters above. |
+
+To find what made a frame late, look at the `Slow step` lines just before each
+`Late tick`; they all come from the render thread unless the label says
+otherwise. A threshold of 5 ms is a good start: a frame is 16.7 ms at 60 Hz.
+
+The timed steps cover:
+- **The player tick:** `player Update total`, `player ProcessPendingCommands`,
+  current and next clip `Update`, the transition preflight, `player PlayNextDream`
+  and `player RenderFrame`.
+- **Starting a clip:** creating the `CClip` and starting or preloading it, in
+  both `PlayClip` and `PreloadClip`.
+- **Opening the decoder:** `avformat_open_input`, `avformat_find_stream_info`,
+  hw device setup, `avcodec_open2` and the total. The total's label says whether
+  it ran on the caller's thread (local files) or the decoder thread (streams).
+- **Dropping the old clip:** `ReleaseRenderResources` and the GPU `WaitForIdle`
+  inside it.
+- **Frame boundaries:** `frame BeginDisplayFrame` and `frame EndDisplayFrame`,
+  which can wait for the next drawable or for vsync, and `frame HUD Render`. The
+  two waits log only when they take longer than a late tick, whatever the
+  threshold.
+
+A late tick with no `Slow step` before it was spent in an untimed step. To time
+one, put a `Base::CStepTimer` on the stack around it
+(`client_generic/Common/StepTimer.h`) with a string-literal label.
+
 ## Build on Linux
 
 ### Prerequisites
@@ -177,7 +218,8 @@ isn't set. Over `http` the client logs a warning, ignores any stored login and s
 `INFINIDREAM_API_KEY`, so set that variable; an `api_key` in `settings.json` isn't used.
 
 The log gets a `Heartbeat` line from the render thread every 60 seconds; set
-`INFINIDREAM_HEARTBEAT_SECONDS=1` to get one per second. It stops whenever frames stop,
+`INFINIDREAM_HEARTBEAT_SECONDS=1` to get one per second (see Timing diagnostics above
+for this and related variables). It stops whenever frames stop,
 which includes a locked screen on macOS, so check for that before calling a missing
 heartbeat a hang.
 
