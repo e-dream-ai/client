@@ -152,17 +152,18 @@ Section -Post
 SectionEnd
 
 Function RunAppAsUser
-  ; Drop installer elevation by routing the launch through Explorer's Shell.Application
-  ; COM object. CoCreateInstance for Shell.Application connects to the user-session
-  ; Explorer.exe (which always runs at user level), and ShellExecute on that interface
-  ; spawns the target as a child of Explorer — i.e. with the user's token, not admin.
+  ; Drop the installer's elevation: explorer.exe started with a path hands it to the
+  ; user's already-running Explorer, which runs at the user's (non-elevated) level and
+  ; launches the app from there. The old way, Shell.Application from an elevated
+  ; PowerShell, got an in-process (elevated) Shell object and launched the app elevated
+  ; (#722 item 2). No plugin, and no hidden PowerShell for AV heuristics to flag.
   ;
-  ; Implemented as a one-liner via PowerShell so we don't need a third-party plugin
-  ; (StdUtils / UAC). PowerShell still runs elevated; only the COM-marshaled Explorer
-  ; call escapes the elevation.
-  Push $0
-  ExecWait `powershell.exe -NoProfile -WindowStyle Hidden -ExecutionPolicy Bypass -Command "(New-Object -ComObject Shell.Application).ShellExecute('$INSTDIR\${PRODUCT_EXE}')"` $0
-  Pop $0
+  ; Windows only lets the foreground process give away the foreground, and the app is
+  ; started by Explorer, so its own SetForegroundWindow would be ignored and its window
+  ; would open behind the others. The installer is in the foreground (the user just
+  ; clicked Finish), so let any process take it (ASFW_ANY = -1) before launching.
+  System::Call 'user32::AllowSetForegroundWindow(i -1)'
+  Exec `"$WINDIR\explorer.exe" "$INSTDIR\${PRODUCT_EXE}"`
 FunctionEnd
 
 Section Uninstall
