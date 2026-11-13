@@ -25,7 +25,7 @@ client_generic/
     e-dream.sln          # Visual Studio solution (build Release | x64)
   WinBuild/
     build.py             # MSBuild driver (-v version, -r/-d, --platform, --run-vcpkg)
-    release.py           # NSIS Setup.exe + portable ZIP packaging
+    release.py           # NSIS Setup.exe packaging (version from build.py -v)
   InstallerMSVC/
     nsis_installer.nsi   # NSIS installer script
   LinuxBuild/
@@ -56,7 +56,7 @@ vcpkg\vcpkg.exe install --triplet x64-windows
 cd client_generic\WinBuild
 python build.py                               :: Release | x64 (infinidream.exe / .scr)
 python build.py -v X.Y.Z                       :: build with embedded version
-python release.py -v X.Y.Z                     :: NSIS Setup.exe (add --zip for portable ZIP)
+python release.py                             :: NSIS Setup.exe, versioned as built
 ```
 
 Or open `client_generic/MSVC/e-dream.sln` in Visual Studio 2022 and build **Release | x64**. There is no Sparkle auto-update on Windows.

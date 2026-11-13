@@ -285,7 +285,7 @@ The app bundle contains the embedded screensaver at `infinidream.app/Contents/Re
 
 ## Build on Windows
 
-Covers the native **MSVC** client ([`e-dream.sln`](client_generic/MSVC/e-dream.sln)), **vcpkg** manifest dependencies, and the **NSIS installer** / ZIP distribution via [`client_generic/WinBuild/`](client_generic/WinBuild/) (same style as [`MacBuild/build.py`](client_generic/MacBuild/build.py) and [`release.py`](client_generic/MacBuild/release.py)).
+Covers the native **MSVC** client ([`e-dream.sln`](client_generic/MSVC/e-dream.sln)), **vcpkg** manifest dependencies, and the **NSIS installer** via [`client_generic/WinBuild/`](client_generic/WinBuild/) (same style as [`MacBuild/build.py`](client_generic/MacBuild/build.py) and [`release.py`](client_generic/MacBuild/release.py)).
 
 ### Prerequisites
 
@@ -357,48 +357,42 @@ python build.py -d --platform x64
 python build.py --run-vcpkg --triplet x64-windows
 ```
 
-### Release installer and ZIP
+### Release installer
 
-Build with the same semver you will ship (writes `MSVC/edream_build_version_generated.h` then compiles):
+Build with the semver you will ship (writes `MSVC/edream_build_version_generated.h` then compiles). Without `-v`, the app reports the placeholder version in `Common/clientversion.h`:
 
 ```bat
 python client_generic\WinBuild\build.py -v 0.14.0
 ```
 
-Then package an NSIS `Setup.exe` (default) and optionally a portable ZIP:
+Then package the NSIS `Setup.exe`. It takes the version the binaries were built with; passing a different `-v` is an error, so the installer and the app always agree:
 
 ```bat
-python client_generic\WinBuild\release.py -v 0.14.0                        :: NSIS Setup.exe
-python client_generic\WinBuild\release.py -v 0.14.0 --zip                  :: also writes a portable ZIP
-python client_generic\WinBuild\release.py -v 0.14.0 --no-installer --zip   :: ZIP only
+python client_generic\WinBuild\release.py
 ```
 
-The installer packages the entire `client_generic\MSVC\Release\` directory (binaries, vcpkg-linked DLLs, fonts, OSD assets) directly — there is no separate staging step. License content is embedded from `client_generic\RuntimeMSVC\License.rtf`.
+The installer packages straight from `client_generic\MSVC\Release\`: the exe and scr plus every `*.dll`, `*.png` and `*.ttf` there. There is no separate staging step, so leftovers from older builds ship too; start from a clean output folder (`build.py --clean`) for a release. License content is embedded from `client_generic\RuntimeMSVC\License.rtf`.
 
-Output:
-
-- `client_generic\WinBuild\dist\infinidream-windows-{version}-setup.exe` (NSIS)
-- `client_generic\WinBuild\dist\infinidream-windows-{version}.zip` (with `--zip`)
+Output: `client_generic\WinBuild\dist\infinidream-windows-{version}-setup.exe`
 
 Options:
 
 | Flag | Description |
 |------|-------------|
-| `-v`, `--version` | Version string baked into the installer and file names (default `0.0.0`). |
+| `-v`, `--version` | Version for the installer and file name. Defaults to the version `build.py` compiled in; a different value is an error. |
 | `--configuration` | MSVC folder to package (default **Release**). |
-| `--zip` | Also build the portable ZIP. |
-| `--no-installer` | Skip NSIS; useful when `makensis` is unavailable. |
 | `--output-dir DIR` | Where to write artifacts. |
-| `--sign` | Authenticode-sign artifacts via `SIGN_THUMBPRINT` or `SIGN_PFX`. |
-| `-g`, `--github-release` | Upload artifacts with `gh` to the release whose tag matches `--version`. |
+| `--sign` | Authenticode-sign the setup exe via `SIGN_THUMBPRINT` or `SIGN_PFX`. |
+| `-g`, `--github-release` | Upload the setup exe with `gh` to the release whose tag is the version (e.g. `0.16.2`). |
 
 #### Installer behavior
 
 - **x64 Windows 10+** only; the installer aborts otherwise.
-- Installs everything to `%ProgramFiles%\Infinidream\` (admin required).
-- Creates Start Menu shortcuts (launch, windowed launch, website, uninstall).
-- On the finish page, user can opt-in to set Infinidream as the **current screensaver** (writes `HKCU\Control Panel\Desktop\SCRNSAVE.EXE` to the full path of `infinidream.scr`).
-- Uninstaller prompts to preserve or delete `%ProgramData%\Infinidream\` (downloaded content and logs). Existing installs auto-migrate from the legacy `%ProgramData%\e-dream\` on first launch.
+- Installs to `%ProgramFiles%\Infinidream\` (admin required). A different folder chosen on the directory page always gets `\Infinidream` appended, so the program has a folder of its own.
+- Creates one Start Menu shortcut.
+- The finish page's "Run Infinidream and sign in" launches the app as the user, not elevated.
+- The app, not the installer, selects itself as the **current screensaver** on each launch (`HKCU\Control Panel\Desktop\SCRNSAVE.EXE`), unless "keep screensaver enabled" is turned off in its settings.
+- The uninstaller removes the program folder, shortcut and registry entries, and clears `SCRNSAVE.EXE` if it still points at our `.scr` (in either long or 8.3 form). It keeps the user's data in `%LOCALAPPDATA%\Infinidream\` (sign-in, downloaded content, logs), and removes the legacy `%ProgramData%\Infinidream\` from older builds.
 
 The NSIS script lives at [`client_generic/InstallerMSVC/nsis_installer.nsi`](client_generic/InstallerMSVC/nsis_installer.nsi).
 
@@ -460,15 +454,15 @@ Push and Cloudflare will deploy in a few minutes.
 
 There is **no** Sparkle appcast on Windows in this repo. Typical flow:
 
-1. Build **Release \| x64** (Visual Studio or `client_generic/WinBuild/build.py`).
+1. Build **Release \| x64** with the version: `python client_generic\WinBuild\build.py --clean -v X.Y.Z`. (A Visual Studio build keeps whatever version the last `build.py` run wrote.)
 2. Package:
 
    ```bat
    cd client_generic\WinBuild
-   python release.py -v X.Y.Z --github-release vX.Y.Z
+   python release.py -g
    ```
 
-   Produces **`client_generic/WinBuild/dist/infinidream-windows-X.Y.Z-setup.exe`** (NSIS) and uploads it to the release. Add `--zip` for the portable archive.
+   Produces **`client_generic/WinBuild/dist/infinidream-windows-X.Y.Z-setup.exe`** (NSIS) and uploads it to the GitHub release tagged `X.Y.Z`.
 
 See [Build on Windows](#build-on-windows) above for the full flag list, installer behavior, and signing notes.
 

@@ -11,6 +11,7 @@ from __future__ import annotations
 
 import argparse
 import os
+import re
 import shutil
 import subprocess
 import sys
@@ -85,6 +86,48 @@ def msvc_out_dir(repo: Path, configuration: str) -> Path:
 
 def installer_dir(repo: Path) -> Path:
     return repo / "client_generic" / "InstallerMSVC"
+
+
+def normalize_version(value: str) -> str:
+    """'v0.16.2' -> '0.16.2', as build.py does."""
+    v = value.strip()
+    if v.lower().startswith("v") and len(v) > 1 and (v[1].isdigit() or v[1] == "."):
+        v = v[1:].lstrip()
+    return v
+
+
+def built_version(repo: Path) -> Optional[str]:
+    """The version build.py compiled into the binaries, from the header it writes."""
+    header = repo / "client_generic" / "MSVC" / "edream_build_version_generated.h"
+    if not header.is_file():
+        return None
+    text = header.read_text(encoding="utf-8", errors="replace")
+    m = re.search(r'#define\s+EDREAM_BUILD_VERSION_SEMVER\s+"([^"]*)"', text)
+    return m.group(1) if m else None
+
+
+def resolve_version(repo: Path, requested: Optional[str]) -> str:
+    """The installer's version must match the one the app reports (Settings, About, API)."""
+    built = built_version(repo)
+    if requested is None:
+        if not built:
+            print_red(
+                "No version given and none recorded by build.py "
+                "(client_generic/MSVC/edream_build_version_generated.h is missing).\n"
+                "Build with: python client_generic/WinBuild/build.py -v X.Y.Z"
+            )
+            sys.exit(1)
+        print_blue(f"Using the version the binaries were built with: {built}")
+        return built
+    version = normalize_version(requested)
+    if built and built != version:
+        print_red(
+            f"The binaries were built as {built}, but the installer would say {version}.\n"
+            f"Rebuild with: python client_generic/WinBuild/build.py -v {version}\n"
+            f"or package as built by leaving out -v."
+        )
+        sys.exit(1)
+    return version
 
 
 def ensure_dir(p: Path) -> None:
@@ -251,8 +294,11 @@ def main() -> None:
         "-v",
         "--version",
         dest="version",
-        default="0.0.0",
-        help="Version string for filenames and the installer (default: 0.0.0).",
+        default=None,
+        help=(
+            "Version for filenames and the installer. Must match the version build.py "
+            "compiled in (build.py -v); defaults to that version."
+        ),
     )
     parser.add_argument(
         "--output-dir",
@@ -274,10 +320,11 @@ def main() -> None:
 
     repo = repo_root_from_script()
     out_dir = Path(args.output_dir) if args.output_dir else winbuild_dir(repo) / "dist"
+    version = resolve_version(repo, args.version)
 
     setup = run_makensis(
         repo,
-        version=args.version,
+        version=version,
         configuration=args.configuration,
         output_dir=out_dir,
     )
@@ -286,7 +333,7 @@ def main() -> None:
         sign_file(setup)
 
     if args.github_release:
-        github_upload(setup, args.version)
+        github_upload(setup, version)
 
 
 if __name__ == "__main__":

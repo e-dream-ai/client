@@ -42,6 +42,8 @@ VIAddVersionKey "LegalCopyright"  "${PRODUCT_PUBLISHER}"
 !include "MUI2.nsh"
 !include "WinVer.nsh"
 !include "x64.nsh"
+!include "FileFunc.nsh"
+!include "LogicLib.nsh"
 
 !define MUI_ABORTWARNING
 !define MUI_ICON   "..\Client\app.ico"
@@ -64,6 +66,7 @@ VIAddVersionKey "LegalCopyright"  "${PRODUCT_PUBLISHER}"
 
 !insertmacro MUI_PAGE_WELCOME
 !insertmacro MUI_PAGE_LICENSE "..\RuntimeMSVC\License.rtf"
+!define MUI_PAGE_CUSTOMFUNCTION_LEAVE DirectoryLeave
 !insertmacro MUI_PAGE_DIRECTORY
 !insertmacro MUI_PAGE_INSTFILES
 !insertmacro MUI_PAGE_FINISH
@@ -83,6 +86,21 @@ Function .onInit
     Abort
   ${EndIf}
   SetRegView 64
+FunctionEnd
+
+; Always install into a folder of our own. If the user picks e.g. "C:\Program Files"
+; or "D:\", install into "...\Infinidream" under it, so the uninstaller never has to
+; touch a folder that holds anything else.
+Function DirectoryLeave
+  ${GetFileName} "$INSTDIR" $0
+  ${If} $0 != "${PRODUCT_NAME}"
+    StrCpy $1 "$INSTDIR" "" -1
+    ${If} $1 == "\"
+      StrCpy $INSTDIR "$INSTDIR${PRODUCT_NAME}"
+    ${Else}
+      StrCpy $INSTDIR "$INSTDIR\${PRODUCT_NAME}"
+    ${EndIf}
+  ${EndIf}
 FunctionEnd
 
 Function un.onInit
@@ -150,10 +168,25 @@ FunctionEnd
 Section Uninstall
   SetShellVarContext all
 
-  ; Only reset the screensaver pointer if it's still pointing at us.
+  ; Only reset the screensaver pointer if it's still pointing at us. Compare files, not
+  ; strings: Windows' Screen Saver Settings rewrites the value in 8.3 form
+  ; (C:\PROGRA~1\INFINI~1\INFINI~1.SCR) when the user clicks Apply. Both paths go through
+  ; the same short-name conversion while the .scr still exists; on volumes without 8.3
+  ; names both stay long. (StrCmp ignores case.)
   ReadRegStr $0 HKCU "Control Panel\Desktop" "SCRNSAVE.EXE"
-  StrCmp $0 "$INSTDIR\${PRODUCT_SCR}" 0 +2
-    DeleteRegValue HKCU "Control Panel\Desktop" "SCRNSAVE.EXE"
+  ${If} $0 != ""
+    GetFullPathName /SHORT $1 "$0"
+    GetFullPathName /SHORT $2 "$INSTDIR\${PRODUCT_SCR}"
+    ${If} $1 == ""
+      StrCpy $1 $0
+    ${EndIf}
+    ${If} $2 == ""
+      StrCpy $2 "$INSTDIR\${PRODUCT_SCR}"
+    ${EndIf}
+    ${If} $1 == $2
+      DeleteRegValue HKCU "Control Panel\Desktop" "SCRNSAVE.EXE"
+    ${EndIf}
+  ${EndIf}
 
   ; Per-user data lives in %LOCALAPPDATA%\Infinidream — that's the user's data, not
   ; ours to delete (standard Windows convention). The uninstaller runs elevated and
@@ -171,7 +204,17 @@ Section Uninstall
 
   Delete "$INSTDIR\${PRODUCT_NAME}.url"
   Delete "$INSTDIR\uninst.exe"
-  RMDir /r "$INSTDIR"
+  ; Remove the whole folder only if it's ours (the installer always ends the path in
+  ; \Infinidream; older installers didn't). Otherwise remove just what we install, and
+  ; the folder only if that leaves it empty.
+  ${GetFileName} "$INSTDIR" $0
+  ${If} $0 == "${PRODUCT_NAME}"
+    RMDir /r "$INSTDIR"
+  ${Else}
+    Delete "$INSTDIR\${PRODUCT_EXE}"
+    Delete "$INSTDIR\${PRODUCT_SCR}"
+    RMDir "$INSTDIR"
+  ${EndIf}
 
   DeleteRegKey HKLM "${PRODUCT_UNINST_KEY}"
   DeleteRegKey HKLM "${PRODUCT_DIR_REGKEY}"

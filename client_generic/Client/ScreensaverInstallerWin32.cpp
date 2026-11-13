@@ -34,6 +34,16 @@ bool WriteRegString(HKEY hKey, const char* valueName, const std::string& value)
         static_cast<DWORD>(value.size() + 1));
     return rc == ERROR_SUCCESS;
 }
+
+// The long form of an existing path, or the path unchanged. Screen Saver Settings
+// stores SCRNSAVE.EXE in 8.3 form (C:\PROGRA~1\INFINI~1\INFINI~1.SCR) when the user
+// clicks Apply; that is still our .scr.
+std::string LongPath(const std::string& path)
+{
+    char buf[MAX_PATH] = {};
+    const DWORD n = GetLongPathNameA(path.c_str(), buf, MAX_PATH);
+    return (n > 0 && n < MAX_PATH) ? std::string(buf, n) : path;
+}
 } // namespace
 
 void ScreensaverInstallerWin32::EnsureScreensaverActive(const std::string& workingDir)
@@ -70,7 +80,7 @@ void ScreensaverInstallerWin32::EnsureScreensaverActive(const std::string& worki
     const std::string currentActive = ReadRegString(hKey, "ScreenSaveActive");
 
     bool changed = false;
-    if (_stricmp(currentScr.c_str(), scrPath.c_str()) != 0)
+    if (_stricmp(LongPath(currentScr).c_str(), LongPath(scrPath).c_str()) != 0)
     {
         if (WriteRegString(hKey, "SCRNSAVE.EXE", scrPath))
         {
