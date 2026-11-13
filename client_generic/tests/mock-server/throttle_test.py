@@ -22,10 +22,16 @@ import server
 PLAYBACK_FPS = 20
 MIN_DREAM_SECONDS = 30  # shorter first dreams can't be made to rebuffer (see main)
 GOOD_RATE = 2.5   # times the first dream's playback rate: room for prefetching beside it
-STARVED_RATE = 0.6  # times the first dream's playback rate: below what it needs
+# Times the first dream's playback rate. Below the client's 10% adaptive-speed floor
+# (client#770): at higher rates it slows playback instead of rebuffering, which
+# slow_link_test.py covers.
+STARVED_RATE = 0.05
 MAX_HEARTBEAT_GAP = 3.0  # seconds; heartbeats come every second
 DROP_FRACTION = 0.4  # lower the rate before this share of the first dream can have arrived
 MIN_GOOD_SECONDS = 3  # but play at least this long at the good rate first
+# And at most this long: the client plays whatever is buffered ahead at full speed, so a
+# long good stretch buffers more than the starved stretch can drain (client#770).
+MAX_GOOD_SECONDS = 12
 
 BEAT = re.compile(
     r"\[(?P<time>\d{4}-\d\d-\d\d \d\d:\d\d:\d\d\.\d+) - info\]: Heartbeat ticks=(?P<ticks>\d+) "
@@ -76,7 +82,7 @@ def scenario(run, need, download_seconds):
     # whole file would take download_seconds even with the link to itself, so by
     # DROP_FRACTION of that time at most that fraction of it can have arrived. Waiting
     # longer lets a fast link finish the file, and then nothing can make the client rebuffer.
-    drop_at = started_at + DROP_FRACTION * download_seconds
+    drop_at = started_at + min(DROP_FRACTION * download_seconds, MAX_GOOD_SECONDS)
     time.sleep(max(MIN_GOOD_SECONDS, drop_at - time.time()))
     # Only the first dream: GOOD_RATE is relative to it, and a real playlist's later dreams can
     # be far bigger.
