@@ -1371,7 +1371,11 @@ void CContentDecoder::ReadFramesThread()
                     std::lock_guard<std::mutex> qLock(m_FrameQueueMutex);
 #if defined(WIN32) || defined(_WIN32) || defined(_WIN64)
                     std::lock_guard<std::recursive_mutex> d3dCtxLock(GetD3D11ImmediateContextMutex());
-                    if (m_d3d11Device)
+                    // The GPU wait only protects frames ClearQueue is about to release.
+                    // A new clip's first seek (to frame 0 or the resume point) has none,
+                    // and waiting for the GPU to finish the renderer's frame while holding
+                    // its lock cost 16-32 ms at every dream change (client#798).
+                    if (m_d3d11Device && m_FrameQueue.size() > 0)
                     {
                         ComPtr<ID3D11DeviceContext> d3dCtx;
                         m_d3d11Device->GetImmediateContext(&d3dCtx);
