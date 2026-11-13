@@ -429,8 +429,8 @@ public:
     // runs after it, so the entry lives kFadeOut longer. A popup re-shown while
     // it's still on screen (e.g. repeated A/D) keeps its current alpha instead
     // of fading in again.
-    static constexpr double kFadeIn = 0.1;
-    static constexpr double kFadeOut = 0.4;
+    static constexpr double kFadeIn = kHudFadeIn;
+    static constexpr double kFadeOut = kHudFadeOut;
 
     bool Render(const double _time, DisplayOutput::spCRenderer _spRenderer)
     {

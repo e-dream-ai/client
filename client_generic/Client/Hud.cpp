@@ -53,7 +53,7 @@ bool CHudManager::Render(DisplayOutput::spCRenderer _spRenderer)
         {
             bRemove = true;
         }
-        else if (e->Visible())
+        else if (e->NeedsRender())
         {
             if (!e->Render(m_Timer.Time(), _spRenderer))
                 bRemove = true;

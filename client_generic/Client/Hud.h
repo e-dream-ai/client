@@ -17,6 +17,11 @@ inline Base::Math::CVector4 TextColor()
     return Base::Math::CVector4(1.0f, 0.855f, 0.722f, 1.0f);
 }
 
+// OSD popups and the text overlays (F2, credits, help) fade in quickly and
+// out more slowly (client#782).
+constexpr double kHudFadeIn = 0.1;
+constexpr double kHudFadeOut = 0.4;
+
 /*
  */
 class CHudEntry
@@ -57,6 +62,9 @@ class CHudEntry
 
     virtual void Visible(const bool _bState) { m_bVisible = _bState; };
     virtual bool Visible() const { return m_bVisible; };
+    // Whether the HudManager should call Render(). An entry that fades out
+    // after being hidden keeps returning true until it has faded.
+    virtual bool NeedsRender() const { return Visible(); }
 };
 
 MakeSmartPointers(CHudEntry);
