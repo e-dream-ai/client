@@ -486,11 +486,16 @@ bool CClip::Update(double _timelineTime, bool isPaused)
     
     if (framesToAdvance > 0)
     {
-        // If we need to advance multiple frames, discard the intermediate ones
-        // Only grab (and process/upload to GPU) the last frame we need
-        if (framesToAdvance > 1) {
-            int framesToDiscard = framesToAdvance - 1;
-            
+        // A few frames per tick is normal whenever the video plays faster than the
+        // display refreshes (32 fps on a 29.97 Hz display advances 2 frames about twice
+        // a second). Feed each of those through the frame display, so the cubic/linear
+        // blend keeps consecutive frames; discarding one shows as a hitch. Only a real
+        // catch-up (after a stall) discards, and only beyond the blend window.
+        constexpr int kMaxFramesFedPerTick = 4;
+        const int framesToFeed = std::min(framesToAdvance, kMaxFramesFedPerTick);
+        if (framesToAdvance > framesToFeed) {
+            int framesToDiscard = framesToAdvance - framesToFeed;
+
             // Don't discard more frames than we have in the queue
             uint32_t queueLength = m_spDecoder->QueueLength();
             if (framesToDiscard >= static_cast<int>(queueLength)) {
@@ -499,12 +504,16 @@ bool CClip::Update(double _timelineTime, bool isPaused)
                 m_FramesShort += static_cast<uint32_t>(framesToDiscard - available);
                 framesToDiscard = available;
             }
-            
+
             if (framesToDiscard > 0) {
                 DiscardFrames(framesToDiscard);
             }
         }
-        
+
+        // The earlier frames of this tick; always leave one for the grab below.
+        for (int i = 1; i < framesToFeed && m_spDecoder->QueueLength() > 1; ++i)
+            GrabVideoFrame();
+
         // Now grab the actual frame we want to display
         if (!GrabVideoFrame())
         {
