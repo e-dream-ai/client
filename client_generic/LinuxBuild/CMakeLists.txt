@@ -271,7 +271,6 @@ set(SOURCES
     ${CDOWN}/CacheManager.cpp
     ${CDOWN}/ContentDownloader.cpp
     ${CDOWN}/DreamDownloader.cpp
-    ${CDOWN}/MessageQueue.cpp
     ${CDOWN}/PathManager.cpp
     ${CDOWN}/PlaylistManager.cpp
     ${CDOWN}/ServerConfig.cpp

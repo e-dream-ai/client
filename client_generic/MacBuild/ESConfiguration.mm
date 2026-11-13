@@ -293,9 +293,6 @@
     blackoutMonitors.state =
         ESScreensaver_GetBoolSetting("settings.player.blackout_monitors", true);
 
-    silentMode.state =
-        ESScreensaver_GetBoolSetting("settings.player.quiet_mode", true);
-
 #ifdef SCREEN_SAVER
     [blackoutMonitors setHidden:true];
 #endif
@@ -403,9 +400,6 @@
                                  showAttribution.state);
 
     ESScreensaver_SetBoolSetting("settings.content.use_proxy", useProxy.state);
-
-    ESScreensaver_SetBoolSetting("settings.player.quiet_mode",
-                                 silentMode.state);
 
     ESScreensaver_SetStringSetting("settings.content.proxy",
                                    proxyHost.stringValue.UTF8String);

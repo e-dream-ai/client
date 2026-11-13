@@ -8,7 +8,6 @@
     IBOutlet NSTextField* playerFPS;
     IBOutlet NSButton* synchronizeVBL;
     IBOutlet NSButton* blackoutMonitors;
-    IBOutlet NSButton* silentMode;
     IBOutlet NSButton* showAttribution;
     IBOutlet NSButton* preserveAR;
     IBOutlet NSButton* rotatePortrait;

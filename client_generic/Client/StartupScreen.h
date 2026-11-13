@@ -3,6 +3,7 @@
 
 #include "Hud.h"
 #include "Rect.h"
+#include "PlatformUtils.h"
 #include <algorithm>
 
 namespace Hud

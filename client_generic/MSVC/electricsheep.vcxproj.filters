@@ -177,9 +177,6 @@
     <ClCompile Include="..\ContentDownloader\ServerConfig.cpp">
       <Filter>ContentDownloader\Code</Filter>
     </ClCompile>
-    <ClCompile Include="..\ContentDownloader\MessageQueue.cpp">
-      <Filter>ContentDownloader\Code</Filter>
-    </ClCompile>
     <ClCompile Include="..\DisplayOutput\D3D11\RendererDX11.cpp">
       <Filter>DisplayOutput\D3D11</Filter>
     </ClCompile>
@@ -350,9 +347,6 @@
     <ClInclude Include="..\Client\Player.h">
       <Filter>Client\Headers</Filter>
     </ClInclude>
-    <ClInclude Include="..\Client\ServerMessage.h">
-      <Filter>Client\Headers</Filter>
-    </ClInclude>
     <ClInclude Include="..\Client\Splash.h">
       <Filter>Client\Headers</Filter>
     </ClInclude>
@@ -444,9 +438,6 @@
       <Filter>ContentDownloader\Headers</Filter>
     </ClInclude>
     <ClInclude Include="..\ContentDownloader\PlaylistManager.h">
-      <Filter>ContentDownloader\Headers</Filter>
-    </ClInclude>
-    <ClInclude Include="..\ContentDownloader\MessageQueue.h">
       <Filter>ContentDownloader\Headers</Filter>
     </ClInclude>
     <ClInclude Include="..\DisplayOutput\D3D11\RendererDX11.h">
