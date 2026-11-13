@@ -104,8 +104,9 @@ Function DirectoryLeave
 FunctionEnd
 
 Function un.onInit
+  ; /SD IDYES: a silent uninstall (uninst.exe /S) goes ahead instead of waiting on this box.
   MessageBox MB_ICONQUESTION|MB_YESNO|MB_DEFBUTTON2 \
-    "Are you sure you want to remove $(^Name) and all of its components?" IDYES +2
+    "Are you sure you want to remove $(^Name) and all of its components?" /SD IDYES IDYES +2
   Abort
   SetRegView 64
 FunctionEnd
@@ -166,28 +167,50 @@ Function RunAppAsUser
   Exec `"$WINDIR\explorer.exe" "$INSTDIR\${PRODUCT_EXE}"`
 FunctionEnd
 
-Section Uninstall
-  SetShellVarContext all
-
-  ; Only reset the screensaver pointer if it's still pointing at us. Compare files, not
-  ; strings: Windows' Screen Saver Settings rewrites the value in 8.3 form
-  ; (C:\PROGRA~1\INFINI~1\INFINI~1.SCR) when the user clicks Apply. Both paths go through
-  ; the same short-name conversion while the .scr still exists; on volumes without 8.3
-  ; names both stay long. (StrCmp ignores case.)
-  ReadRegStr $0 HKCU "Control Panel\Desktop" "SCRNSAVE.EXE"
+; Clears SCRNSAVE.EXE in HKU\$3 if it points at our .scr, whose short path is in $2.
+; Compares files, not strings: Windows' Screen Saver Settings rewrites the value in 8.3
+; form (C:\PROGRA~1\INFINI~1\INFINI~1.SCR) when the user clicks Apply. Both paths go
+; through the same short-name conversion while the .scr still exists; on volumes without
+; 8.3 names both stay long. (StrCmp ignores case.) Uses $0 and $1.
+Function un.ClearOurScreensaver
+  ReadRegStr $0 HKU "$3\Control Panel\Desktop" "SCRNSAVE.EXE"
   ${If} $0 != ""
     GetFullPathName /SHORT $1 "$0"
-    GetFullPathName /SHORT $2 "$INSTDIR\${PRODUCT_SCR}"
     ${If} $1 == ""
       StrCpy $1 $0
     ${EndIf}
-    ${If} $2 == ""
-      StrCpy $2 "$INSTDIR\${PRODUCT_SCR}"
-    ${EndIf}
     ${If} $1 == $2
-      DeleteRegValue HKCU "Control Panel\Desktop" "SCRNSAVE.EXE"
+      DeleteRegValue HKU "$3\Control Panel\Desktop" "SCRNSAVE.EXE"
+      DetailPrint "Screensaver reset for HKU\$3"
     ${EndIf}
   ${EndIf}
+FunctionEnd
+
+Section Uninstall
+  SetShellVarContext all
+
+  ; Reset the screensaver of every signed-in user whose screensaver is still ours, while
+  ; the .scr still exists (see un.ClearOurScreensaver). Not just HKCU: the uninstaller runs
+  ; elevated, and when a standard user's UAC prompt is approved with an administrator's
+  ; password, HKCU is that administrator's registry, not the user's (#722 item 5). Every
+  ; signed-in user's registry is loaded under HKU\<SID>. Users who aren't signed in aren't
+  ; reached: their registry isn't loaded.
+  GetFullPathName /SHORT $2 "$INSTDIR\${PRODUCT_SCR}"
+  ${If} $2 == ""
+    StrCpy $2 "$INSTDIR\${PRODUCT_SCR}"
+  ${EndIf}
+  StrCpy $4 0
+  ${Do}
+    EnumRegKey $3 HKU "" $4
+    ${If} $3 == ""
+      ${Break}
+    ${EndIf}
+    IntOp $4 $4 + 1
+    StrCpy $5 $3 "" -8
+    ${If} $5 != "_Classes"
+      Call un.ClearOurScreensaver
+    ${EndIf}
+  ${Loop}
 
   ; Per-user data lives in %LOCALAPPDATA%\Infinidream — that's the user's data, not
   ; ours to delete (standard Windows convention). The uninstaller runs elevated and
