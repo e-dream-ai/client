@@ -12,7 +12,7 @@ stopping and starting:
 4. returns to full speed when the rate goes back up.
 
 Serves the alpha-v1 fixture set by default (its two long Pink Floyd dreams). Takes about three
-minutes. Mac only for now.
+minutes. Runs on Mac and Windows.
 """
 import argparse
 import re

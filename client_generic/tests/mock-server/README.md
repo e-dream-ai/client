@@ -2,7 +2,8 @@
 
 A small stand-in for the infinidream backend, for testing the client without real
 servers (#733). It has a total rate limit on media and can send any socket message, including
-malformed ones, but no other faults or chaos yet. Mac only for now.
+malformed ones, but no other faults or chaos yet. Written for the Mac; `slow_link_test.py` and
+`throttle_test.py` also run on Windows (see "On Windows").
 
 - `server.py` serves the client API, the `/remote-control` socket and media on one port. Media
   can be limited to a set total rate with `--media-rate`, or during a run with
@@ -78,6 +79,28 @@ sleep away during a run. Quit any other running client first, or the check that 
 are unchanged may fail. A test that crashes the client makes macOS show a crash dialog;
 `defaults write com.apple.CrashReporter DialogType none` turns those off (the reports are
 still written) and `defaults delete com.apple.CrashReporter DialogType` turns them back on.
+
+### On Windows
+
+`slow_link_test.py` and `throttle_test.py` have been run on Windows; the others haven't yet.
+You need Python 3 and `ffprobe` (`winget install Gyan.FFmpeg`). The video cache defaults to
+`%LOCALAPPDATA%\Infinidream\content\mp4`, and the real-installs check looks at
+`%LOCALAPPDATA%\Infinidream` and `Infinidream-stage`.
+
+```bat
+python -m venv venv
+venv\Scripts\pip install -r requirements.txt
+set APP=C:\path\to\client_generic\MSVC\Release\infinidream.exe
+venv\Scripts\python fixtures.py fetch --set alpha-v1 --env-file ..\..\..\..\python-api\.env
+venv\Scripts\python slow_link_test.py --app %APP%
+venv\Scripts\python throttle_test.py --app %APP% --set alpha-v1 --playlist bd5615c2-5a68-4e33-b9c1-6649fb09dc03
+```
+
+`throttle_test.py` needs `--playlist` with `alpha-v1`, which has only two dreams of 900 frames or
+more; the Pink Floyd playlist serves those two. Crash reports, stack samples, screenshots and
+the screen-lock check are Mac only, so on Windows a locked screen shows up as a hang. A partial
+`.tmp` download can be left after a clean quit, because the shutdown watchdog ends the process
+before the decoder that would delete it is torn down; the client removes it on its next start.
 
 ## Crashes and hangs
 
