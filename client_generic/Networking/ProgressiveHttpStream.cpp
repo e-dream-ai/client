@@ -339,6 +339,12 @@ int64_t ProgressiveHttpStream::BytesDownloaded() const
     return m_bytesDownloaded;
 }
 
+int64_t ProgressiveHttpStream::AvailableFrom(int64_t pos) const
+{
+    std::lock_guard<std::mutex> lock(m_mutex);
+    return AvailableFromLocked(pos);
+}
+
 int64_t ProgressiveHttpStream::ContiguousEndLocked() const
 {
     if (m_filled.empty())

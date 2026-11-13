@@ -1249,12 +1249,12 @@ void CPlayer::LogHeartbeat()
         const char* state = clip->IsRebuffering() ? "rebuffering"
                             : clip->IsBuffering() ? "buffering"
                                                   : "playing";
-        return string_format("%s frame=%u/%u queue=%u %s discarded=%u short=%u rebuffers=%u",
+        return string_format("%s frame=%u/%u queue=%u %s discarded=%u short=%u rebuffers=%u speed=%.2f",
                              clip->GetClipMetadata().dreamData.uuid.c_str(),
                              clip->GetCurrentFrameIdx(), clip->GetFrameCount(),
                              decoder ? decoder->QueueLength() : 0, state,
                              clip->GetFramesDiscarded(), clip->GetFramesShort(),
-                             clip->GetRebufferCount());
+                             clip->GetRebufferCount(), clip->GetPlaybackSpeed());
     };
 
     g_Log->Info("Heartbeat ticks=%u tick_ms=%.1f avg_tick_ms=%.1f max_tick_ms=%.1f late_ticks=%u clamped_ticks=%u lost_ms=%.0f display_fps=%.1f timeline=%.3f paused=%d "
@@ -2739,6 +2739,16 @@ bool CPlayer::IsStalledAtTransition() const {
     if (IsPreloading())
         return true;
     return m_nextClip && (!m_nextClip->IsPreloadComplete() || m_nextClip->IsBuffering());
+}
+
+double CPlayer::GetPlaybackSpeed() const {
+    // Unlocked, like IsAnyClipBuffering(). The clip slows itself when its
+    // stream can't keep up (client#770).
+    return m_currentClip ? m_currentClip->GetPlaybackSpeed() : 1.0;
+}
+
+bool CPlayer::IsPlaybackSlowed() const {
+    return GetPlaybackSpeed() < 1.0;
 }
 
 bool CPlayer::IsIncomingClipLocal() const {

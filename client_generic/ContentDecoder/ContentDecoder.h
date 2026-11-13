@@ -187,6 +187,18 @@ class CContentDecoder
     bool Stopped() const { return m_bStop.load(); };
     bool FailedToOpen() const { return m_OpenFailed.load(); }
     uint32_t QueueLength();
+    uint32_t QueueCapacity() const { return static_cast<uint32_t>(m_FrameQueue.getMaxQueueElements()); }
+
+    // Download progress of a streaming clip, for adaptive playback speed
+    // (client#770). Safe to call from the render thread. Returns false when
+    // the clip isn't streaming over HTTP.
+    struct StreamStats
+    {
+        int64_t bytesDownloaded = 0;  // total so far (monotonic)
+        int64_t bytesAhead = 0;       // downloaded but not yet read by the decoder
+        bool finished = false;        // whole file downloaded
+    };
+    bool GetStreamStats(StreamStats& _out) const;
     void ClearQueue(uint32_t leave = 0);
     void SkipTime(float _secondsForward, int64_t _displayedFrameIdx = -1)
     {
@@ -209,6 +221,12 @@ class CContentDecoder
     std::shared_ptr<Network::ProgressiveHttpStream> m_httpStream;
     Network::ProgressiveHttpStream::Cursor m_httpCursor;
     bool m_httpStreamShared = false;
+    // GetStreamStats() runs on another thread than the one that sets and
+    // releases m_httpStream, so it reads this guarded copy and the read
+    // position published by ReadPacket/SeekPacket.
+    mutable std::mutex m_httpStatsMutex;
+    std::shared_ptr<Network::ProgressiveHttpStream> m_httpStatsStream;
+    std::atomic<int64_t> m_httpReadPos{0};
     void StopOwnedStream();
     void ReleaseStream();
 

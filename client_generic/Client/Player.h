@@ -449,6 +449,11 @@ class CPlayer : public Base::CSingleton<CPlayer>
     // still takes up to a couple of seconds (decode from the keyframe), but
     // it isn't waiting on the network.
     bool IsIncomingClipLocal() const;
+    // The clip on screen is playing below the requested speed because its
+    // stream can't keep up (client#770). Shows the buffering moon.
+    bool IsPlaybackSlowed() const;
+    // That clip's speed as a fraction of the requested one (1.0 = not slowed).
+    double GetPlaybackSpeed() const;
     void NoteContentSettled() { m_ContentSettledCount.fetch_add(1); }
     bool IsAnyClipStreaming() const;
 };

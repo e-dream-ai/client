@@ -60,6 +60,8 @@ class ProgressiveHttpStream
 
     int64_t Size() const;
     int64_t BytesDownloaded() const;
+    // Bytes downloaded contiguously from pos (0 if pos isn't downloaded yet).
+    int64_t AvailableFrom(int64_t pos) const;
     bool Failed() const { return m_failed.load(); }
     bool Finished() const { return m_finished.load(); }
     // The worker has exited: finished, failed, or aborted.
