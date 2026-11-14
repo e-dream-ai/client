@@ -210,7 +210,9 @@ class CElectricSheep
     int m_GpuUsage;
     int m_HighCpuUsageCounter;
     int m_CpuUsageThreshold;
-    std::string m_PreviousDlState; // Track download status
+    // Shown in the transfers block until the background downloader runs
+    // ("Preparing downloader...", "Downloading disabled", ...).
+    std::string m_DownloaderIdleText;
     bool m_MultipleInstancesMode;
     bool m_CachedOnlyMode = false;
     bool m_StartFullscreen = false;  // Linux: start fullscreen (--fullscreen); default is windowed
@@ -479,17 +481,16 @@ class CElectricSheep
         spStats->Add(new Hud::CStringStat("loginstatus", "", "Not signed in"));
         spStats->Add(
             new Hud::CStringStat("all", "Content cache: ", "unknown..."));
-        spStats->Add(new Hud::CStringStat("transfers", "", " \n "));
         if (m_MultipleInstancesMode == true)
-            spStats->Add(new Hud::CTimeCountDownStat(
-                "svstat", "", "Downloading disabled, busy mode"));
+            m_DownloaderIdleText = "Downloading disabled, busy mode";
         else if (g_Settings()->Get("settings.content.download_mode", true) ==
                  false)
-            spStats->Add(new Hud::CTimeCountDownStat("svstat", "",
-                                                     "Downloading disabled"));
+            m_DownloaderIdleText = "Downloading disabled";
         else
-            spStats->Add(new Hud::CTimeCountDownStat(
-                "svstat", "", "Preparing downloader..."));
+            m_DownloaderIdleText = "Preparing downloader...";
+        // Active transfers, or the downloader's status when there are none.
+        spStats->Add(new Hud::CStringStat("transfers", "",
+                                          m_DownloaderIdleText + "\n "));
         spStats->Add(new Hud::CStringStat("preloading", "", ""));
 
         spStats->Add(new Hud::CStringStat("zzacpu", "CPU: ", "measuring..."));
@@ -2241,9 +2242,18 @@ class CElectricSheep
                     (Hud::CStringStat*)spStats->Get("transfers");
                 if (pTmp)
                 {
-                    const std::string& serverStatus =
-                        m_RuntimeDiagnostics.serverStatus;
-                    pTmp->SetSample(serverStatus.empty() ? " \n " : serverStatus);
+                    // One block for downloads: the active transfers if any,
+                    // otherwise the background downloader's status (searching,
+                    // requesting a link, all cached, ...). Padded to two lines,
+                    // the height of one transfer, so the HUD doesn't jump.
+                    std::string text = m_RuntimeDiagnostics.serverStatus;
+                    if (text.empty())
+                        text = g_ContentDownloader().m_gDownloader.IsRunning()
+                                   ? m_RuntimeDiagnostics.downloadStatus
+                                   : m_DownloaderIdleText;
+                    if (text.find('\n') == std::string::npos)
+                        text += text.empty() ? " \n " : "\n ";
+                    pTmp->SetSample(text);
                 }
 
                 // Fetching and decoding the next dream ahead of its transition.
@@ -2278,20 +2288,6 @@ class CElectricSheep
                 }
 
 
-                Hud::CTimeCountDownStat* pTcd =
-                    (Hud::CTimeCountDownStat*)spStats->Get("svstat");
-                if (pTcd)
-                {
-                    std::string dlState =
-                        m_RuntimeDiagnostics.downloadStatus;
-
-                    if (dlState != m_PreviousDlState)
-                    {
-                        pTcd->SetSample(dlState);
-                        pTcd->Visible(true);
-                        m_PreviousDlState = dlState;
-                    }
-                }
                 } // if (spStats) - dreamstats
 
                 //	Finally render hud.

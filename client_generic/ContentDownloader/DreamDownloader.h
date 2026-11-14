@@ -36,6 +36,7 @@ public:
     }
 
     void FindDreamsToDownload(); 
+    bool IsRunning() const { return isRunning.load(); }
 
     void StopFindingDreams()  {
         m_stopping.store(true);

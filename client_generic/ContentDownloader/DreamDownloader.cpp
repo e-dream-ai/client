@@ -263,9 +263,11 @@ bool DreamDownloader::ClaimAndDownload(const std::string& uuid, bool playlistPre
         ~Unclaim() { Network::DownloadRegistry::Instance().Remove(uuid, stream.get()); }
     } unclaim{uuid, stream};
 
+    SetDownloadStatus("Requesting...");
     auto link = EDreamClient::GetDreamDownloadLink(uuid);
     if (link.empty()) {
         g_Log->Error("Download link denied");
+        SetDownloadStatus("Download link denied");
         return false;
     }
     g_Log->Info("Download link received: %s", link.c_str());
