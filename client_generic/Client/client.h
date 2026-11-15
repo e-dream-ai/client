@@ -2303,6 +2303,20 @@ class CElectricSheep
                 }
 #endif
                 {
+#if defined(WIN32)
+                    // Take the D3D11 context lock once for the whole HUD. Each quad
+                    // takes it again (recursive, so then for free); otherwise the
+                    // OSD's quads each wait behind the hardware decoder, which
+                    // shares the lock, and the OSD can cost more than a frame at
+                    // high playback speeds.
+                    std::unique_lock<std::recursive_mutex> d3dLock(
+                        GetD3D11ImmediateContextMutex(), std::defer_lock);
+                    if (m_HudManager->AnyNeedsRender())
+                    {
+                        Base::CStepTimer lockTimer("frame HUD context lock wait");
+                        d3dLock.lock();
+                    }
+#endif
                     Base::CStepTimer timer("frame HUD Render");
                     m_HudManager->Render(g_Player().Renderer());
                 }
