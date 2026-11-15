@@ -188,6 +188,13 @@ class CContentDecoder
     bool FailedToOpen() const { return m_OpenFailed.load(); }
     uint32_t QueueLength();
     uint32_t QueueCapacity() const { return static_cast<uint32_t>(m_FrameQueue.getMaxQueueElements()); }
+    // The decoder stops decoding once this many frames are queued (backpressure).
+    // Anything waiting for the queue to fill must wait for at most this many.
+    uint32_t QueueHighWater() const
+    {
+        const uint32_t capacity = QueueCapacity();
+        return capacity > 4 ? capacity - 4 : capacity;
+    }
 
     // Download progress of a streaming clip, for adaptive playback speed
     // (client#770). Safe to call from the render thread. Returns false when

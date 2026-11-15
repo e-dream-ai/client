@@ -329,11 +329,12 @@ void CClip::UpdatePlaybackSpeed(double _timelineTime)
 
 // Resume from a rebuffer once about a second of frames is decoded, not just a
 // handful, so a starved link doesn't cycle on/off every few frames (client#770).
+// Never more than the decoder queues before it pauses: above about 21 fps a second
+// of frames didn't fit, and the clip stayed rebuffering forever on a black screen.
 uint32_t CClip::RebufferResumeFrames() const
 {
-    const uint32_t capacity = m_spDecoder ? m_spDecoder->QueueCapacity() : 25;
     const uint32_t oneSecond = static_cast<uint32_t>(std::ceil(m_ClipMetadata.decodeFps));
-    const uint32_t ceiling = capacity > 3 ? capacity - 2 : capacity;
+    const uint32_t ceiling = m_spDecoder ? m_spDecoder->QueueHighWater() : 21;
     return std::clamp<uint32_t>(oneSecond, std::min<uint32_t>(5, ceiling), ceiling);
 }
 
