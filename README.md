@@ -475,6 +475,77 @@ The NSIS script lives at [`client_generic/InstallerMSVC/nsis_installer.nsi`](cli
 
 Windows builds produce **PDB** files next to binaries (e.g. under `client_generic\MSVC\Release\`). Upload PDBs to BugSnag following their Windows symbol-upload guidance; macOS dSYM instructions below do not apply on Windows.
 
+## to prerelease (for testers, without Sparkle)
+
+A GitHub prerelease lets a few people download a build without any installed client being
+offered it. Sparkle only reads the public appcast, which changes only when Mac `release.py`
+runs, and a prerelease isn't marked Latest, so the website keeps the current version.
+
+**Use plain `X.Y.Z` versions, increasing each time** (0.16.2, 0.16.3, …), not `-beta`
+suffixes. The Mac app reinstalls the screensaver only when the bundled version is higher,
+compared with `NSNumericSearch`, which ranks `0.17.0` *below* `0.17.0-beta.3`. Tags are shared
+with Windows, so pick numbers that don't collide with Windows builds.
+
+The scripts' names don't line up across platforms: Windows `release.py` packages and uploads,
+like the second half of Mac `build.py`, while Mac `release.py` is the separate "go public" step.
+
+| Step | Mac | Windows | Linux |
+|---|---|---|---|
+| Compile | `build.py` | `build.py -v` | `build_appimage.py` |
+| Package and sign | `build.py -r -n` | `release.py --sign` | `build_appimage.py` |
+| Tag and create the GitHub release | `build.py -g` | — (needs the Mac one) | — |
+| Upload to the release | `build.py -g` | `release.py -g` | `gh release upload` by hand |
+| Push to users (Sparkle, website, Latest) | `release.py` | — | — |
+
+Commit and push first, then build the same commit on every machine.
+
+**1. Mac, first.** Creates the tag and the prerelease, and uploads the DMG:
+
+```bash
+cd client_generic/MacBuild
+./build.py -r -n -g -v 0.16.2
+```
+
+**2. Windows.** `release.py -g` uploads to the release Mac created, and fails if it doesn't
+exist yet. It takes the version `build.py -v` compiled in:
+
+```cmd
+git fetch --tags && git checkout 0.16.2
+cd client_generic\WinBuild
+python build.py -v 0.16.2
+python release.py --sign -g
+```
+
+**3. Linux.** `build_appimage.py` doesn't upload, so upload by hand. It also doesn't take a
+version yet, so the AppImage reports 0.0.0:
+
+```bash
+git fetch --tags && git checkout 0.16.2
+cd client_generic/LinuxBuild
+./build_appimage.py
+gh release upload 0.16.2 infinidream-x86_64.AppImage --clobber
+```
+
+**4. Release notes,** from any machine, or edit them on GitHub:
+
+```bash
+gh release edit 0.16.2 --notes-file notes.md
+```
+
+Repeat with the next version for each round. Testers update by hand between prereleases;
+once you promote a version higher than theirs, Sparkle offers it to them like everyone else.
+
+**5. Promote** the one you're happy with (Mac only), as in step 4 of the next section:
+
+```bash
+cd client_generic/MacBuild
+./release.py -v 0.16.5 --dry-run
+./release.py -v 0.16.5
+```
+
+This publishes the appcast, updates the website version and marks the release Latest. Windows
+and Linux have no auto-update; their users get it from the release page.
+
 ## to release (with Sparkle auto-update)
 
 ### 1. Build, notarize, and create GitHub release
