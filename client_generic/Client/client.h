@@ -215,7 +215,7 @@ class CElectricSheep
     std::string m_DownloaderIdleText;
     bool m_MultipleInstancesMode;
     bool m_CachedOnlyMode = false;
-    bool m_StartFullscreen = false;  // Linux: start fullscreen (--fullscreen); default is windowed
+    bool m_StartFullscreen = false;  // Linux/Windows: start fullscreen (--fullscreen); default is windowed
     bool m_OfflineDueToNoInternetOnly = false;  // true when m_MultipleInstancesMode was set only because internet was down (don't show Busy in that case)
     bool m_bConfigMode;
     bool m_bIsPreview;
