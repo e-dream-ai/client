@@ -271,6 +271,19 @@ making the embedded screensaver:
 
 Then in xcode just use command-R.
 
+### Starting fullscreen
+
+For test scripts, the app takes `--fullscreen`, like Windows and Linux. Pass it to the
+executable directly or through `open`:
+
+```bash
+/Applications/infinidream.app/Contents/MacOS/infinidream --fullscreen
+open -a infinidream --args --fullscreen
+```
+
+Launched from the Finder or Dock it opens in a window as usual. In Xcode, add `--fullscreen`
+under Product > Scheme > Edit Scheme > Run > Arguments.
+
 
 ### Build Script
 ```bash

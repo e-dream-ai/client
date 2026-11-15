@@ -274,7 +274,8 @@ class Run:
                "INFINIDREAM_API_KEY": API_KEY, "INFINIDREAM_HEARTBEAT_SECONDS": "1"}
         self.started_at = time.time()
         with open(self.client_output, "w") as output:
-            self.client = subprocess.Popen([str(self.app)], env=env, stdout=output,
+            command = [str(self.app), *(["--fullscreen"] if FULLSCREEN else [])]
+            self.client = subprocess.Popen(command, env=env, stdout=output,
                                            stderr=subprocess.STDOUT)
         if self.screenshots and screens.can_capture():
             self.watcher = screens.ScreenWatcher(self.client.pid, self.work / "screens")
@@ -365,6 +366,9 @@ DEFAULT_MEDIA_DIR = server.CLIENT_CACHE
 # A real playlist of a snapshot set to serve instead of made-up playlists (--playlist).
 PLAYLIST = None
 
+# Start the client fullscreen instead of in a window (--fullscreen).
+FULLSCREEN = False
+
 
 def add_media_args(parser):
     group = parser.add_mutually_exclusive_group()
@@ -373,6 +377,8 @@ def add_media_args(parser):
                        help="folder of <uuid>.mp4 to serve; defaults to the alpha client's cache")
     parser.add_argument("--playlist", help="serve only this real playlist of a snapshot --set, all "
                         "its dreams whatever their length, and start the client on it")
+    parser.add_argument("--fullscreen", action="store_true",
+                        help="start the client fullscreen instead of in a window")
 
 
 def first_dream(media_dir, dreams):
@@ -399,8 +405,9 @@ def load_dreams(media_dir, count, min_frames, pick="smallest"):
 
 def resolve_media(args):
     """Points args.media_dir at the chosen fixture set, after checking its md5s."""
-    global PLAYLIST
+    global PLAYLIST, FULLSCREEN
     PLAYLIST = getattr(args, "playlist", None)
+    FULLSCREEN = getattr(args, "fullscreen", False)
     if PLAYLIST and not args.set:
         sys.exit("--playlist needs --set, a snapshot fixture set")
     if PLAYLIST:

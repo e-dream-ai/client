@@ -144,6 +144,19 @@ static void QuitCallback()
 
         [esView startAnimation];
 
+#ifndef SCREEN_SAVER
+        // --fullscreen (for test scripts, like Windows and Linux): start fullscreen.
+        // Deferred a turn of the run loop, since AppKit ignores toggleFullScreen on a
+        // window that isn't on screen yet.
+        if ([[NSProcessInfo processInfo].arguments containsObject:@"--fullscreen"])
+        {
+            dispatch_async(dispatch_get_main_queue(), ^{
+                if (!self.isFullScreen)
+                    [self switchFullScreen:self];
+            });
+        }
+#endif
+
 
     }
     self.delegate = self;

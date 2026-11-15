@@ -68,9 +68,9 @@ venv/bin/python throttle_test.py --app "$APP"
 venv/bin/python slow_link_test.py --app "$APP"
 ```
 
-Each takes `--set NAME` to serve a fixture set, and `--keep` to keep the run folder (logs,
-server events, crash reports, stack samples) even when everything passes; it's always kept
-when a check fails.
+Each takes `--set NAME` to serve a fixture set, `--fullscreen` to start the client
+fullscreen instead of in a window, and `--keep` to keep the run folder (logs, server events,
+crash reports, stack samples) even when everything passes; it's always kept when a check fails.
 
 The screen checks need Screen Recording permission for your terminal (System Settings >
 Privacy & Security); without it they're skipped, and the test says so.
