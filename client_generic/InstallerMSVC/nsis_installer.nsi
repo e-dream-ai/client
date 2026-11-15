@@ -4,6 +4,11 @@
 
 Unicode true
 SetCompressor /SOLID lzma
+; Without this, Windows bitmap-stretches the whole installer on scaled displays (125%+),
+; which makes all the text fuzzy.
+ManifestDPIAware true
+; NSIS defaults to MS Shell Dlg 8pt (Tahoma); match current Windows UI instead.
+SetFont "Segoe UI" 9
 
 !ifndef PRODUCT_VERSION
   !define PRODUCT_VERSION "0.0.0"
@@ -25,6 +30,8 @@ SetCompressor /SOLID lzma
 
 Name "${PRODUCT_NAME} ${PRODUCT_VERSION}"
 OutFile "${OUT_FILE}"
+; Replaces "Nullsoft Install System v3.x" along the bottom edge.
+BrandingText "${PRODUCT_PUBLISHER}"
 
 ; release.py --sign passes these so the uninstaller, which makensis generates itself, is
 ; Authenticode-signed before it's packed into the setup exe (%1 is the uninstaller's path).
@@ -54,6 +61,13 @@ VIAddVersionKey "LegalCopyright"  "${PRODUCT_PUBLISHER}"
 !define MUI_ABORTWARNING
 !define MUI_ICON   "..\Client\app.ico"
 !define MUI_UNICON "..\Client\app.ico"
+; Welcome/Finish side panel, cropped from the macOS DMG background. MUI2's stretch-to-fit
+; is a crude GDI resize that leaves jagged edges, so welcome\ holds the panel pre-rendered
+; at the image control's exact pixel size for each common DPI (109u x 193u in Segoe UI 9),
+; and WizardImageShow swaps in the matching one unstretched. This largest one is only the
+; fallback for an unlisted DPI. To regenerate: welcome\control_sizes.ps1 prints the sizes,
+; welcome\make_bitmaps.ps1 -Src ..\..\MacBuild\dmg\background@2x.png -OutDir . -Sizes WxH,...
+!define MUI_WELCOMEFINISHPAGE_BITMAP "welcome\welcome-545x1158.bmp"
 
 !define MUI_FINISHPAGE_RUN "$INSTDIR\${PRODUCT_EXE}"
 !define MUI_FINISHPAGE_RUN_TEXT "Run ${PRODUCT_NAME} and sign in"
@@ -70,11 +84,13 @@ VIAddVersionKey "LegalCopyright"  "${PRODUCT_PUBLISHER}"
 ; Doing it from the elevated installer would write to the wrong HKCU hive whenever
 ; a non-admin user installed via UAC prompt with someone else's credentials.
 
+!define MUI_PAGE_CUSTOMFUNCTION_SHOW WelcomeShow
 !insertmacro MUI_PAGE_WELCOME
 !insertmacro MUI_PAGE_LICENSE "..\RuntimeMSVC\License.rtf"
 !define MUI_PAGE_CUSTOMFUNCTION_LEAVE DirectoryLeave
 !insertmacro MUI_PAGE_DIRECTORY
 !insertmacro MUI_PAGE_INSTFILES
+!define MUI_PAGE_CUSTOMFUNCTION_SHOW FinishShow
 !insertmacro MUI_PAGE_FINISH
 
 !insertmacro MUI_UNPAGE_CONFIRM
@@ -97,6 +113,53 @@ FunctionEnd
 ; Always install into a folder of our own. If the user picks e.g. "C:\Program Files"
 ; or "D:\", install into "...\Infinidream" under it, so the uninstaller never has to
 ; touch a folder that holds anything else.
+; Replace the stretched side-panel image with the copy rendered at the control's exact
+; size, if there is one. Takes the image control on the stack; returns the new bitmap
+; handle (or the old one, unchanged) for MUI2 to free when the page closes.
+Function WizardImageShow
+  Exch $0 ; image control
+  Exch
+  Exch $4 ; current bitmap handle
+  Push $1
+  Push $2
+  Push $3
+  ${IfNot} ${FileExists} "$PLUGINSDIR\welcome\*.bmp"
+    Push $OUTDIR
+    SetOutPath "$PLUGINSDIR\welcome"
+    File "welcome\*.bmp"
+    Pop $1
+    SetOutPath $1
+  ${EndIf}
+  System::Call "*(i,i,i,i)p.r1"
+  System::Call "user32::GetClientRect(p r0, p r1)"
+  System::Call "*$1(i,i,i.r2,i.r3)"
+  System::Free $1
+  ${If} ${FileExists} "$PLUGINSDIR\welcome\welcome-$2x$3.bmp"
+    ${NSD_FreeImage} $4
+    ${NSD_SetImage} $0 "$PLUGINSDIR\welcome\welcome-$2x$3.bmp" $4
+  ${EndIf}
+  Pop $3
+  Pop $2
+  Pop $1
+  Exch $4 ; restore $4, leave the bitmap handle in its stack slot
+  Exch
+  Pop $0
+FunctionEnd
+
+Function WelcomeShow
+  Push $mui.WelcomePage.Image.Bitmap
+  Push $mui.WelcomePage.Image
+  Call WizardImageShow
+  Pop $mui.WelcomePage.Image.Bitmap
+FunctionEnd
+
+Function FinishShow
+  Push $mui.FinishPage.Image.Bitmap
+  Push $mui.FinishPage.Image
+  Call WizardImageShow
+  Pop $mui.FinishPage.Image.Bitmap
+FunctionEnd
+
 Function DirectoryLeave
   ${GetFileName} "$INSTDIR" $0
   ${If} $0 != "${PRODUCT_NAME}"
