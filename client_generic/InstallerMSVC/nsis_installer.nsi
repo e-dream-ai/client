@@ -25,6 +25,12 @@ SetCompressor /SOLID lzma
 
 Name "${PRODUCT_NAME} ${PRODUCT_VERSION}"
 OutFile "${OUT_FILE}"
+
+; release.py --sign passes these so the uninstaller, which makensis generates itself, is
+; Authenticode-signed before it's packed into the setup exe (%1 is the uninstaller's path).
+!ifdef SIGN_SCRIPT
+  !uninstfinalize '"${SIGN_PYTHON}" "${SIGN_SCRIPT}" --sign-file "%1"' = 0
+!endif
 InstallDir "$PROGRAMFILES64\${PRODUCT_NAME}"
 InstallDirRegKey HKLM "${PRODUCT_DIR_REGKEY}" ""
 RequestExecutionLevel admin

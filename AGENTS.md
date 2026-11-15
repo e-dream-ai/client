@@ -86,7 +86,7 @@ cmake --build build-stage -j$(nproc)
 
 - Dual mode: production (infinidream.ai) and staging (stage.infinidream.ai)
 - Screensaver: embedded in the app bundle (macOS `.saver`); separate `infinidream.scr` on Windows; not applicable on Linux
-- Code signing: macOS auto-discovers Developer ID from Keychain; Windows uses Authenticode (`release.py --sign`)
+- Code signing: macOS auto-discovers Developer ID from Keychain; Windows uses Authenticode via Azure Artifact Signing (`release.py --sign`, after `az login`; see README "Signing")
 - Auto-update via Sparkle appcast XML — macOS only; Windows/Linux ship via GitHub releases without in-app update
 
 ## Runtime Logs
