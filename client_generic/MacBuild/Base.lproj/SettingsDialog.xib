@@ -34,7 +34,6 @@
                 <outlet property="retryLoginButton" destination="I6t-NM-EPC" id="grm-S3-awK"/>
                 <outlet property="serverField" destination="0CM-8A-V8W" id="eul-NB-CGl"/>
                 <outlet property="serverLabel" destination="zTr-up-fzK" id="LnO-4t-81z"/>
-                <outlet property="showAttribution" destination="936" id="947"/>
                 <outlet property="signInButton" destination="1097" id="1181"/>
                 <outlet property="synchronizeVBL" destination="933" id="935"/>
                 <outlet property="useProxy" destination="ZxS-NK-7el" id="dh4-1X-saB"/>
@@ -700,13 +699,6 @@ room for new ones</string>
                                                 <font key="font" metaFont="system"/>
                                             </buttonCell>
                                         </button>
-                                        <button hidden="YES" toolTip="When selected a watermark for attribution will be shown every 10 minutes" translatesAutoresizingMaskIntoConstraints="NO" id="936">
-                                            <rect key="frame" x="178" y="237" width="127" height="18"/>
-                                            <buttonCell key="cell" type="check" title="Show Attribution" bezelStyle="regularSquare" imagePosition="left" alignment="left" inset="2" id="937">
-                                                <behavior key="behavior" changeContents="YES" doesNotDimImage="YES" lightByContents="YES"/>
-                                                <font key="font" metaFont="system"/>
-                                            </buttonCell>
-                                        </button>
                                         <textField hidden="YES" focusRingType="none" verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="0CM-8A-V8W">
                                             <rect key="frame" x="180" y="181" width="250" height="21"/>
                                             <constraints>
@@ -751,15 +743,13 @@ room for new ones</string>
                                         </button>
                                     </subviews>
                                     <constraints>
-                                        <constraint firstItem="936" firstAttribute="top" secondItem="921" secondAttribute="bottom" constant="8" id="38p-NM-lEF"/>
-                                        <constraint firstItem="936" firstAttribute="leading" secondItem="921" secondAttribute="leading" id="7XA-QF-afn"/>
                                         <constraint firstItem="EBg-xh-hZV" firstAttribute="leading" secondItem="330" secondAttribute="leading" constant="8" id="8fE-Il-Xep"/>
                                         <constraint firstItem="EBg-xh-hZV" firstAttribute="top" secondItem="0CM-8A-V8W" secondAttribute="bottom" constant="8" symbolic="YES" id="Fy6-z6-SmL"/>
                                         <constraint firstAttribute="trailing" secondItem="EBg-xh-hZV" secondAttribute="trailing" constant="8" id="SUv-Ox-BDd"/>
                                         <constraint firstItem="0CM-8A-V8W" firstAttribute="firstBaseline" secondItem="zTr-up-fzK" secondAttribute="firstBaseline" id="UvD-qT-Bmr"/>
                                         <constraint firstItem="921" firstAttribute="top" secondItem="330" secondAttribute="top" constant="20" id="Ytg-A7-04a"/>
                                         <constraint firstItem="0CM-8A-V8W" firstAttribute="leading" secondItem="921" secondAttribute="leading" id="bDx-Hv-9WP"/>
-                                        <constraint firstItem="0CM-8A-V8W" firstAttribute="top" secondItem="936" secondAttribute="bottom" constant="38" id="doK-XZ-s89"/>
+                                        <constraint firstItem="0CM-8A-V8W" firstAttribute="top" secondItem="921" secondAttribute="bottom" constant="64" id="doK-XZ-s89"/>
                                         <constraint firstItem="0CM-8A-V8W" firstAttribute="leading" secondItem="zTr-up-fzK" secondAttribute="trailing" constant="8" symbolic="YES" id="lBp-MY-a7F"/>
                                         <constraint firstItem="921" firstAttribute="leading" secondItem="330" secondAttribute="leading" constant="180" id="yz1-Ue-i3u"/>
                                     </constraints>

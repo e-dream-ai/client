@@ -128,7 +128,6 @@ std::string g_versionText;
 double g_playerFps      = 23.0;
 bool   g_preserveAR     = false;
 bool   g_rotatePortrait = false;
-bool   g_showAttribution = false;
 
 char g_contentDirBuf[512] = {};
 bool g_unlimitedCache     = false;

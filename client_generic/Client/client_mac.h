@@ -24,7 +24,6 @@
 #include "Player.h"
 #include "Settings.h"
 #include "SimplePlaylist.h"
-#include "Splash.h"
 #include "Timer.h"
 #include "base.h"
 #include "storage.h"
