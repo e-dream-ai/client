@@ -89,6 +89,18 @@ public:
             m_spDotTexture_u = g_Player().Renderer()->NewTextureFlat();
             m_spDotTexture_u->Upload(tmpDotU);
         }
+
+        // The row of dots as two strips, so any level draws in two quads instead
+        // of one per dot (each quad costs a lock and a constant-buffer map).
+        DisplayOutput::spCImage stripDot = MakeDotStrip(tmpDot);
+        DisplayOutput::spCImage stripDotU = MakeDotStrip(tmpDotU);
+        if (stripDot && stripDotU)
+        {
+            m_spDotStripTexture = g_Player().Renderer()->NewTextureFlat();
+            m_spDotStripTexture->Upload(stripDot);
+            m_spDotStripTexture_u = g_Player().Renderer()->NewTextureFlat();
+            m_spDotStripTexture_u->Upload(stripDotU);
+        }
         
         DisplayOutput::spCImage tmpSymbolBrightness(new DisplayOutput::CImage());
         if (tmpSymbolBrightness->Load(g_Settings()->Get("settings.app.InstallDir", defaultDir) +
@@ -604,66 +616,52 @@ public:
 
             bool isFastZone = scaledValue > 27;
             bool isSlowZone = scaledValue < 0.8;
-            bool isNormalZone = !isFastZone && !isSlowZone;
 
-            // Precompute which dots are "selected" (lit) vs "unselected"
-            // Then batch draw all selected dots first, then all unselected dots
-            // This reduces Apply() calls from 27 to just 2
-            
+            // How many dots are lit: those with index below the value (the dot
+            // row wraps in the fast and slow zones).
+            const double litBelow = isFastZone ? scaledValue - kDots
+                                  : isSlowZone ? scaledValue + kDots
+                                               : scaledValue;
+            const int litCount = litBelow <= 0 ? 0
+                               : std::min(kDots, static_cast<int>(std::ceil(litBelow)));
+
             spRenderer->SetBlend("alphablend");
             spRenderer->SetShader(NULL);
-            
-            // First pass: draw all selected (lit) dots
-            if (m_spDotTexture != NULL) {
-                spRenderer->SetTexture(m_spDotTexture, 0);
-                spRenderer->Apply();
-                for (int i = 0; i < 27; i++) {
-                    bool isSelected = false;
-                    if (isFastZone && i < (scaledValue - 27)) {
-                        isSelected = true;
-                    } else if (isSlowZone && i < (scaledValue + 27)) {
-                        isSelected = true;
-                    } else if (isNormalZone && i < scaledValue) {
-                        isSelected = true;
-                    }
-                    
-                    if (isSelected) {
-                        spRenderer->DrawQuad(
-                            Base::Math::CRect(
-                                m_DotCRect.m_X0 + i * dotGap,
-                                m_DotCRect.m_Y0,
-                                m_DotCRect.m_X1 + i * dotGap,
-                                m_DotCRect.m_Y1),
-                            tint,
-                            m_spDotTexture->GetRect());
-                    }
+
+            if (m_spDotStripTexture != NULL && m_spDotStripTexture_u != NULL) {
+                // Two quads: the lit strip cropped to the first litCount cells,
+                // the unlit strip to the rest. Each dot sits centred in its cell.
+                const float x0 = m_DotCRect.m_X0 -
+                    dotGap * (kDotCellPx - kDotWidthPx) / (2.f * kDotCellPx);
+                const float split = x0 + litCount * dotGap;
+                const float u = static_cast<float>(litCount) / kDots;
+                if (litCount > 0) {
+                    spRenderer->SetTexture(m_spDotStripTexture, 0);
+                    spRenderer->Apply();
+                    spRenderer->DrawQuad(
+                        Base::Math::CRect(x0, m_DotCRect.m_Y0, split, m_DotCRect.m_Y1),
+                        tint, Base::Math::CRect(0.f, 0.f, u, 1.f));
                 }
-            }
-            
-            // Second pass: draw all unselected dots
-            if (m_spDotTexture_u != NULL) {
-                spRenderer->SetTexture(m_spDotTexture_u, 0);
-                spRenderer->Apply();
-                for (int i = 0; i < 27; i++) {
-                    bool isSelected = false;
-                    if (isFastZone && i < (scaledValue - 27)) {
-                        isSelected = true;
-                    } else if (isSlowZone && i < (scaledValue + 27)) {
-                        isSelected = true;
-                    } else if (isNormalZone && i < scaledValue) {
-                        isSelected = true;
-                    }
-                    
-                    if (!isSelected) {
-                        spRenderer->DrawQuad(
-                            Base::Math::CRect(
-                                m_DotCRect.m_X0 + i * dotGap,
-                                m_DotCRect.m_Y0,
-                                m_DotCRect.m_X1 + i * dotGap,
-                                m_DotCRect.m_Y1),
-                            tint,
-                            m_spDotTexture_u->GetRect());
-                    }
+                if (litCount < kDots) {
+                    spRenderer->SetTexture(m_spDotStripTexture_u, 0);
+                    spRenderer->Apply();
+                    spRenderer->DrawQuad(
+                        Base::Math::CRect(split, m_DotCRect.m_Y0,
+                                          x0 + kDots * dotGap, m_DotCRect.m_Y1),
+                        tint, Base::Math::CRect(u, 0.f, 1.f, 1.f));
+                }
+            } else {
+                // Strips unavailable: one quad per dot.
+                for (int i = 0; i < kDots; i++) {
+                    const DisplayOutput::spCTextureFlat& dot = i < litCount ? m_spDotTexture : m_spDotTexture_u;
+                    if (dot == NULL)
+                        continue;
+                    spRenderer->SetTexture(dot, 0);
+                    spRenderer->Apply();
+                    spRenderer->DrawQuad(
+                        Base::Math::CRect(m_DotCRect.m_X0 + i * dotGap, m_DotCRect.m_Y0,
+                                          m_DotCRect.m_X1 + i * dotGap, m_DotCRect.m_Y1),
+                        tint, dot->GetRect());
                 }
             }
         } else {
@@ -785,6 +783,40 @@ private:
 
     // Textures and coordinates for main hud (large 700px)
     DisplayOutput::spCTextureFlat m_spBgTexture, m_spDotTexture, m_spDotTexture_u, m_spSymbolBrightnessTexture;
+    DisplayOutput::spCTextureFlat m_spDotStripTexture, m_spDotStripTexture_u;  // all 27 dots, see MakeDotStrip
+
+    // The dot row: kDots dots, each kDotCellPx wide in osd-bg-700.png's pixels
+    // (a 16 px dot and an 8 px gap; see dotGap).
+    static constexpr int kDots = 27;
+    static constexpr int kDotWidthPx = 16;
+    static constexpr int kDotCellPx = 24;
+
+    // kDots copies of a dot image side by side, each centred in its cell, so a
+    // strip cropped at a cell boundary cuts through transparent gap only.
+    static DisplayOutput::spCImage MakeDotStrip(const DisplayOutput::spCImage& _dot)
+    {
+        if (!_dot || !_dot->GetFormat().is(DisplayOutput::eImage_RGBA8) ||
+            _dot->GetWidth() == 0)
+            return nullptr;
+        const uint32_t w = _dot->GetWidth();
+        const uint32_t h = _dot->GetHeight();
+        const uint32_t cell = w * kDotCellPx / kDotWidthPx;
+        const uint32_t offset = (cell - w) / 2;
+        DisplayOutput::spCImage strip(new DisplayOutput::CImage());
+        strip->Create(cell * kDots, h, DisplayOutput::eImage_RGBA8);
+        uint8_t* dst = strip->GetData(0);
+        const uint8_t* src = _dot->GetData(0);
+        if (!dst || !src)
+            return nullptr;
+        const uint32_t dstPitch = strip->GetPitch(0);
+        const uint32_t srcPitch = _dot->GetPitch(0);
+        std::fill(dst, dst + static_cast<size_t>(dstPitch) * h, uint8_t(0));
+        for (int i = 0; i < kDots; i++)
+            for (uint32_t y = 0; y < h; y++)
+                std::copy(src + y * srcPitch, src + y * srcPitch + w * 4,
+                          dst + y * dstPitch + (i * cell + offset) * 4);
+        return strip;
+    }
     Base::Math::CRect m_BgCRect, m_DotCRect, m_SymbolCRect;
     
     // Textures and coordinates for mini hud (210sq)

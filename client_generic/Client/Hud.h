@@ -92,6 +92,14 @@ class CHudManager
     spCHudEntry Get(const std::string _what) { return m_EntryMap[_what]; }
 
     bool Render(DisplayOutput::spCRenderer _spRenderer);
+    // Whether Render would draw anything.
+    bool AnyNeedsRender() const
+    {
+        for (const auto& entry : m_EntryMap)
+            if (entry.second && entry.second->NeedsRender())
+                return true;
+        return false;
+    }
     void HideAll();
     void Toggle(const std::string _name);
     void Hide(const std::string _name);
