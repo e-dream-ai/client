@@ -139,7 +139,6 @@ bool g_preserveAR = false;
 bool g_rotatePortrait = false;
 bool g_spoutOutput = false;
 bool g_blackoutMonitors = true;
-bool g_showAttribution = false;
 
 char g_contentDirBuf[512] = {};
 bool g_unlimitedCache = false;

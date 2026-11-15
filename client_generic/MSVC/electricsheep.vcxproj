@@ -793,7 +793,6 @@ copy /y "..\runtime\*.ttf" "$(OutDir)"
     <ClInclude Include="msvc_fix.h" />
     <ClInclude Include="..\Client\PlayCounter.h" />
     <ClInclude Include="..\Client\Player.h" />
-    <ClInclude Include="..\Client\Splash.h" />
     <ClInclude Include="..\Client\StartupScreen.h" />
     <ClInclude Include="..\Client\StatsConsole.h" />
     <ClInclude Include="..\DisplayOutput\DisplayOutput.h" />

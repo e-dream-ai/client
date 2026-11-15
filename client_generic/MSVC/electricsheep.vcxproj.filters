@@ -350,9 +350,6 @@
     <ClInclude Include="..\Client\Player.h">
       <Filter>Client\Headers</Filter>
     </ClInclude>
-    <ClInclude Include="..\Client\Splash.h">
-      <Filter>Client\Headers</Filter>
-    </ClInclude>
     <ClInclude Include="..\Client\StartupScreen.h">
       <Filter>Client\Headers</Filter>
     </ClInclude>

@@ -34,7 +34,6 @@
 #include "EDreamClient.h"
 #include "Hud.h"
 #include "Matrix.h"
-#include "Splash.h"
 #include "../MacBuild/OSD.hpp"
 #include "StartupScreen.h"
 #include "StatsConsole.h"
@@ -232,8 +231,6 @@ class CElectricSheep
     Hud::spCHudManager m_HudManager;
     Hud::spCStartupScreen m_StartupScreen;
 
-    double m_PNGDelayTimer;
-
     //	The base framerate(from config).
     double m_PlayerFps;
 
@@ -261,12 +258,7 @@ class CElectricSheep
     double m_AwaitContentDeadline = 0.0;  // 0 = not waiting for new content
     double m_AwaitContentStart = 0.0;
 
-    // Splash PNG
-    Hud::spCSplashImage m_spSplashPNG;
-    Base::CTimer m_SplashPNGDelayTimer;
-    int m_nSplashes;
     int m_StatsCodeCounter;
-    std::string m_SplashFilename;
 
     Hud::spCCrossFade m_spCrossFade;
 
@@ -394,9 +386,6 @@ class CElectricSheep
         //    Get hud font name.
         m_HudFontName = g_Settings()->Get(
             "settings.player.m_HudFontName", std::string("Lato"));
-
-        m_PNGDelayTimer =
-            g_Settings()->Get("settings.player.pngdelaytimer", 600);
 
         m_HudManager = std::make_shared<Hud::CHudManager>();
     }
@@ -781,80 +770,6 @@ class CElectricSheep
         m_HudManager->Add("buffering-indicator", m_spBufferingIndicator);
     }
     
-    void AddSplashHud()
-    {
-#ifndef LINUX_GNU
-        std::string defaultDir = std::string(".\\");
-#else
-        std::string defaultDir = std::string("");
-#endif
-        // PNG splash
-        m_SplashFilename = g_Settings()->Get(
-            "settings.player.attrpngfilename",
-            g_Settings()->Get("settings.app.InstallDir", PlatformUtils::GetWorkingDir()) +
-                "e-dream-attr.png");
-
-        bool splashFound = false;
-
-        const char* percent;
-
-        if (m_SplashFilename.empty() == false)
-        {
-            if ((percent = strchr(m_SplashFilename.c_str(), '%')))
-            {
-                if (percent[1] == 'd')
-                {
-                    FILE* test;
-                    while (1)
-                    {
-                        char fNameFormatted[FILENAME_MAX];
-                        snprintf(fNameFormatted, FILENAME_MAX,
-                                 m_SplashFilename.c_str(), m_nSplashes);
-                        if ((test = fopen(fNameFormatted, "r")))
-                        {
-                            splashFound = true;
-                            fclose(test);
-                            m_nSplashes++;
-                        }
-                        else
-                        {
-                            break;
-                        }
-                    }
-                }
-            }
-            else
-            {
-                FILE* test = fopen(m_SplashFilename.c_str(), "r");
-
-                if (test != nullptr)
-                {
-                    splashFound = true;
-                    fclose(test);
-                }
-            }
-        }
-
-        if (!splashFound)
-        {
-            m_SplashFilename =
-                g_Settings()->Get("settings.app.InstallDir", PlatformUtils::GetWorkingDir()) +
-                "e-dream-attr.png";
-            g_Settings()->Set("settings.player.attrpngfilename",
-                              m_SplashFilename);
-        }
-
-        // if multiple splashes are found then they are loaded when the timer
-        // goes off, not here
-        if (m_SplashFilename.empty() == false &&
-            g_Settings()->Get("settings.app.attributionpng", false) == true)
-            m_spSplashPNG = std::make_shared<Hud::CSplashImage>(
-                0.2f, m_SplashFilename.c_str(),
-                float(g_Settings()->Get("settings.app.pngfadein", 10)),
-                float(g_Settings()->Get("settings.app.pnghold", 10)),
-                float(g_Settings()->Get("settings.app.pngfadeout", 10)));
-    }
-    
     void AddProgressHud()
     {
         m_HudManager->Add("progress", std::make_shared<Hud::CStatsConsole>(
@@ -984,7 +899,6 @@ class CElectricSheep
         AddHelpHud();
         AddDreamStatsHud();
         AddProgressHud();
-        AddSplashHud();
         AddOSDHud();
 
         {
@@ -1076,7 +990,6 @@ class CElectricSheep
             });
 
         //	And we're off.
-        m_SplashPNGDelayTimer.Reset();
         m_Timer.Reset();
         // For the first few seconds while the initial auth refresh is in flight,
         // suppress the Remote indicator so brief startup delays don't flash errors.
@@ -1143,9 +1056,6 @@ class CElectricSheep
         DestroyUpdateThreads();
 #endif
 
-        m_spSplashPNG = nullptr;
-        m_nSplashes = 0;
-        m_SplashFilename = std::string();
         m_spCrossFade = nullptr;
         m_StartupScreen = nullptr;
         m_spOSD = nullptr;
@@ -1618,47 +1528,6 @@ class CElectricSheep
                         pTmp->Visible(false);
                 }
                 //	Process any server messages.
-/*
-                // TODO : Is that some old splash screen mechanism ?
-                if (m_spSplashPNG)
-                {
-                    if (m_SplashPNGDelayTimer.Time() > m_PNGDelayTimer)
-                    {
-                        // update m_spSplashPNG here, so every time it is shown,
-                        // it is randomized among our shuffle group.
-
-                        if (m_nSplashes > 0)
-                        {
-                            char fNameFormatted[FILENAME_MAX];
-                            snprintf(fNameFormatted, FILENAME_MAX,
-                                     m_SplashFilename.c_str(),
-                                     rand() % m_nSplashes);
-                            if (m_SplashFilename.empty() == false &&
-                                g_Settings()->Get("settings.app.attributionpng",
-                                                  false) == true)
-                                m_spSplashPNG =
-                                    std::make_shared<Hud::CSplashImage>(
-                                        0.2f, fNameFormatted,
-                                        float(g_Settings()->Get(
-                                            "settings.app.pngfadein", 10)),
-                                        float(g_Settings()->Get(
-                                            "settings.app.pnghold", 10)),
-                                        float(g_Settings()->Get(
-                                            "settings.app.pngfadeout", 10)));
-                        }
-
-                        m_HudManager->Add(
-                            "splash_png", m_spSplashPNG,
-                            float(
-                                g_Settings()->Get("settings.app.pngfadein",
-                                                  10) +
-                                g_Settings()->Get("settings.app.pnghold", 10) +
-                                g_Settings()->Get("settings.app.pngfadeout",
-                                                  10)));
-                        m_SplashPNGDelayTimer.Reset();
-                    }
-                }
-*/
                 if (m_F1F4Timer.Time() > 20 * 60)
                 {
                     m_F1F4Timer.Reset();

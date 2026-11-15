@@ -21,7 +21,6 @@ static void LoadSettingsForShow()
     g_rotatePortrait = g_Settings()->Get("settings.player.rotate_portrait", false);
     g_spoutOutput = g_Settings()->Get("settings.player.spout_output", false);
     g_blackoutMonitors = g_Settings()->Get("settings.player.blackout_monitors", true);
-    g_showAttribution = g_Settings()->Get("settings.app.attributionpng", false);
 
     CopySettingToBuf("settings.content.sheepdir", std::string(), g_contentDirBuf, sizeof g_contentDirBuf);
     g_unlimitedCache = g_Settings()->Get("settings.content.unlimited_cache", false);
@@ -57,7 +56,6 @@ static void SaveSettings()
     g_Settings()->Set("settings.player.rotate_portrait", g_rotatePortrait);
     g_Settings()->Set("settings.player.spout_output", g_spoutOutput);
     g_Settings()->Set("settings.player.blackout_monitors", g_blackoutMonitors);
-    g_Settings()->Set("settings.app.attributionpng", g_showAttribution);
 
     g_Settings()->Set("settings.content.sheepdir", std::string(g_contentDirBuf));
     g_Settings()->Set("settings.content.unlimited_cache", g_unlimitedCache);

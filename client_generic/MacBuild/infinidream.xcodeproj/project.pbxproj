@@ -56,8 +56,6 @@
 		1270D0F02B28975500E1DCE3 /* PlatformUtils_Mac.mm in Sources */ = {isa = PBXBuildFile; fileRef = 1270D0EE2B28975400E1DCE3 /* PlatformUtils_Mac.mm */; };
 		12A00CD92B0FCA39001C0792 /* infinidream.icns in Resources */ = {isa = PBXBuildFile; fileRef = 12A00CD82B0FCA39001C0792 /* infinidream.icns */; };
 		12A00CDA2B0FCA39001C0792 /* infinidream.icns in Resources */ = {isa = PBXBuildFile; fileRef = 12A00CD82B0FCA39001C0792 /* infinidream.icns */; };
-		12A00CDC2B0FCA6C001C0792 /* e-dream-attr.png in Resources */ = {isa = PBXBuildFile; fileRef = 12A00CDB2B0FCA6C001C0792 /* e-dream-attr.png */; };
-		12A00CDD2B0FCA6C001C0792 /* e-dream-attr.png in Resources */ = {isa = PBXBuildFile; fileRef = 12A00CDB2B0FCA6C001C0792 /* e-dream-attr.png */; };
 		1BEBFE3E2ECB6B2B00F39019 /* osd-next.png in Resources */ = {isa = PBXBuildFile; fileRef = 1BEBFE3D2ECB6B2B00F39019 /* osd-next.png */; };
 		1BEBFE3F2ECB6B2B00F39019 /* osd-next.png in Resources */ = {isa = PBXBuildFile; fileRef = 1BEBFE3D2ECB6B2B00F39019 /* osd-next.png */; };
 		1BEBFE402ECB6B2B00F39019 /* osd-next.png in Resources */ = {isa = PBXBuildFile; fileRef = 1BEBFE3D2ECB6B2B00F39019 /* osd-next.png */; };
@@ -370,7 +368,6 @@
 		F0C100192C1372EF007FA505 /* thumbnail.tif in Resources */ = {isa = PBXBuildFile; fileRef = 21934CB819F3C2430096E7D7 /* thumbnail.tif */; };
 		F0C1001A2C1372EF007FA505 /* green.tif in Resources */ = {isa = PBXBuildFile; fileRef = 21ADBB211305D380000A9F20 /* green.tif */; };
 		F0C1001B2C1372EF007FA505 /* red.tif in Resources */ = {isa = PBXBuildFile; fileRef = 21ADBB221305D380000A9F20 /* red.tif */; };
-		F0C1001C2C1372EF007FA505 /* e-dream-attr.png in Resources */ = {isa = PBXBuildFile; fileRef = 12A00CDB2B0FCA6C001C0792 /* e-dream-attr.png */; };
 		F0C1001D2C1372EF007FA505 /* yellow.tif in Resources */ = {isa = PBXBuildFile; fileRef = 21ADBB231305D380000A9F20 /* yellow.tif */; };
 		F0C1001F2C1372EF007FA505 /* osd-bg-sq.png in Resources */ = {isa = PBXBuildFile; fileRef = F059946A2BA0A07300B018C7 /* osd-bg-sq.png */; };
 		F0C100212C1372EF007FA505 /* proximus.c in Sources */ = {isa = PBXBuildFile; fileRef = 21CE8B8E0F6ECFFC00DDF96A /* proximus.c */; };
@@ -464,7 +461,6 @@
 		F0E9CE3B2C136B0500C4D694 /* osd-back10.png in Resources */ = {isa = PBXBuildFile; fileRef = F05994622BA0A07100B018C7 /* osd-back10.png */; };
 		F0E9CE3C2C136B0500C4D694 /* osd-forward10.png in Resources */ = {isa = PBXBuildFile; fileRef = F05994662BA0A07200B018C7 /* osd-forward10.png */; };
 		F0E9CE3D2C136B0500C4D694 /* osd-bg-sq.png in Resources */ = {isa = PBXBuildFile; fileRef = F059946A2BA0A07300B018C7 /* osd-bg-sq.png */; };
-		F0E9CE3E2C136B0500C4D694 /* e-dream-attr.png in Resources */ = {isa = PBXBuildFile; fileRef = 12A00CDB2B0FCA6C001C0792 /* e-dream-attr.png */; };
 		F0E9CE3F2C136B0500C4D694 /* osd-pill.png in Resources */ = {isa = PBXBuildFile; fileRef = F05994552BA0912200B018C7 /* osd-pill.png */; };
 		F0E9CE402C136B0500C4D694 /* osd-pill-u.png in Resources */ = {isa = PBXBuildFile; fileRef = F05994542BA0912200B018C7 /* osd-pill-u.png */; };
 		F0E9CE412C136B0500C4D694 /* green.tif in Resources */ = {isa = PBXBuildFile; fileRef = 21ADBB211305D380000A9F20 /* green.tif */; };
@@ -775,7 +771,6 @@
 		1270D0EE2B28975400E1DCE3 /* PlatformUtils_Mac.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = PlatformUtils_Mac.mm; sourceTree = "<group>"; };
 		12726C132B694F36003C0FF6 /* infinidream App.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = "infinidream App.entitlements"; sourceTree = "<group>"; };
 		12A00CD82B0FCA39001C0792 /* infinidream.icns */ = {isa = PBXFileReference; lastKnownFileType = image.icns; path = infinidream.icns; sourceTree = SOURCE_ROOT; };
-		12A00CDB2B0FCA6C001C0792 /* e-dream-attr.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "e-dream-attr.png"; sourceTree = "<group>"; };
 		12D020022B83C86C0036357D /* libssl.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libssl.a; path = "../../cache/univ-osx/lib/libssl.a"; sourceTree = "<group>"; };
 		1BEBFE3D2ECB6B2B00F39019 /* osd-next.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "osd-next.png"; sourceTree = "<group>"; };
 		21006FBD1017BC2C004A6511 /* Credits.html */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.html; path = Credits.html; sourceTree = SOURCE_ROOT; };
@@ -839,7 +834,6 @@
 		21CE8E3B0F6EE12B00DDF96A /* SystemConfiguration.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = SystemConfiguration.framework; path = System/Library/Frameworks/SystemConfiguration.framework; sourceTree = SDKROOT; };
 		21D90D010EA1D52000F8E5D5 /* Hud.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = Hud.cpp; path = ../Client/Hud.cpp; sourceTree = SOURCE_ROOT; };
 		21D944A90E8F6245001C141E /* client_mac.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = client_mac.h; path = ../Client/client_mac.h; sourceTree = SOURCE_ROOT; };
-		21DD8C6F0EA9BA5F00BB9EC7 /* Splash.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = Splash.h; path = ../Client/Splash.h; sourceTree = SOURCE_ROOT; };
 		21EE633410139BCC000CE53E /* main.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = main.m; sourceTree = "<group>"; };
 		21EE634E10139BEF000CE53E /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.xib; name = Base; path = Base.lproj/MainMenu.xib; sourceTree = "<group>"; };
 		21EE63941013A674000CE53E /* ESWindow.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = ESWindow.h; sourceTree = "<group>"; };
@@ -1322,7 +1316,6 @@
 				A1BEE5700000000000000001 /* sio_beast.cpp */,
 				467B6FC82AE6D031001C80CB /* EDreamClient.cpp */,
 				12478A772B03B2D0006A8669 /* client.h */,
-				21DD8C6F0EA9BA5F00BB9EC7 /* Splash.h */,
 				F0CCD23D2B98CF530070314F /* OSD.hpp */,
 				461614182AEBEA57008AC64A /* DreamPlaylist.h */,
 				12478A822B03B57E006A8669 /* PlayCounter.h */,
@@ -1416,7 +1409,6 @@
 				343948662F4F00010000000E /* osd-bird.png */,
 				1BEBFE3D2ECB6B2B00F39019 /* osd-next.png */,
 				21934CB819F3C2430096E7D7 /* thumbnail.tif */,
-				12A00CDB2B0FCA6C001C0792 /* e-dream-attr.png */,
 				21006FBD1017BC2C004A6511 /* Credits.html */,
 				12A00CD82B0FCA39001C0792 /* infinidream.icns */,
 				4628A55D2B0F84EF001C3078 /* Lato-Regular.ttf */,
@@ -1756,7 +1748,6 @@
 				F02C150A2E0194A000BFFFF4 /* CodeStepViewController.xib in Resources */,
 				21ADBB281305D380000A9F20 /* red.tif in Resources */,
 				F02C14F42E01904600BFFFF4 /* StartupWindowController.xib in Resources */,
-				12A00CDC2B0FCA6C001C0792 /* e-dream-attr.png in Resources */,
 				21ADBB291305D380000A9F20 /* yellow.tif in Resources */,
 				F059947B2BA0A07300B018C7 /* osd-bg-sq.png in Resources */,
 			);
@@ -1791,7 +1782,6 @@
 				F06C22AD2DA6CAE500D54DB2 /* osd-report.png in Resources */,
 				53587D780C7D95F88641BBF9 /* osd-playlist.png in Resources */,
 				F059947C2BA0A07300B018C7 /* osd-bg-sq.png in Resources */,
-				12A00CDD2B0FCA6C001C0792 /* e-dream-attr.png in Resources */,
 				F059945D2BA0912300B018C7 /* osd-pill.png in Resources */,
 				F059945B2BA0912300B018C7 /* osd-pill-u.png in Resources */,
 				21ADBB241305D380000A9F20 /* green.tif in Resources */,
@@ -1844,7 +1834,6 @@
 				F02C15062E0194A000BFFFF4 /* CodeStepViewController.xib in Resources */,
 				F0C1001B2C1372EF007FA505 /* red.tif in Resources */,
 				F02C14F62E01904600BFFFF4 /* StartupWindowController.xib in Resources */,
-				F0C1001C2C1372EF007FA505 /* e-dream-attr.png in Resources */,
 				F0C1001D2C1372EF007FA505 /* yellow.tif in Resources */,
 				F0C1001F2C1372EF007FA505 /* osd-bg-sq.png in Resources */,
 			);
@@ -1879,7 +1868,6 @@
 				F06C22AB2DA6CAE500D54DB2 /* osd-report.png in Resources */,
 				406070EDF18C301564992DA3 /* osd-playlist.png in Resources */,
 				F0E9CE3D2C136B0500C4D694 /* osd-bg-sq.png in Resources */,
-				F0E9CE3E2C136B0500C4D694 /* e-dream-attr.png in Resources */,
 				F0E9CE3F2C136B0500C4D694 /* osd-pill.png in Resources */,
 				F0E9CE402C136B0500C4D694 /* osd-pill-u.png in Resources */,
 				F0E9CE412C136B0500C4D694 /* green.tif in Resources */,

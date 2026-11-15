@@ -310,9 +310,6 @@
     [blackoutMonitors setHidden:true];
 #endif
 
-    showAttribution.state =
-        ESScreensaver_GetBoolSetting("settings.app.attributionpng", false);
-
     useProxy.state =
         ESScreensaver_GetBoolSetting("settings.content.use_proxy", false);
 
@@ -408,9 +405,6 @@
 
     ESScreensaver_SetBoolSetting("settings.player.blackout_monitors",
                                  blackoutMonitors.state);
-
-    ESScreensaver_SetBoolSetting("settings.app.attributionpng",
-                                 showAttribution.state);
 
     ESScreensaver_SetBoolSetting("settings.content.use_proxy", useProxy.state);
 
