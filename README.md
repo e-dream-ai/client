@@ -351,7 +351,7 @@ winget install --id GitHub.cli -e
 
 `vcpkg` is **not** a separate install — it's a git submodule at [`vcpkg/`](vcpkg/) that is bootstrapped with `vcpkg\bootstrap-vcpkg.bat` (see [dev docs](#dev-docs) at the top of this file).
 
-`signtool.exe` for Authenticode signing (`release.py --sign`) ships with the Windows SDK that the VS workload above installs — no separate package needed.
+`signtool.exe` for Authenticode signing (`release.py --sign`) ships with the Windows SDK that the VS workload above installs. Signing also needs `Microsoft.AzureCLI` and `Microsoft.Azure.ArtifactSigningClientTools` from winget; see [Signing](#signing).
 
 ### Quick build in Visual Studio
 
@@ -426,8 +426,22 @@ Options:
 | `-v`, `--version` | Version for the installer and file name. Defaults to the version `build.py` compiled in; a different value is an error. |
 | `--configuration` | MSVC folder to package (default **Release**). |
 | `--output-dir DIR` | Where to write artifacts. |
-| `--sign` | Authenticode-sign the setup exe via `SIGN_THUMBPRINT` or `SIGN_PFX`. |
+| `--sign` | Authenticode-sign the exe, scr, uninstaller and setup exe (see [Signing](#signing)). |
 | `-g`, `--github-release` | Upload the setup exe with `gh` to the release whose tag is the version (e.g. `0.16.2`). |
+
+#### Signing
+
+`--sign` signs with **Azure Artifact Signing** (formerly Trusted Signing): account `infinidream-signing`, certificate profile `infinidream-public`, configured in [`artifact-signing.json`](client_generic/WinBuild/artifact-signing.json). It signs `infinidream.exe` and `infinidream.scr` in the output folder before packaging, the uninstaller while `makensis` builds it (`!uninstfinalize`), then the setup exe, and checks each signature with `signtool verify /pa`. One-time setup on the release machine:
+
+```bat
+winget install -e --id Microsoft.AzureCLI
+winget install -e --id Microsoft.Azure.ArtifactSigningClientTools
+az login
+```
+
+Your Azure account needs the **Artifact Signing Certificate Profile Signer** role on the profile. The certificates are short-lived (a few days) and every signature is timestamped, so signed releases stay valid. Re-run `az login` when the CLI's login expires.
+
+Overrides: `SIGNTOOL` (x64 `signtool.exe`), `SIGN_DLIB` (`Azure.CodeSigning.Dlib.dll`), `SIGN_METADATA` (another metadata file), `SIGN_TIMESTAMP_URL`. Setting `SIGN_THUMBPRINT` (a certificate in the Windows store) or `SIGN_PFX` / `SIGN_PFX_PASSWORD` signs with that certificate instead.
 
 #### Installer behavior
 
