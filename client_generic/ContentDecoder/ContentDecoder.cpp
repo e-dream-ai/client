@@ -1461,10 +1461,7 @@ void CContentDecoder::ReadFramesThread()
             // (3D engine pegged at 100%) and reduces TDR probability over long runs.
             if (m_CurrentVideoInfo->m_SeekTargetFrame == -1)
             {
-                const size_t queueSize = m_FrameQueue.size();
-                const size_t queueMax = m_FrameQueue.getMaxQueueElements();
-                const size_t highWater = (queueMax > 4) ? (queueMax - 4) : queueMax;
-                if (queueSize >= highWater)
+                if (m_FrameQueue.size() >= QueueHighWater())
                 {
                     PROFILER_END("Main Video Decoder Frame");
                     std::this_thread::sleep_for(std::chrono::milliseconds(2));

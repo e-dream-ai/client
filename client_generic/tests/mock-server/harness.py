@@ -166,9 +166,11 @@ class Watchdog(threading.Thread):
 
 class Run:
     def __init__(self, work, app, media_dir, server_args=(), screenshots=True,
-                 max_gap=MAX_HEARTBEAT_GAP, max_stuck=MAX_STUCK_SECONDS, content_settings=None):
+                 max_gap=MAX_HEARTBEAT_GAP, max_stuck=MAX_STUCK_SECONDS, content_settings=None,
+                 player_settings=None):
         self.work = Path(work)
         self.content_settings = content_settings or {}  # Extra settings.content values.
+        self.player_settings = player_settings or {}  # settings.player values, e.g. perceptual_fps.
         self.data = self.work / "data"
         self.event_path = self.work / "events.jsonl"
         self.client_output = self.work / "client-output.log"
@@ -248,6 +250,7 @@ class Run:
         # Without firsttimesetup, the Mac client hides the player view and playback never starts.
         (self.data / "settings.json").write_text(json.dumps({"settings": {
             "app": {"firsttimesetup": True},
+            "player": self.player_settings,
             "content": {"server": BASE, "sealed_session": STORED_SESSION, "api_key": STORED_KEY,
                         **self.content_settings}}}))
         self.server = subprocess.Popen([

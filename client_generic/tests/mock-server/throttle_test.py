@@ -5,6 +5,11 @@ Serves the largest videos over a rate-limited link and changes the rate during t
 enough for the first dream, then well below it, then enough again. Checks that the client
 plays smoothly, rebuffers when starved, recovers, and keeps its render loop running
 throughout. Takes about 45 seconds. Runs on Mac and Windows.
+
+Plays at 30 fps by default (--fps), not the client's default 20. A rebuffer ends once about a
+second of frames is queued, and above 21 fps that is more than the decoder will queue before
+it pauses (capacity - 4), so before the fix the client stayed rebuffering forever with 21
+frames queued and a black screen. At 20 fps a second of frames fits, and the bug didn't show.
 """
 import argparse
 import json
@@ -18,8 +23,8 @@ from datetime import datetime
 import harness as e
 import server
 
-# The client plays dreams at 20 fps by default, whatever the file's own rate.
-PLAYBACK_FPS = 20
+# The client plays dreams at 20 fps by default, whatever the file's own rate; see --fps.
+DEFAULT_FPS = 30
 MIN_DREAM_SECONDS = 30  # shorter first dreams can't be made to rebuffer (see main)
 GOOD_RATE = 2.5   # times the first dream's playback rate: room for prefetching beside it
 # Times the first dream's playback rate. Below the client's 10% adaptive-speed floor
@@ -106,7 +111,14 @@ def scenario(run, need, download_seconds):
             b["state"] == "playing" and b["paused"] == "0" for b in recent) and \
             len({b["frame"] for b in recent}) == 5
 
-    e.wait_for("playback to recover", recovered, 90)
+    try:
+        e.wait_for("playback to recover", recovered, 90)
+    except e.Failed:
+        last = beats(run)[-1]
+        e.check("Playback recovered after the rate went back up", False,
+                f"after 90 s still {last['state']} at frame {last['frame']} with "
+                f"{last['queue']} frames queued")
+        return
     e.check("Playback recovered after the rate went back up", True,
             f"{time.time() - restored_at:.0f} s after the change")
 
@@ -132,6 +144,8 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--app", required=True, help="client binary inside the .app")
     e.add_media_args(parser)
+    parser.add_argument("--fps", type=float, default=DEFAULT_FPS,
+                        help=f"the client's perceptual fps (default {DEFAULT_FPS}; the client's own is 20)")
     parser.add_argument("--keep", action="store_true", help="keep the run folder even if it passes")
     args = parser.parse_args()
     e.resolve_media(args)
@@ -145,7 +159,7 @@ def main():
     first = e.first_dream(args.media_dir, dreams)
     # The client plays a dream at its perceptual rate divided by the dream's activity level
     # (CPlayer::SetPerceptualFPS); made-up records have activity 1, real ones vary.
-    playback_fps = PLAYBACK_FPS / float(first.get("activityLevel") or 1)
+    playback_fps = args.fps / float(first.get("activityLevel") or 1)
     need = int(first["size"]) / (first["frames"] / playback_fps)
     if first["frames"] / playback_fps < MIN_DREAM_SECONDS:
         # It downloads before the drop can bite, and the next dream comes by a natural
@@ -164,7 +178,7 @@ def main():
     # starved, frames move in short bursts, so allow a longer stretch without one.
     run = e.Run(work, args.app, args.media_dir, server_args=(
         "--pick", "largest", "--media-rate", str(int(need * GOOD_RATE))),
-        screenshots=False, max_stuck=15)
+        screenshots=False, max_stuck=15, player_settings={"perceptual_fps": args.fps})
     try:
         run.start()
         scenario(run, need, download_seconds)

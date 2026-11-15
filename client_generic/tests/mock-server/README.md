@@ -40,7 +40,9 @@ malformed ones, but no other faults or chaos yet. Written for the Mac; `slow_lin
 - `throttle_test.py` serves the largest videos over a limited link, drops the rate below
   the client's 10% adaptive-speed floor and raises it again, and checks that the client rebuffers and
   recovers while its render loop keeps going. It takes about 45 seconds, and runs
-  without screenshots, because taking them stalls the render loop.
+  without screenshots, because taking them stalls the render loop. It plays at 30 fps
+  (`--fps`), above the client's default 20, because a rebuffer used to wait for a second of
+  frames, more than the decoder queues above 21 fps, and never end.
 - `slow_link_test.py` checks adaptive playback speed (#770) over a limited link, on the
   `alpha-v1` set's two long Pink Floyd dreams by default: at 0.6x the first dream's rate it
   slows below 100% and keeps moving with at most 2 rebuffers; at 0.15x it goes below the old
