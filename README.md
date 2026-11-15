@@ -228,11 +228,12 @@ heartbeat a hang.
 ```bash
 cd client_generic/LinuxBuild/build
 ./infinidream
+./infinidream --fullscreen   # start fullscreen (default is windowed)
 ```
 
 Arrow keys navigate between dreams. `F1`–`F4` toggle HUD overlays (help,
-server stats, render stats, display stats). Close the window or press `Esc`
-to quit.
+server stats, render stats, display stats). `F` toggles fullscreen and `Esc`
+leaves it (`Esc` never quits). Close the window or press `Ctrl-Q` to quit.
 
 ### Hardware video decoding
 
@@ -358,6 +359,8 @@ winget install --id GitHub.cli -e
 Open `client_generic/MSVC/e-dream.sln`, choose **Release** and **x64**, build. Typical output directory:
 
 `client_generic/MSVC/Release/` → **`infinidream.exe`**, **`infinidream.scr`**
+
+`infinidream.exe` opens windowed; `infinidream.exe --fullscreen` starts fullscreen (`Esc` or `F11` returns to a window).
 
 **Version:** before compiling, every build runs [`WinBuild/generate_build_version.py`](client_generic/WinBuild/generate_build_version.py), which writes `MSVC/edream_build_version_generated.h` (gitignored). A Visual Studio build is a dev build: its version is the latest git tag and its revision is `git describe --tags --always --dirty` (e.g. `0.16.1-12-g4aeae8cf-dirty`), which Settings shows. Release builds come from `build.py -v`.
 
