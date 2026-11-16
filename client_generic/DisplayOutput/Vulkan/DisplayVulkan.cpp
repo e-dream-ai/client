@@ -10,6 +10,7 @@
 #include <X11/extensions/randr.h>
 #include <algorithm>
 #include <chrono>
+#include <cmath>
 #include <dlfcn.h>
 #include <type_traits>
 #include <cstdio>
@@ -77,15 +78,14 @@ void CDisplayVulkan::onLibdecorConfigure(struct libdecor_frame* frame,
                                          void* data)
 {
     auto* self = static_cast<CDisplayVulkan*>(data);
-    int width = static_cast<int>(self->m_Width);
-    int height = static_cast<int>(self->m_Height);
+    int width = static_cast<int>(self->m_logicalWidth);
+    int height = static_cast<int>(self->m_logicalHeight);
 
     libdecor_configuration_get_content_size(configuration, frame, &width, &height);
-    if (width <= 0) width = static_cast<int>(self->m_Width);
-    if (height <= 0) height = static_cast<int>(self->m_Height);
+    if (width <= 0) width = static_cast<int>(self->m_logicalWidth);
+    if (height <= 0) height = static_cast<int>(self->m_logicalHeight);
 
-    self->m_Width = static_cast<uint32_t>(width);
-    self->m_Height = static_cast<uint32_t>(height);
+    self->setWaylandLogicalSize(static_cast<uint32_t>(width), static_cast<uint32_t>(height));
 
     enum libdecor_window_state windowState = LIBDECOR_WINDOW_STATE_NONE;
     if (libdecor_configuration_get_window_state(configuration, &windowState))
@@ -112,10 +112,12 @@ void CDisplayVulkan::onLibdecorCommit(struct libdecor_frame*, void* data)
 #endif
 
 // wl_output listener. Each output records its current mode's refresh rate for
-// RefreshRateHz (issue #749), and logs its DPI for diagnostics only. The surface
-// is committed at buffer scale 1, so the compositor already enlarges it by the
-// desktop scale factor (as for GTK/Qt apps). Deriving uiScale from DPI or from
-// wl_output.scale as well double-scaled the UI, e.g. 1.67 x 1.25 on a 27" 4K
+// RefreshRateHz (issue #749), and logs its DPI for diagnostics only. uiScale
+// comes only from the fractional-scale-v1 preferred scale (onPreferredScale),
+// which also sizes the buffer, so the compositor no longer enlarges the window.
+// Without that protocol the compositor does enlarge it, as for GTK/Qt apps, and
+// uiScale stays put. Deriving uiScale from DPI or wl_output.scale on top of the
+// compositor's enlargement double-scaled the UI, e.g. 1.67 x 1.25 on a 27" 4K
 // display at 125%, which made the sign-in wizard overflow its window.
 void CDisplayVulkan::onWlOutputGeometry(void* data, wl_output*, int32_t, int32_t,
                                         int32_t physical_width_mm, int32_t,
@@ -146,8 +148,8 @@ void CDisplayVulkan::onWlOutputDone(void* data, wl_output*)
     {
         float dpi = static_cast<float>(out->pixelWidth) * 25.4f
                     / static_cast<float>(out->physWidthMm);
-        g_Log->Info("CDisplayVulkan: wl_output DPI=%.1f (uiScale stays %.3f; compositor applies desktop scale)",
-                    dpi, PlatformUtils_GetUIScale());
+        g_Log->Info("CDisplayVulkan: wl_output DPI=%.1f (uiScale %.3f, Wayland scale %.3f)",
+                    dpi, PlatformUtils_GetUIScale(), out->self->m_wlScale);
     }
     out->refreshMhz = out->pendingRefreshMhz;
     out->self->updateWaylandRefreshRate();
@@ -355,6 +357,18 @@ void CDisplayVulkan::onRegistryGlobal(void* data, wl_registry* registry,
         self->m_pDecorationManager = static_cast<zxdg_decoration_manager_v1*>(
             wl_registry_bind(registry, name, &zxdg_decoration_manager_v1_interface, 1));
     }
+#ifdef HAVE_WP_FRACTIONAL_SCALE
+    else if (strcmp(interface, wp_fractional_scale_manager_v1_interface.name) == 0)
+    {
+        self->m_pFractionalScaleManager = static_cast<wp_fractional_scale_manager_v1*>(
+            wl_registry_bind(registry, name, &wp_fractional_scale_manager_v1_interface, 1));
+    }
+    else if (strcmp(interface, wp_viewporter_interface.name) == 0)
+    {
+        self->m_pViewporter = static_cast<wp_viewporter*>(
+            wl_registry_bind(registry, name, &wp_viewporter_interface, 1));
+    }
+#endif
     else if (strcmp(interface, "wl_output") == 0 && version >= 2)
     {
         // Every output: its current mode gives the refresh rate, and the
@@ -435,11 +449,54 @@ void CDisplayVulkan::onXdgToplevelConfigure(void* data, xdg_toplevel*,
 
     // width/height == 0 means "compositor defers to us — keep requested size"
     if (width > 0 && height > 0)
-    {
-        self->m_Width  = static_cast<uint32_t>(width);
-        self->m_Height = static_cast<uint32_t>(height);
-    }
+        self->setWaylandLogicalSize(static_cast<uint32_t>(width), static_cast<uint32_t>(height));
 }
+
+// Records the logical (unscaled) window size and sets the buffer size, in
+// m_Width/m_Height, to it times the Wayland scale. The renderer recreates the
+// swapchain when m_Width/m_Height change. The viewport shows the buffer at the
+// logical size; its destination takes effect at the next commit, before or with
+// the first buffer of the new size, so the window doesn't jump in size.
+void CDisplayVulkan::setWaylandLogicalSize(uint32_t w, uint32_t h)
+{
+    if (w == 0 || h == 0)
+        return;
+    m_logicalWidth  = w;
+    m_logicalHeight = h;
+    // Rounded half away from zero, as fractional-scale-v1 specifies.
+    m_Width  = static_cast<uint32_t>(std::lround(w * m_wlScale));
+    m_Height = static_cast<uint32_t>(std::lround(h * m_wlScale));
+#ifdef HAVE_WP_FRACTIONAL_SCALE
+    if (m_pViewport)
+        wp_viewport_set_destination(m_pViewport, static_cast<int32_t>(w), static_cast<int32_t>(h));
+#endif
+}
+
+// A pointer coordinate (logical, surface-local) in buffer pixels, the space the
+// renderer, ImGui and the HUD work in.
+int32_t CDisplayVulkan::toBufferPx(wl_fixed_t logical) const
+{
+    return static_cast<int32_t>(std::floor(wl_fixed_to_double(logical) * m_wlScale));
+}
+
+#ifdef HAVE_WP_FRACTIONAL_SCALE
+// The compositor's preferred scale for our surface, in 120ths (160 = 133%). Sent
+// when the surface is created or moves to an output with a different scale.
+void CDisplayVulkan::onPreferredScale(void* data, wp_fractional_scale_v1*, uint32_t scale120)
+{
+    auto* self = static_cast<CDisplayVulkan*>(data);
+    const double scale = scale120 / 120.0;
+    if (scale <= 0.0 || scale == self->m_wlScale)
+        return;
+    self->m_wlScale = scale;
+    // The UI is drawn this much larger into a buffer this much larger, which the
+    // compositor shows without enlarging, so it looks the same size, but sharp.
+    PlatformUtils_SetUIScale(static_cast<float>(scale));
+    self->setWaylandLogicalSize(self->m_logicalWidth, self->m_logicalHeight);
+    g_Log->Info("CDisplayVulkan: Wayland preferred scale %.3f: logical %ux%u, buffer %ux%u",
+                scale, self->m_logicalWidth, self->m_logicalHeight, self->m_Width, self->m_Height);
+}
+#endif
 
 void CDisplayVulkan::onXdgToplevelClose(void* data, xdg_toplevel*)
 {
@@ -448,6 +505,8 @@ void CDisplayVulkan::onXdgToplevelClose(void* data, xdg_toplevel*)
 
 bool CDisplayVulkan::initWayland(uint32_t w, uint32_t h, bool bFullscreen)
 {
+    m_logicalWidth  = w;
+    m_logicalHeight = h;
     m_pWlDisplay = wl_display_connect(nullptr);
     if (!m_pWlDisplay)
     {
@@ -477,6 +536,26 @@ bool CDisplayVulkan::initWayland(uint32_t w, uint32_t h, bool bFullscreen)
         onSurfaceEnter, onSurfaceLeave,
     };
     wl_surface_add_listener(m_pWlSurface, &s_surfaceListener, this);
+#ifdef HAVE_WP_FRACTIONAL_SCALE
+    // Fractional scaling needs both: the preferred scale, and a viewport to show
+    // the larger buffer at the logical size (buffer_scale only takes integers).
+    if (m_pFractionalScaleManager && m_pViewporter)
+    {
+        m_pViewport = wp_viewporter_get_viewport(m_pViewporter, m_pWlSurface);
+        m_pFractionalScale = wp_fractional_scale_manager_v1_get_fractional_scale(
+            m_pFractionalScaleManager, m_pWlSurface);
+        static const wp_fractional_scale_v1_listener s_fractionalScaleListener = {
+            onPreferredScale,
+        };
+        wp_fractional_scale_v1_add_listener(m_pFractionalScale, &s_fractionalScaleListener, this);
+        setWaylandLogicalSize(w, h);
+        g_Log->Info("CDisplayVulkan: fractional scaling enabled (fractional-scale-v1 + viewporter)");
+    }
+    else
+    {
+        g_Log->Info("CDisplayVulkan: no fractional-scale-v1/viewporter; the compositor scales the window");
+    }
+#endif
     m_pCursorSurface = wl_compositor_create_surface(m_pWlCompositor);
 
     const char* cursorTheme = getenv("XCURSOR_THEME");
@@ -553,12 +632,10 @@ bool CDisplayVulkan::initWayland(uint32_t w, uint32_t h, bool bFullscreen)
                 libdecor_frame_map(m_pLibdecorFrame);
                 wl_display_roundtrip(m_pWlDisplay);
 
-                if (m_Width == 0)  m_Width = w;
-                if (m_Height == 0) m_Height = h;
-
                 g_Log->Info(
-                    "CDisplayVulkan: Wayland initialized via libdecor %ux%u (fullscreen=%d)",
-                    m_Width, m_Height, static_cast<int>(bFullscreen));
+                    "CDisplayVulkan: Wayland initialized via libdecor %ux%u, buffer %ux%u (fullscreen=%d)",
+                    m_logicalWidth, m_logicalHeight, m_Width, m_Height,
+                    static_cast<int>(bFullscreen));
                 return true;
             }
 
@@ -616,12 +693,9 @@ bool CDisplayVulkan::initWayland(uint32_t w, uint32_t h, bool bFullscreen)
     wl_surface_commit(m_pWlSurface);
     wl_display_roundtrip(m_pWlDisplay);  // receive initial xdg_surface::configure
 
-    // If compositor sent 0,0 it wants us to choose — keep requested dimensions
-    if (m_Width == 0)  m_Width  = w;
-    if (m_Height == 0) m_Height = h;
-
-    g_Log->Info("CDisplayVulkan: Wayland initialized %ux%u (fullscreen=%d)",
-                m_Width, m_Height, (int)bFullscreen);
+    // If the compositor sent 0,0 it wants us to choose: the requested size stays.
+    g_Log->Info("CDisplayVulkan: Wayland initialized %ux%u, buffer %ux%u (fullscreen=%d)",
+                m_logicalWidth, m_logicalHeight, m_Width, m_Height, (int)bFullscreen);
     return true;
 }
 
@@ -804,12 +878,15 @@ void CDisplayVulkan::onPointerEnter(void* data, wl_pointer*, uint32_t serial,
 #endif
     self->updateWaylandCursor();
 
-    FirstTimeSetupVulkan_FeedMousePos(wl_fixed_to_int(surface_x), wl_fixed_to_int(surface_y));
-    SettingsDialogVulkan_FeedMousePos(wl_fixed_to_int(surface_x), wl_fixed_to_int(surface_y));
+    // m_lastPointerX/Y stay logical, for the resize edges; the rest work in buffer pixels.
+    const int32_t px = self->toBufferPx(surface_x);
+    const int32_t py = self->toBufferPx(surface_y);
+    FirstTimeSetupVulkan_FeedMousePos(px, py);
+    SettingsDialogVulkan_FeedMousePos(px, py);
 
     auto& mouseCallback = PlatformUtils_GetMouseCallback();
     if (mouseCallback)
-        mouseCallback(wl_fixed_to_int(surface_x), wl_fixed_to_int(surface_y));
+        mouseCallback(px, py);
 }
 
 void CDisplayVulkan::onPointerLeave(void* data, wl_pointer*, uint32_t, wl_surface* surface)
@@ -845,12 +922,15 @@ void CDisplayVulkan::onPointerMotion(void* data, wl_pointer*, uint32_t,
 #endif
     self->updateWaylandCursor();
 
-    FirstTimeSetupVulkan_FeedMousePos(wl_fixed_to_int(surface_x), wl_fixed_to_int(surface_y));
-    SettingsDialogVulkan_FeedMousePos(wl_fixed_to_int(surface_x), wl_fixed_to_int(surface_y));
+    // m_lastPointerX/Y stay logical, for the resize edges; the rest work in buffer pixels.
+    const int32_t px = self->toBufferPx(surface_x);
+    const int32_t py = self->toBufferPx(surface_y);
+    FirstTimeSetupVulkan_FeedMousePos(px, py);
+    SettingsDialogVulkan_FeedMousePos(px, py);
 
     auto& mouseCallback = PlatformUtils_GetMouseCallback();
     if (mouseCallback)
-        mouseCallback(wl_fixed_to_int(surface_x), wl_fixed_to_int(surface_y));
+        mouseCallback(px, py);
 }
 
 void CDisplayVulkan::onPointerButton(void* data, wl_pointer*, uint32_t serial,
@@ -887,8 +967,9 @@ libdecor_resize_edge CDisplayVulkan::getWaylandResizeEdge(int32_t x, int32_t y) 
         return LIBDECOR_RESIZE_EDGE_NONE;
 
     constexpr int32_t kResizeMarginPx = 12;
-    const int32_t width = static_cast<int32_t>(m_Width);
-    const int32_t height = static_cast<int32_t>(m_Height);
+    // Logical units, like the pointer coordinates it's given.
+    const int32_t width = static_cast<int32_t>(m_logicalWidth);
+    const int32_t height = static_cast<int32_t>(m_logicalHeight);
 
     if (x < 0 || y < 0 || x >= width || y >= height)
         return LIBDECOR_RESIZE_EDGE_NONE;
@@ -1004,6 +1085,12 @@ void CDisplayVulkan::destroyWayland()
         xdg_surface_destroy(m_pXdgSurface);
     }
     m_pXdgSurface = nullptr;
+#ifdef HAVE_WP_FRACTIONAL_SCALE
+    if (m_pViewport)               { wp_viewport_destroy(m_pViewport);                                     m_pViewport               = nullptr; }
+    if (m_pFractionalScale)        { wp_fractional_scale_v1_destroy(m_pFractionalScale);                   m_pFractionalScale        = nullptr; }
+    if (m_pViewporter)             { wp_viewporter_destroy(m_pViewporter);                                 m_pViewporter             = nullptr; }
+    if (m_pFractionalScaleManager) { wp_fractional_scale_manager_v1_destroy(m_pFractionalScaleManager);    m_pFractionalScaleManager = nullptr; }
+#endif
     if (m_pWlSurface)         { wl_surface_destroy(m_pWlSurface);                          m_pWlSurface         = nullptr; }
     m_wlEnteredOutputs.clear();
     for (auto& out : m_wlOutputs)
@@ -1724,12 +1811,11 @@ void CDisplayVulkan::setFullScreen(bool enabled)
             }
             else
             {
-                m_Width  = 1280;
-                m_Height = 720;
+                setWaylandLogicalSize(1280, 720);
                 libdecor_frame_unset_fullscreen(m_pLibdecorFrame);
                 libdecor_state* state =
-                    libdecor_state_new(static_cast<int>(m_Width),
-                                       static_cast<int>(m_Height));
+                    libdecor_state_new(static_cast<int>(m_logicalWidth),
+                                       static_cast<int>(m_logicalHeight));
                 libdecor_frame_commit(m_pLibdecorFrame, state, nullptr);
                 wl_surface_commit(m_pWlSurface);
                 libdecor_state_free(state);
@@ -1747,8 +1833,7 @@ void CDisplayVulkan::setFullScreen(bool enabled)
         {
             // Switch to a sensible windowed size; the compositor will send 0,0
             // in the configure event (defers to client), so set it here.
-            m_Width  = 1280;
-            m_Height = 720;
+            setWaylandLogicalSize(1280, 720);
             xdg_toplevel_unset_fullscreen(m_pXdgToplevel);
             // Re-assert server-side decorations — some compositors drop them during fullscreen
             if (m_pToplevelDecoration)
