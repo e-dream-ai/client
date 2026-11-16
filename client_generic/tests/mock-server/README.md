@@ -59,6 +59,13 @@ malformed ones, but no other faults or chaos yet. Written for the Mac; `slow_lin
   dream's end-of-dream fade window opens during the switch's 1 s crossfade. It checks that
   happened, and that no crossfade went back (#826): the end-of-dream crossfade used to start
   on top of the switch's and restart it. Needs at least 3 dreams. About a minute and a half.
+- `playlist_interrupt_test.py` serves 4 dreams with a 5 s end-of-dream fade
+  (`--transition-time`), and sends `play_playlist` at 10, 30, 40, 60, 70 and 90% of the way through
+  an end-of-dream crossfade (`--fractions`), while both pipelines are busy. It prints how far
+  each interrupted crossfade had got and whether the outgoing dream ran out before the switch's
+  own fade ended (the client logs `Playlist switch interrupted crossfade ...` and
+  `Crossfade to ... cut short ...`), and checks the client settles on the new playlist. About two
+  minutes.
 - `slow_link_test.py` checks adaptive playback speed (#770) over a limited link, on the
   `alpha-v1` set's two long Pink Floyd dreams by default: at 0.6x the first dream's rate it
   slows below 100% and keeps moving with at most 2 rebuffers; at 0.15x it goes below the old
@@ -84,6 +91,7 @@ venv/bin/python throttle_test.py --app "$APP"
 venv/bin/python moon_test.py --app "$APP"
 venv/bin/python resume_test.py --app "$APP"
 venv/bin/python playlist_fade_test.py --app "$APP"
+venv/bin/python playlist_interrupt_test.py --app "$APP"
 venv/bin/python slow_link_test.py --app "$APP"
 ```
 

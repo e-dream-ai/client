@@ -185,8 +185,10 @@ def ok(data):
 
 
 class MockServer:
-    def __init__(self, media_dir, dreams, event_log, port, media_rate=0, default_playlist=PLAYLIST_UUID):
+    def __init__(self, media_dir, dreams, event_log, port, media_rate=0, default_playlist=PLAYLIST_UUID,
+                 transition_time=2):
         self.media_dir = Path(media_dir)
+        self.transition_time = transition_time  # Every playlist's end-of-dream fade, in seconds.
         self.dreams = dreams
         self.playlists = build_playlists(list(dreams), snapshot_playlists(media_dir, dreams))
         if default_playlist not in self.playlists:
@@ -221,7 +223,7 @@ class MockServer:
             return await self.unhandled(request)
         return ok({"playlist": {"name": self.playlists[uuid][0], "artist": "mock server",
                                 "nsfw": False, "timestamp": TIMESTAMP, "loops": 0,
-                                "transitionTime": 2, "contents": self.contents(uuid)}})
+                                "transitionTime": self.transition_time, "contents": self.contents(uuid)}})
 
     async def default_playlist(self, request):
         return ok({"playlist": self.contents()})
@@ -404,13 +406,15 @@ def main():
                         "and start the client on it")
     parser.add_argument("--default-playlist", default=PLAYLIST_UUID,
                         help="the playlist the client starts on, e.g. a snapshot set's real one")
+    parser.add_argument("--transition-time", type=float, default=2,
+                        help="every playlist's end-of-dream fade, in seconds")
     parser.add_argument("--event-log", default="events.jsonl")
     args = parser.parse_args()
 
     dreams = load_dreams(args.media_dir, args.dreams, args.min_frames, args.pick, args.playlist)
     with open(args.event_log, "w", buffering=1) as event_log:
         server = MockServer(args.media_dir, dreams, event_log, args.port, args.media_rate,
-                            args.playlist or args.default_playlist)
+                            args.playlist or args.default_playlist, args.transition_time)
         web.run_app(server.app(), host="127.0.0.1", port=args.port, print=None)
 
 
