@@ -48,6 +48,12 @@ malformed ones, but no other faults or chaos yet. Written for the Mac; `slow_lin
   cached dreams and checks the buffering moon never shows (#823). The incoming decoder takes
   ~100 ms to fill its first frames, which holds the crossfade briefly, and that used to flash the
   moon nearly every time. About a minute.
+- `resume_test.py` lets the client download every dream, then pauses and resumes it 6 times
+  and checks that no tick is clamped (#747): the first tick after a resume used to count the
+  whole pause as one frame and jump the timeline 100 ms. Then it switches between speed 1 and 9
+  6 times, each at a different point within a frame, and checks that no frame is discarded:
+  speeding up used to carry up to half a second into the faster rate and skip up to 12 frames.
+  About a minute.
 - `slow_link_test.py` checks adaptive playback speed (#770) over a limited link, on the
   `alpha-v1` set's two long Pink Floyd dreams by default: at 0.6x the first dream's rate it
   slows below 100% and keeps moving with at most 2 rebuffers; at 0.15x it goes below the old

@@ -787,6 +787,12 @@ void CClip::FadeOut(double _currentTimelineTime)
 
 void CClip::UpdatePlaybackRate(double _newFps, double _currentTimelineTime)
 {
+    // The decoder clock carries the time played into the current frame, in seconds at
+    // the old rate. Keep the same fraction of a frame at the new rate: at 2 fps that time
+    // can be up to 0.5 s, which at 32 fps would be 16 frames owed at once, a jump ahead.
+    const double oldFps = m_ClipMetadata.decodeFps;
+    if (oldFps > 0.0 && _newFps > 0.0)
+        m_DecoderClock.acc *= oldFps / _newFps;
     m_ClipMetadata.decodeFps = _newFps;
 
     // If the clip is already fading out, FadeOut() has deliberately pinned

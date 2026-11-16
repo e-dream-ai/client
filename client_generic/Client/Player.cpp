@@ -790,7 +790,12 @@ CPlayer::~CPlayer()
 bool CPlayer::BeginFrameUpdate()
 {
     if (m_bPaused || IsFirstRunWizardPlaybackHold())
+    {
+        // Keep the frame clock running while paused, so the first tick after a
+        // resume has a normal delta instead of the whole pause (client#747).
+        m_LastFrameRealTime = m_Timer.Time();
         return true;
+    }
 
     MaybeTestStall();
 
