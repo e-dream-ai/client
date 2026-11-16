@@ -1,8 +1,9 @@
 #version 450
 
 // Converts decoded 8-bit 4:2:0 video planes (NV12 or YUV420P) to RGB.
-// Renders into the frame texture's R8G8B8A8_SRGB image, so the result is
-// stored exactly like the RGBA frames uploaded from the CPU path.
+// Renders into the frame texture's R8G8B8A8_UNORM image, so the result is
+// stored exactly like the RGBA frames uploaded from the CPU path: the
+// gamma-encoded R'G'B' values, as on Mac and Windows.
 
 layout(location = 0) in vec2 fragUV;
 layout(location = 0) out vec4 outColor;
@@ -18,12 +19,6 @@ layout(push_constant) uniform PC {
     int  interleavedChroma;
 } pc;
 
-vec3 srgbToLinear(vec3 c)
-{
-    return mix(c / 12.92, pow((c + 0.055) / 1.055, vec3(2.4)),
-               step(vec3(0.04045), c));
-}
-
 void main()
 {
     float y = texture(planeY, fragUV).r;
@@ -38,7 +33,5 @@ void main()
                     y - pc.matrix.y * cbcr.x - pc.matrix.z * cbcr.y,
                     y + pc.matrix.w * cbcr.x);
 
-    // The sRGB attachment re-encodes on write, so emit linear values to store
-    // the gamma-encoded R'G'B' unchanged.
-    outColor = vec4(srgbToLinear(clamp(rgb, 0.0, 1.0)), 1.0);
+    outColor = vec4(clamp(rgb, 0.0, 1.0), 1.0);
 }

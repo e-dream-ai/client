@@ -303,17 +303,29 @@ bool CRendererVulkan::createSwapchain(VkSurfaceKHR surface,
     VkSurfaceCapabilitiesKHR caps;
     vkGetPhysicalDeviceSurfaceCapabilitiesKHR(m_physicalDevice, surface, &caps);
 
-    // Choose format: prefer B8G8R8A8_SRGB / SRGB_NONLINEAR
+    // Choose format: an 8-bit _UNORM format in the sRGB color space. Like Mac
+    // (Metal BGRA8Unorm) and Windows (DX11 R8G8B8A8_UNORM), pixel values are
+    // stored and blended as they are, already sRGB-encoded. An _SRGB format
+    // would blend in linear light instead, which brightens fades and
+    // crossfades and changes antialiased text compared with the other
+    // platforms; the dreams and UI colors are tuned for this way.
     uint32_t fmtCount = 0;
     vkGetPhysicalDeviceSurfaceFormatsKHR(m_physicalDevice, surface, &fmtCount, nullptr);
     std::vector<VkSurfaceFormatKHR> formats(fmtCount);
     vkGetPhysicalDeviceSurfaceFormatsKHR(m_physicalDevice, surface, &fmtCount, formats.data());
 
     VkSurfaceFormatKHR chosenFmt = formats[0];
-    for (auto& f : formats)
-        if (f.format == VK_FORMAT_B8G8R8A8_SRGB &&
-            f.colorSpace == VK_COLOR_SPACE_SRGB_NONLINEAR_KHR)
-        { chosenFmt = f; break; }
+    bool foundUnorm = false;
+    for (VkFormat want : {VK_FORMAT_B8G8R8A8_UNORM, VK_FORMAT_R8G8B8A8_UNORM})
+    {
+        for (auto& f : formats)
+            if (f.format == want && f.colorSpace == VK_COLOR_SPACE_SRGB_NONLINEAR_KHR)
+            { chosenFmt = f; foundUnorm = true; break; }
+        if (foundUnorm) break;
+    }
+    if (!foundUnorm)
+        g_Log->Warning("CRendererVulkan: no 8-bit UNORM swapchain format; using format %d",
+                       static_cast<int>(chosenFmt.format));
 
     // FIFO (vsync) — guaranteed supported, blocks on present to throttle the render loop.
     // Mailbox would spin the CPU freely between presents, burning cycles for no benefit.
@@ -784,7 +796,7 @@ bool CRendererVulkan::createYUVConversionPipeline()
     // The pass overwrites the whole image, so its previous contents are
     // discarded, and it ends in the layout the blend pipelines sample from.
     VkAttachmentDescription colorAtt{};
-    colorAtt.format         = VK_FORMAT_R8G8B8A8_SRGB;
+    colorAtt.format         = VK_FORMAT_R8G8B8A8_UNORM;
     colorAtt.samples        = VK_SAMPLE_COUNT_1_BIT;
     colorAtt.loadOp         = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
     colorAtt.storeOp        = VK_ATTACHMENT_STORE_OP_STORE;
@@ -1037,7 +1049,7 @@ bool CRendererVulkan::createWhiteTexture()
     VkImageCreateInfo ici{};
     ici.sType         = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
     ici.imageType     = VK_IMAGE_TYPE_2D;
-    ici.format        = VK_FORMAT_R8G8B8A8_SRGB;
+    ici.format        = VK_FORMAT_R8G8B8A8_UNORM;
     ici.extent        = {1, 1, 1};
     ici.mipLevels     = 1;
     ici.arrayLayers   = 1;
@@ -1108,7 +1120,7 @@ bool CRendererVulkan::createWhiteTexture()
     VkImageViewCreateInfo ivci{VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO};
     ivci.image            = m_whiteImage;
     ivci.viewType         = VK_IMAGE_VIEW_TYPE_2D;
-    ivci.format           = VK_FORMAT_R8G8B8A8_SRGB;
+    ivci.format           = VK_FORMAT_R8G8B8A8_UNORM;
     ivci.subresourceRange = {VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1};
     vkCreateImageView(m_device, &ivci, nullptr, &m_whiteView);
 
@@ -1530,21 +1542,6 @@ bool CRendererVulkan::EndFrame(bool /*drawn*/)
 // ---------------------------------------------------------------------------
 // DrawQuad helpers
 // ---------------------------------------------------------------------------
-// The swapchain is an _SRGB format, so the GPU sRGB-encodes everything the
-// shaders write. Colors given by callers (HUD text, tints, status lights) are
-// already sRGB, as on Mac and Windows; decode them first or they come out
-// washed out (the HUD peach #FFDAB8 showed as #FFEEDD, nearly white).
-static float SrgbToLinear(float c)
-{
-    return c <= 0.04045f ? c / 12.92f : std::pow((c + 0.055f) / 1.055f, 2.4f);
-}
-
-static Base::Math::CVector4 SrgbToLinear(const Base::Math::CVector4& c)
-{
-    return Base::Math::CVector4(SrgbToLinear(c.m_X), SrgbToLinear(c.m_Y),
-                                SrgbToLinear(c.m_Z), c.m_W);
-}
-
 // With rotate90, the texture is turned 90 degrees clockwise: a corner at quad
 // position (s, t) samples (t, 1 - s), as rotatedUV() does in the Metal and DX11
 // shaders (#623).
@@ -1619,11 +1616,10 @@ void CRendererVulkan::DrawQuad(const Base::Math::CRect& _rect,
 }
 
 void CRendererVulkan::DrawQuad(const Base::Math::CRect& _rect,
-                                const Base::Math::CVector4& _srgbColor,
+                                const Base::Math::CVector4& _color,
                                 const Base::Math::CRect& _uvRect)
 {
     if (!m_inFrame) return;
-    const Base::Math::CVector4 _color = SrgbToLinear(_srgbColor);
     if (m_vertexCount + 6 > static_cast<uint32_t>(MAX_QUADS_PER_FRAME * 6)) return;
 
     VkCommandBuffer cmd = m_commandBuffers[m_currentFrame];
@@ -1900,9 +1896,8 @@ void CRendererVulkan::DrawText(spCBaseText _text,
     ImVec2 cursor{r.m_X0 * static_cast<float>(m_swapExtent.width),
                   r.m_Y0 * static_cast<float>(m_swapExtent.height)};
 
-    const Base::Math::CVector4 linear = SrgbToLinear(_color);
     ImU32 col       = ImGui::ColorConvertFloat4ToU32(
-        ImVec4(linear.m_X, linear.m_Y, linear.m_Z, linear.m_W));
+        ImVec4(_color.m_X, _color.m_Y, _color.m_Z, _color.m_W));
 
     ImDrawList*        dl   = ImGui::GetBackgroundDrawList();
     const std::string& text = spTV->Text();
