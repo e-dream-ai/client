@@ -1730,6 +1730,38 @@ bool CPlayer::SetPlaylist(const std::string& playlistUUID, bool fetchPlaylist = 
         if (nextDecision) {
             g_Log->Info("Preloading next clip for playlist switch");
 
+            // A switch during a crossfade can't fade to a third dream: there are
+            // only two pipelines. Keep whichever of the two clips is more on
+            // screen and fade from it, so the picture jumps by at most half.
+            // Past halfway, finish the crossfade at once: the incoming clip
+            // becomes current. That also avoids fading from the outgoing clip
+            // in its last seconds, which ran out before the new fade ended and
+            // cut to the new dream. (mock-server playlist_interrupt_test.py)
+            if (m_isTransitioning && m_nextClip && m_currentClip) {
+                const double progress = std::clamp(
+                    (m_TimelineTime - m_transitionStartTime) / m_transitionDuration, 0.0, 1.0);
+                const bool promote = progress >= 0.5 && m_nextClip->HasStartedPlaying();
+                g_Log->Info("Playlist switch interrupted crossfade %s -> %s at %.0f%%: fading from %s",
+                            m_currentClip->GetClipMetadata().dreamData.uuid.c_str(),
+                            m_nextClip->GetClipMetadata().dreamData.uuid.c_str(),
+                            progress * 100.0, promote ? "incoming" : "outgoing");
+                if (promote) {
+                    destroyClipAsync(std::move(m_currentClip));
+                    m_currentClip = std::move(m_nextClip);
+                    m_nextClip = nullptr;
+                    m_isTransitioning = false;
+                    // It's fully on screen now; don't let its own fade-in dim it.
+                    m_currentClip->m_FadeInSeconds = 0.f;
+                    m_currentClip->m_Alpha = 1.0f;
+                    m_currentClip->m_LastCalculatedAlpha = 1.0f;
+                    m_LastSettledClip = m_currentClip;
+                    NoteContentSettled();
+                    FlushPendingVideoInvalidations();
+                    // The outgoing dream played to its end; the switch ends this one.
+                    ReportPlayback();
+                }
+            }
+
             if (m_nextClip) {
                 destroyClipAsync(std::move(m_nextClip));
                 m_nextClip = nullptr;
@@ -1973,6 +2005,10 @@ void CPlayer::UpdateTransition(double currentTime)
         NoteContentSettled();
     }
     if (m_currentClip && m_currentClip->HasFinished()) {
+        if (transitionProgress < 0.95)
+            g_Log->Info("Crossfade to %s cut short at %.0f%%: outgoing clip %s finished",
+                        fadeTarget.c_str(), std::max(0.0, transitionProgress) * 100.0,
+                        m_currentClip->GetClipMetadata().dreamData.uuid.c_str());
         transitionProgress = 1.0;
     }
 
