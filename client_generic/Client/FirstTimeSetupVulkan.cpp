@@ -91,9 +91,9 @@ constexpr float kThanksBtnFontSize  = kUiTextSize;
 
 static constexpr ImVec4 kMacInputBorderFocus(0.f, 0.478f, 1.f, 1.f);
 static constexpr ImVec4 kMacInputBorderIdle(0.74f, 0.74f, 0.76f, 1.f);
-static const ImVec4 kMacInputBorderIdleDark = ThemeLinux::DarkColor(0.36f, 0.36f, 0.38f, 1.f);
+static const ImVec4 kMacInputBorderIdleDark = ImVec4(0.36f, 0.36f, 0.38f, 1.f);
 static constexpr ImVec4 kErrorText(0.75f, 0.18f, 0.18f, 1.f);
-static const ImVec4 kErrorTextDark = ThemeLinux::DarkColor(1.f, 0.45f, 0.42f, 1.f);
+static const ImVec4 kErrorTextDark = ImVec4(1.f, 0.45f, 0.42f, 1.f);
 static constexpr ImVec4 kMacAccentBtn(0.f, 0.478f, 1.f, 1.f);
 static constexpr ImVec4 kMacAccentBtnHov(0.10f, 0.54f, 1.f, 1.f);
 static constexpr ImVec4 kMacAccentBtnAct(0.f, 0.40f, 0.88f, 1.f);
@@ -314,33 +314,33 @@ static void ApplySheetColors(bool dark)
     g_sheetIsDark = dark;
     ImGuiStyle& s = ImGui::GetStyle();
     if (dark)
-        ThemeLinux::ApplyDarkBaseColors(s);
+        ImGui::StyleColorsDark(&s);
     else
         ImGui::StyleColorsLight(&s);
 
-    ImVec4 text = dark ? ThemeLinux::DarkColor(0.92f, 0.92f, 0.94f, 1.f) : ImVec4(0.10f, 0.11f, 0.13f, 1.f);
-    ImVec4 winBg = dark ? ThemeLinux::DarkColor(0.15f, 0.15f, 0.16f, 1.f) : ImVec4(0.965f, 0.967f, 0.975f, 1.f);
+    ImVec4 text = dark ? ImVec4(0.92f, 0.92f, 0.94f, 1.f) : ImVec4(0.10f, 0.11f, 0.13f, 1.f);
+    ImVec4 winBg = dark ? ImVec4(0.15f, 0.15f, 0.16f, 1.f) : ImVec4(0.965f, 0.967f, 0.975f, 1.f);
     // Neutral buttons need a fill that stands out from the sheet; white ones
     // were hard to tell from the background. Primary actions use kMacAccentBtn.
-    ImVec4 btn = dark ? ThemeLinux::DarkColor(0.30f, 0.30f, 0.32f, 1.f) : ImVec4(0.86f, 0.86f, 0.88f, 1.f);
-    ImVec4 btnHov = dark ? ThemeLinux::DarkColor(0.36f, 0.36f, 0.38f, 1.f) : ImVec4(0.81f, 0.81f, 0.83f, 1.f);
-    ImVec4 btnAct = dark ? ThemeLinux::DarkColor(0.24f, 0.24f, 0.26f, 1.f) : ImVec4(0.75f, 0.75f, 0.78f, 1.f);
+    ImVec4 btn = dark ? ImVec4(0.30f, 0.30f, 0.32f, 1.f) : ImVec4(0.86f, 0.86f, 0.88f, 1.f);
+    ImVec4 btnHov = dark ? ImVec4(0.36f, 0.36f, 0.38f, 1.f) : ImVec4(0.81f, 0.81f, 0.83f, 1.f);
+    ImVec4 btnAct = dark ? ImVec4(0.24f, 0.24f, 0.26f, 1.f) : ImVec4(0.75f, 0.75f, 0.78f, 1.f);
     ImVec4 borderChrome = dark ? kMacInputBorderIdleDark : kMacInputBorderIdle;
 
     s.Colors[ImGuiCol_Text]           = text;
-    s.Colors[ImGuiCol_TextDisabled]   = dark ? ThemeLinux::DarkColor(0.58f, 0.58f, 0.60f, 1.f) : ImVec4(0.45f, 0.47f, 0.50f, 1.f);
+    s.Colors[ImGuiCol_TextDisabled]   = dark ? ImVec4(0.58f, 0.58f, 0.60f, 1.f) : ImVec4(0.45f, 0.47f, 0.50f, 1.f);
     s.Colors[ImGuiCol_WindowBg]       = winBg;
     s.Colors[ImGuiCol_ChildBg]        = winBg;
     s.Colors[ImGuiCol_Border]         = borderChrome;
     s.Colors[ImGuiCol_BorderShadow]   = ImVec4(0.f, 0.f, 0.f, 0.f);
-    s.Colors[ImGuiCol_FrameBg]        = dark ? ThemeLinux::DarkColor(0.20f, 0.20f, 0.21f, 1.f) : ImVec4(1.f, 1.f, 1.f, 1.f);
-    s.Colors[ImGuiCol_FrameBgHovered] = dark ? ThemeLinux::DarkColor(0.23f, 0.23f, 0.24f, 1.f) : ImVec4(0.98f, 0.98f, 0.99f, 1.f);
-    s.Colors[ImGuiCol_FrameBgActive]  = dark ? ThemeLinux::DarkColor(0.20f, 0.20f, 0.21f, 1.f) : ImVec4(1.f, 1.f, 1.f, 1.f);
+    s.Colors[ImGuiCol_FrameBg]        = dark ? ImVec4(0.20f, 0.20f, 0.21f, 1.f) : ImVec4(1.f, 1.f, 1.f, 1.f);
+    s.Colors[ImGuiCol_FrameBgHovered] = dark ? ImVec4(0.23f, 0.23f, 0.24f, 1.f) : ImVec4(0.98f, 0.98f, 0.99f, 1.f);
+    s.Colors[ImGuiCol_FrameBgActive]  = dark ? ImVec4(0.20f, 0.20f, 0.21f, 1.f) : ImVec4(1.f, 1.f, 1.f, 1.f);
     s.Colors[ImGuiCol_Button]         = btn;
     s.Colors[ImGuiCol_ButtonHovered]  = btnHov;
     s.Colors[ImGuiCol_ButtonActive]   = btnAct;
-    s.Colors[ImGuiCol_Header]         = dark ? ThemeLinux::DarkColor(0.24f, 0.33f, 0.50f, 1.f) : ImVec4(0.86f, 0.89f, 0.97f, 1.f);
-    s.Colors[ImGuiCol_ScrollbarBg]    = dark ? ThemeLinux::DarkColor(0.12f, 0.12f, 0.13f, 0.85f) : ImVec4(0.93f, 0.94f, 0.96f, 0.85f);
+    s.Colors[ImGuiCol_Header]         = dark ? ImVec4(0.24f, 0.33f, 0.50f, 1.f) : ImVec4(0.86f, 0.89f, 0.97f, 1.f);
+    s.Colors[ImGuiCol_ScrollbarBg]    = dark ? ImVec4(0.12f, 0.12f, 0.13f, 0.85f) : ImVec4(0.93f, 0.94f, 0.96f, 0.85f);
     s.Colors[ImGuiCol_NavHighlight]   = ImVec4(0.f, 0.478f, 1.f, 0.55f);
 }
 

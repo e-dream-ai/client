@@ -206,7 +206,7 @@ bool CTextureFlatVulkan::ensureImage(uint32_t w, uint32_t h)
     m_imgHeight = 0;
 
     // COLOR_ATTACHMENT lets the YUV conversion pass render into the image.
-    if (!createImage2D(m_pRenderer, VK_FORMAT_R8G8B8A8_SRGB, w, h,
+    if (!createImage2D(m_pRenderer, VK_FORMAT_R8G8B8A8_UNORM, w, h,
                        VK_IMAGE_USAGE_TRANSFER_DST_BIT |
                        VK_IMAGE_USAGE_SAMPLED_BIT |
                        VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT,
