@@ -12,5 +12,21 @@ HERE="${SELF%/*}"
 # but keep the host path so system Vulkan ICDs remain reachable.
 export LD_LIBRARY_PATH="${HERE}/usr/lib:${LD_LIBRARY_PATH:-}"
 
+# The bundled libcurl and OpenSSL have no usable compiled-in CA location
+# (OPENSSLDIR points at the build machine), so point OpenSSL's default
+# verify paths at the host's CA bundle. Covers Debian/Ubuntu/Arch, Fedora/RHEL,
+# and openSUSE/Alpine-style layouts.
+if [ -z "${SSL_CERT_FILE:-}" ]; then
+    for ca in /etc/ssl/certs/ca-certificates.crt \
+              /etc/pki/tls/certs/ca-bundle.crt \
+              /etc/ssl/ca-bundle.pem \
+              /etc/ssl/cert.pem; do
+        if [ -r "$ca" ]; then
+            export SSL_CERT_FILE="$ca"
+            break
+        fi
+    done
+fi
+
 cd "${HERE}/usr/bin"
 exec ./infinidream "$@"

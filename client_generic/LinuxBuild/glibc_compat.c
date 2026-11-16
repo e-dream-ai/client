@@ -124,3 +124,36 @@ int __isoc23_sscanf(const char *str, const char *fmt, ...) {
     va_end(ap);
     return r;
 }
+
+/* ==========================================================================
+ * arc4random: new in GLIBC_2.36, no older version to pin to
+ *
+ * The statically linked libstdc++ (GCC 13+) uses arc4random as a
+ * std::random_device source when the build host's glibc has it.  Provide
+ * our own on top of getrandom (GLIBC_2.25).  Like glibc's, it never fails:
+ * it retries on EINTR and short reads, and aborts if the kernel lacks
+ * getrandom (Linux < 3.17, far below anything glibc 2.35 runs on).
+ * ========================================================================== */
+
+#include <errno.h>
+#include <stdint.h>
+#include <stdlib.h>
+#include <sys/random.h>
+#include <sys/types.h>
+
+uint32_t arc4random(void) {
+    uint32_t value;
+    unsigned char *p = (unsigned char *)&value;
+    size_t left = sizeof value;
+    while (left > 0) {
+        ssize_t n = getrandom(p, left, 0);
+        if (n < 0) {
+            if (errno == EINTR)
+                continue;
+            abort();
+        }
+        p += n;
+        left -= (size_t)n;
+    }
+    return value;
+}
