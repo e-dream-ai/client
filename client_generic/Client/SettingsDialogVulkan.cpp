@@ -402,7 +402,6 @@ static void DrawSettingsDialog(float viewportW, float viewportH)
             const float contentHeight = ImGui::GetContentRegionAvail().y;
             const float rowCenterY    = ImGui::GetCursorPosY() + (contentHeight * 0.5f);
             const float buttonY       = rowCenterY - (closeButtonHeight * 0.5f);
-            const float textY         = rowCenterY - (ImGui::GetTextLineHeight() * 0.5f);
             const float closeX        = originX + contentWidth - closeButtonWidth;
 
             // Once signed in, Close is the default button (blue, Return); while signed out,
@@ -445,9 +444,21 @@ static void DrawSettingsDialog(float viewportW, float viewportH)
             if (helpClicked)
                 PlatformUtils::OpenURLExternally(kUrlHelp);
 
+            // The full version (revision + build time) is long: draw it smaller than the
+            // UI text, and shrink it further if it would still reach the Close button.
             ImGui::SameLine();
-            ImGui::SetCursorPosY(textY);
+            const float versionX    = ImGui::GetCursorPosX();
+            const float versionMaxW = closeX - S(12.f) - versionX;
+            float versionSize = S(15.f);
+            ImGui::PushFont(nullptr, versionSize);
+            const float versionW = ImGui::CalcTextSize(g_versionText.c_str()).x;
+            ImGui::PopFont();
+            if (versionMaxW > 0.f && versionW > versionMaxW)
+                versionSize *= versionMaxW / versionW;
+            ImGui::PushFont(nullptr, versionSize);
+            ImGui::SetCursorPosY(rowCenterY - (ImGui::GetTextLineHeight() * 0.5f));
             ImGui::TextDisabled("%s", g_versionText.c_str());
+            ImGui::PopFont();
         }
         ImGui::EndChild();
     }
