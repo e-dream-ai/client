@@ -101,6 +101,11 @@ def scenario(run, need, download_seconds):
     e.check(f"Client rebuffered at {STARVED_RATE}x the dream's rate", True,
             f"{time.time() - starved_at:.0f} s after the drop")
     time.sleep(15)
+    # The moon usually comes up before the rebuffer, while adaptive speed slows
+    # playback, and stays up through it. The client logs each change.
+    moon = re.findall(r"Buffering moon (shown|hidden)", run.log_text())
+    e.check("Buffering moon showing while starved", moon[-1:] == ["shown"],
+            moon[-1] if moon else "never shown")
 
     set_rate(need * GOOD_RATE)
     restored_at = time.time()

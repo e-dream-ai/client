@@ -2810,6 +2810,11 @@ double CPlayer::GetPlaybackSpeed() const {
     return m_currentClip ? m_currentClip->GetPlaybackSpeed() : 1.0;
 }
 
+bool CPlayer::IsCurrentClipRebuffering() const {
+    // Unlocked, like IsAnyClipBuffering().
+    return m_currentClip && m_currentClip->HasStartedPlaying() && m_currentClip->IsBuffering();
+}
+
 bool CPlayer::IsPlaybackSlowed() const {
     // During a crossfade the incoming clip counts too: it's the one on its way in.
     if (m_isTransitioning && m_nextClip && m_nextClip->HasStartedPlaying() &&

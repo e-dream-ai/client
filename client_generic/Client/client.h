@@ -1684,9 +1684,11 @@ class CElectricSheep
                 bool isBuffering = g_Player().IsAnyClipBuffering();
 
                 // Lower-right moon while the picture is stalled waiting for
-                // video: the streaming clip on screen ran dry, or it ended and
-                // the next clip isn't ready. Preloading ahead of a transition
-                // is not a stall; it is reported on the F2 overlay instead.
+                // video: the clip on screen ran dry (streaming, or a slow disk
+                // for a cached one), or it ended and the next clip isn't ready.
+                // A cached clip's initial fill (a seek can take ~2 s) is left
+                // to the kAwaitLocalGrace path below. Preloading ahead of a
+                // transition is not a stall; it is reported on the F2 overlay.
                 bool awaitingContent = false;
                 if (m_AwaitContentDeadline > 0.0) {
                     if (g_Player().GetContentSettledCount() != m_AwaitContentBaseline ||
@@ -1699,6 +1701,7 @@ class CElectricSheep
                 if (m_spBufferingIndicator)
                     m_spBufferingIndicator->SetStalled(
                         ((isStreamingCurrent && isBuffering) ||
+                         g_Player().IsCurrentClipRebuffering() ||
                          g_Player().IsStalledAtTransition() ||
                          g_Player().IsPlaybackSlowed()) &&
                             !IsPreview(),
