@@ -6,8 +6,9 @@ Builds infinidream and packages it as a self-contained AppImage.
 
 Usage:
     cd client/client_generic/LinuxBuild
-    ./build_appimage.py            # prod
-    ./build_appimage.py --stage    # stage (api-stage.infinidream.ai)
+    ./build_appimage.py                  # prod, dev build versioned from the latest git tag
+    ./build_appimage.py --stage          # stage (api-stage.infinidream.ai)
+    ./build_appimage.py -v 0.16.2 -g     # release build, uploaded to GitHub release 0.16.2
 
 Output: infinidream-<arch>.AppImage (or infinidream-stage-<arch>.AppImage)
 in this directory.
@@ -427,7 +428,7 @@ def compile_glibc_shim() -> Path:
 # ---------------------------------------------------------------------------
 # CMake build
 # ---------------------------------------------------------------------------
-def build_infinidream(shim_obj: Path, stage: bool) -> None:
+def build_infinidream(shim_obj: Path, stage: bool, version: Optional[str]) -> None:
     """
     Build infinidream (Release) with system g++.
 
@@ -461,7 +462,7 @@ def build_infinidream(shim_obj: Path, stage: bool) -> None:
         "-DBoost_USE_STATIC_LIBS=ON",
         f"-DCMAKE_EXE_LINKER_FLAGS={linker_flags}",
         f"-DINFINIDREAM_STAGE={'ON' if stage else 'OFF'}",
-    ], env={"PKG_CONFIG_PATH": pkg_config_path, **os.environ})
+    ] + ([f"-DAPP_VERSION={version}"] if version else []), env={"PKG_CONFIG_PATH": pkg_config_path, **os.environ})
 
     log(f"Compiling ({nproc} jobs) ...")
     run(["cmake", "--build", str(BUILD_DIR), f"-j{nproc}"])
@@ -617,6 +618,38 @@ def create_appimage(appimagetool: Path) -> None:
 
 
 # ---------------------------------------------------------------------------
+# Version and GitHub release
+# ---------------------------------------------------------------------------
+def normalize_version(value: str) -> str:
+    v = value.strip()
+    if v[:1].lower() == "v" and len(v) > 1 and v[1].isdigit():
+        v = v[1:]
+    return v
+
+
+def latest_git_tag() -> Optional[str]:
+    tag = capture(["git", "-C", str(SCRIPT_DIR), "describe", "--tags", "--abbrev=0"])
+    return normalize_version(tag) if tag else None
+
+
+def check_github_release(tag: str) -> None:
+    """Fail before the (long) build if the upload would fail."""
+    require_cmd("gh")
+    result = subprocess.run(["gh", "release", "view", tag, "--json", "tagName"],
+                            capture_output=True, text=True, cwd=SCRIPT_DIR)
+    if result.returncode != 0:
+        die(f"GitHub release {tag} not found ({result.stderr.strip()}).\n"
+            f"Create it first with the Mac build: "
+            f"cd client_generic/MacBuild && ./build.py -r -n -g -v {tag}")
+
+
+def github_upload(asset: Path, tag: str) -> None:
+    log(f"Uploading {asset.name} to GitHub release {tag} ...")
+    run(["gh", "release", "upload", tag, str(asset), "--clobber"], cwd=SCRIPT_DIR)
+    log("Upload finished.")
+
+
+# ---------------------------------------------------------------------------
 # Main
 # ---------------------------------------------------------------------------
 def main() -> None:
@@ -624,7 +657,26 @@ def main() -> None:
     parser = argparse.ArgumentParser(description="Build the infinidream Linux AppImage.")
     parser.add_argument("--stage", action="store_true",
                         help="build against api-stage.infinidream.ai")
+    parser.add_argument("-v", "--version",
+                        help="release version X.Y.Z compiled into the app. Without it "
+                             "the build is a dev build versioned from the latest git tag.")
+    parser.add_argument("-g", "--github-release", action="store_true",
+                        help="upload the AppImage to the GitHub release whose tag matches "
+                             "--version (created by Mac build.py -g)")
     args = parser.parse_args()
+
+    if args.github_release and not args.version:
+        die("-g/--github-release needs -v/--version X.Y.Z to pick the release.")
+    if args.version:
+        version = normalize_version(args.version)
+    else:
+        version = latest_git_tag()
+        if version:
+            log(f"No -v given: dev build versioned from the latest git tag, {version}.")
+        else:
+            log("No -v given and no git tag found: the AppImage will report 0.0.0.")
+    if args.github_release:
+        check_github_release(version)
     if args.stage:
         OUTPUT_APPIMAGE = SCRIPT_DIR / f"infinidream-stage-{ARCH}.AppImage"
 
@@ -654,13 +706,16 @@ def main() -> None:
     linuxdeploy, appimagetool = prepare_appimage_tools()
 
     shim_obj = compile_glibc_shim()
-    build_infinidream(shim_obj, args.stage)
+    build_infinidream(shim_obj, args.stage, version)
     verify_glibc_ceiling()
 
     assemble_appdir()
     bundle_libraries(linuxdeploy)
     verify_symbols_resolve()
     create_appimage(appimagetool)
+
+    if args.github_release:
+        github_upload(OUTPUT_APPIMAGE, version)
 
     print()
     log(f"Done! AppImage created at:")

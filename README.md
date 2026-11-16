@@ -168,7 +168,8 @@ cmake --build build-stage -j$(nproc)
 ```
 
 To package a portable AppImage, run `./build_appimage.py` (add `--stage` for
-a stage AppImage).
+a stage AppImage). `-v X.Y.Z` sets the version it reports; without it, it takes the
+latest git tag. `-g` uploads it to the GitHub release `X.Y.Z` (see "to prerelease" below).
 
 ### Authentication
 
@@ -491,10 +492,10 @@ like the second half of Mac `build.py`, while Mac `release.py` is the separate "
 
 | Step | Mac | Windows | Linux |
 |---|---|---|---|
-| Compile | `build.py` | `build.py -v` | `build_appimage.py` |
+| Compile | `build.py` | `build.py -v` | `build_appimage.py -v` |
 | Package and sign | `build.py -r -n` | `release.py --sign` | `build_appimage.py` |
 | Tag and create the GitHub release | `build.py -g` | — (needs the Mac one) | — |
-| Upload to the release | `build.py -g` | `release.py -g` | `gh release upload` by hand |
+| Upload to the release | `build.py -g` | `release.py -g` | `build_appimage.py -g` |
 | Push to users (Sparkle, website, Latest) | `release.py` | — | — |
 
 Commit and push first, then build the same commit on every machine.
@@ -516,14 +517,13 @@ python build.py -v 0.16.2
 python release.py --sign -g
 ```
 
-**3. Linux.** `build_appimage.py` doesn't upload, so upload by hand. It also doesn't take a
-version yet, so the AppImage reports 0.0.0:
+**3. Linux.** `build_appimage.py -g` uploads to the release Mac created, and checks that it
+exists before building:
 
 ```bash
 git fetch --tags && git checkout 0.16.2
 cd client_generic/LinuxBuild
-./build_appimage.py
-gh release upload 0.16.2 infinidream-x86_64.AppImage --clobber
+./build_appimage.py -v 0.16.2 -g
 ```
 
 **4. Release notes,** from any machine, or edit them on GitHub:
