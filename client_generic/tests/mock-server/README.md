@@ -96,18 +96,21 @@ venv/bin/python slow_link_test.py --app "$APP"
 ```
 
 Each takes `--set NAME` to serve a fixture set, `--fullscreen` to start the client
-fullscreen instead of in a window, and `--keep` to keep the run folder (logs, server events,
-crash reports, stack samples) even when everything passes; it's always kept when a check fails.
+fullscreen instead of in a window, `--no-keep-awake` to let the screen sleep (see below), and
+`--keep` to keep the run folder (logs, server events, crash reports, stack samples) even when
+everything passes; it's always kept when a check fails.
 
 The screen checks need Screen Recording permission for your terminal (System Settings >
 Privacy & Security); without it they're skipped, and the test says so.
 
 The client opens a window, and the screen has to stay unlocked, because a locked screen
-stops the render loop. `caffeinate -dimsu venv/bin/python ...` keeps the screen saver and
-sleep away during a run. Quit any other running client first, or the check that real installs
-are unchanged may fail. A test that crashes the client makes macOS show a crash dialog;
-`defaults write com.apple.CrashReporter DialogType none` turns those off (the reports are
-still written) and `defaults delete com.apple.CrashReporter DialogType` turns them back on.
+stops the render loop. Each test keeps the screen saver, lock and sleep away until it exits,
+with `caffeinate` on the Mac, `gnome-session-inhibit` (or `systemd-inhibit`) on Linux and
+`SetThreadExecutionState` on Windows; `--no-keep-awake` turns that off. Quit any other running
+client first, or the check that real installs are unchanged may fail. A test that crashes the
+client makes macOS show a crash dialog; `defaults write com.apple.CrashReporter DialogType none`
+turns those off (the reports are still written) and
+`defaults delete com.apple.CrashReporter DialogType` turns them back on.
 
 ### On Windows
 

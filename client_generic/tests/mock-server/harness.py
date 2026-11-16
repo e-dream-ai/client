@@ -379,6 +379,8 @@ def add_media_args(parser):
                         "its dreams whatever their length, and start the client on it")
     parser.add_argument("--fullscreen", action="store_true",
                         help="start the client fullscreen instead of in a window")
+    parser.add_argument("--no-keep-awake", action="store_true",
+                        help="let the screen blank, lock or sleep during the run")
 
 
 def first_dream(media_dir, dreams):
@@ -403,6 +405,42 @@ def load_dreams(media_dir, count, min_frames, pick="smallest"):
     return server.load_dreams(media_dir, count, min_frames, pick)
 
 
+def keep_awake():
+    """Keeps the screen from blanking, locking or sleeping until this process exits, since a
+    locked screen stops the client's render loop. Uses caffeinate on the Mac,
+    gnome-session-inhibit (or systemd-inhibit) on Linux, and SetThreadExecutionState on
+    Windows. Turned off with --no-keep-awake."""
+    pid = str(os.getpid())
+    if sys.platform == "win32":
+        import ctypes
+        # ES_CONTINUOUS | ES_SYSTEM_REQUIRED | ES_DISPLAY_REQUIRED, held until the process exits.
+        if ctypes.windll.kernel32.SetThreadExecutionState(0x80000000 | 0x1 | 0x2):
+            print("Keeping the screen awake during the run", flush=True)
+            return
+    elif IS_MAC:
+        command = ["caffeinate", "-dimsu", "-w", pid]
+    elif shutil.which("gnome-session-inhibit"):
+        command = ["gnome-session-inhibit", "--inhibit", "idle:suspend", "--reason",
+                   "infinidream mock-server tests", "tail", f"--pid={pid}", "-f", "/dev/null"]
+    else:
+        command = ["systemd-inhibit", "--what=idle:sleep", "--why=infinidream mock-server tests",
+                   "tail", f"--pid={pid}", "-f", "/dev/null"]
+    if sys.platform != "win32":
+        try:
+            # Ends by itself when this process exits, however it exits.
+            inhibitor = subprocess.Popen(command, stdin=subprocess.DEVNULL,
+                                         stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
+                                         start_new_session=True)
+            try:
+                inhibitor.wait(0.5)  # exits at once when it can't inhibit, e.g. no session
+            except subprocess.TimeoutExpired:
+                print(f"Keeping the screen awake during the run ({command[0]})", flush=True)
+                return
+        except OSError:
+            pass
+    print("Couldn't keep the screen awake; a screen saver or lock may stop the run", flush=True)
+
+
 def resolve_media(args):
     """Points args.media_dir at the chosen fixture set, after checking its md5s."""
     global PLAYLIST, FULLSCREEN
@@ -412,6 +450,8 @@ def resolve_media(args):
         sys.exit("--playlist needs --set, a snapshot fixture set")
     if PLAYLIST:
         print(f"Serving only playlist {PLAYLIST}", flush=True)
+    if not getattr(args, "no_keep_awake", False):
+        keep_awake()
     if not args.set:
         return
     import fixtures
