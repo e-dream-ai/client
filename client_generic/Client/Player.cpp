@@ -1096,7 +1096,10 @@ bool CPlayer::Update(uint32_t displayUnit)
                     }
                 } else if (m_nextDreamDecision->transition == PlaylistManager::TransitionType::StandardCrossfade) {
                     //
-                    if (m_currentClip && m_currentClip->IsFadingOut()) {
+                    // Not while a crossfade is already running: a playlist switch keeps
+                    // its decision until its crossfade ends, and starting the natural one
+                    // on top restarted the fade, snapping back to the old dream (#826).
+                    if (m_currentClip && m_currentClip->IsFadingOut() && !m_isTransitioning) {
                         g_Log->Info("PND : Standard crossfading");
                         PlayNextDream();
                     } else if (m_currentClip && m_currentClip->HasFinished() && !m_isTransitioning) {

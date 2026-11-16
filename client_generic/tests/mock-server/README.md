@@ -54,6 +54,11 @@ malformed ones, but no other faults or chaos yet. Written for the Mac; `slow_lin
   6 times, each at a different point within a frame, and checks that no frame is discarded:
   speeding up used to carry up to half a second into the faster rate and skip up to 12 frames.
   About a minute.
+- `playlist_fade_test.py` lets the client download every dream, then 3 times seeks the middle
+  dream to 10 s before its end with `play_dream` and times `play_playlist` so that the old
+  dream's end-of-dream fade window opens during the switch's 1 s crossfade. It checks that
+  happened, and that no crossfade went back (#826): the end-of-dream crossfade used to start
+  on top of the switch's and restart it. Needs at least 3 dreams. About a minute and a half.
 - `slow_link_test.py` checks adaptive playback speed (#770) over a limited link, on the
   `alpha-v1` set's two long Pink Floyd dreams by default: at 0.6x the first dream's rate it
   slows below 100% and keeps moving with at most 2 rebuffers; at 0.15x it goes below the old
@@ -77,6 +82,8 @@ venv/bin/python commands_test.py --app "$APP"
 venv/bin/python crash_test.py --app "$APP"
 venv/bin/python throttle_test.py --app "$APP"
 venv/bin/python moon_test.py --app "$APP"
+venv/bin/python resume_test.py --app "$APP"
+venv/bin/python playlist_fade_test.py --app "$APP"
 venv/bin/python slow_link_test.py --app "$APP"
 ```
 
