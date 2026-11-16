@@ -16,6 +16,7 @@
 #include <string>
 
 #include "Hud.h"
+#include "Log.h"
 #include "Rect.h"
 #include "fastbez.h"
 #include "Settings.h"
@@ -926,10 +927,14 @@ class CBufferingIndicator : public CHudEntry
         // The hold bridges gaps between bursts and keeps the moon up while it
         // fades, but it doesn't count toward kShowDelay. Only time spent
         // actually waiting does, so a one-frame stall can't show the moon.
+        const bool wasShowing = m_Showing;
         if (!active)
             m_Showing = false;
         else if (m_LastWaitingTime - m_ActiveStart >= kShowDelay)
             m_Showing = true;
+        // The mock server's throttle_test.py checks for these.
+        if (m_Showing != wasShowing)
+            g_Log->Info("Buffering moon %s", m_Showing ? "shown" : "hidden");
 
         const double dt = m_LastTime < 0 ? 0 : std::max(0.0, _time - m_LastTime);
         m_LastTime = _time;

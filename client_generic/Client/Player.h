@@ -457,6 +457,9 @@ class CPlayer : public Base::CSingleton<CPlayer>
     // The clip on screen is playing below the requested speed because its
     // stream can't keep up (client#770). Shows the buffering moon.
     bool IsPlaybackSlowed() const;
+    // The clip on screen started playing and then ran out of frames (stream or
+    // disk too slow). Its initial fill, which may be a seek, isn't counted.
+    bool IsCurrentClipRebuffering() const;
     // That clip's speed as a fraction of the requested one (1.0 = not slowed).
     double GetPlaybackSpeed() const;
     void NoteContentSettled() { m_ContentSettledCount.fetch_add(1); }
