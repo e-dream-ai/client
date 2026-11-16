@@ -398,28 +398,18 @@ add_custom_command(TARGET infinidream POST_BUILD
 # ---------------------------------------------------------------------------
 # Generate BuildData.json next to the binary so the version string is correct
 # ---------------------------------------------------------------------------
-if(NOT DEFINED APP_VERSION)
-    set(APP_VERSION "0.0.0")
-endif()
-
-find_package(Git QUIET)
-if(GIT_FOUND)
-    execute_process(
-        COMMAND ${GIT_EXECUTABLE} rev-parse --short HEAD
-        WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
-        OUTPUT_VARIABLE GIT_REVISION
-        OUTPUT_STRIP_TRAILING_WHITESPACE
-        ERROR_QUIET
-    )
-endif()
-if(NOT GIT_REVISION)
-    set(GIT_REVISION "unknown")
-endif()
-
-string(TIMESTAMP BUILD_DATE "%Y-%m-%d" UTC)
-
-configure_file(
-    ${CMAKE_CURRENT_SOURCE_DIR}/BuildData.json.in
-    ${CMAKE_CURRENT_BINARY_DIR}/BuildData.json
-    @ONLY
+# Regenerated on every build (not just at configure time) so the revision and
+# build time are current. -DAPP_VERSION=X.Y.Z sets the version; without it the
+# version comes from the latest git tag.
+add_custom_target(builddata ALL
+    COMMAND ${CMAKE_COMMAND}
+        -DAPP_VERSION=${APP_VERSION}
+        -DSRC_DIR=${CMAKE_CURRENT_SOURCE_DIR}
+        -DIN_FILE=${CMAKE_CURRENT_SOURCE_DIR}/BuildData.json.in
+        -DOUT_FILE=${CMAKE_CURRENT_BINARY_DIR}/BuildData.json
+        -P ${CMAKE_CURRENT_SOURCE_DIR}/GenerateBuildData.cmake
+    BYPRODUCTS ${CMAKE_CURRENT_BINARY_DIR}/BuildData.json
+    COMMENT "Generating BuildData.json"
+    VERBATIM
 )
+add_dependencies(infinidream builddata)
