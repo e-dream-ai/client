@@ -44,6 +44,10 @@ malformed ones, but no other faults or chaos yet. Written for the Mac; `slow_lin
   without screenshots, because taking them stalls the render loop. It plays at 30 fps
   (`--fps`), above the client's default 20, because a rebuffer used to wait for a second of
   frames, more than the decoder queues above 21 fps, and never end.
+- `moon_test.py` lets the client download every dream, then sends `next` 8 times between
+  cached dreams and checks the buffering moon never shows (#823). The incoming decoder takes
+  ~100 ms to fill its first frames, which holds the crossfade briefly, and that used to flash the
+  moon nearly every time. About a minute.
 - `slow_link_test.py` checks adaptive playback speed (#770) over a limited link, on the
   `alpha-v1` set's two long Pink Floyd dreams by default: at 0.6x the first dream's rate it
   slows below 100% and keeps moving with at most 2 rebuffers; at 0.15x it goes below the old
@@ -66,6 +70,7 @@ venv/bin/python e2e_test.py --app "$APP"
 venv/bin/python commands_test.py --app "$APP"
 venv/bin/python crash_test.py --app "$APP"
 venv/bin/python throttle_test.py --app "$APP"
+venv/bin/python moon_test.py --app "$APP"
 venv/bin/python slow_link_test.py --app "$APP"
 ```
 
