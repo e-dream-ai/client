@@ -858,9 +858,10 @@ MakeSmartPointers(COSD);
 // It stays in the HudManager for the life of the app. The client calls
 // SetStalled() every frame, and Render() owns all the timing. Stalls often come
 // in bursts (buffer, play a few frames, buffer again), so gaps shorter than
-// kClearHold count as part of one stall. Nothing shows for the first
-// kShowDelay seconds (so a lone hiccup doesn't flash it), then it fades in, and
-// fades out once there has been no stall for kClearHold seconds. The phase runs
+// kClearHold count as part of one stall. Nothing shows until the stall has
+// lasted kShowDelay seconds (so a lone hiccup doesn't flash it; client#823),
+// then it fades in, and fades out once there has been no stall for kClearHold
+// seconds. The phase runs
 // off the clock and never restarts, so the moon keeps going round.
 class CBufferingIndicator : public CHudEntry
 {
@@ -914,15 +915,25 @@ class CBufferingIndicator : public CHudEntry
         const bool holding = m_LastStalledTime >= 0 && _time - m_LastStalledTime < kClearHold;
         if (m_Stalled)
             m_LastStalledTime = _time;
-        const bool active = m_Stalled || m_Awaiting || holding;
+        const bool waiting = m_Stalled || m_Awaiting;
+        const bool active = waiting || holding;
         if (active && !m_WasActive)
             m_ActiveStart = _time;
         m_WasActive = active;
+        if (waiting)
+            m_LastWaitingTime = _time;
+
+        // The hold bridges gaps between bursts and keeps the moon up while it
+        // fades, but it doesn't count toward kShowDelay. Only time spent
+        // actually waiting does, so a one-frame stall can't show the moon.
+        if (!active)
+            m_Showing = false;
+        else if (m_LastWaitingTime - m_ActiveStart >= kShowDelay)
+            m_Showing = true;
 
         const double dt = m_LastTime < 0 ? 0 : std::max(0.0, _time - m_LastTime);
         m_LastTime = _time;
-        const bool show = active && _time - m_ActiveStart >= kShowDelay;
-        if (show)
+        if (m_Showing)
         {
             m_Alpha = std::min(1.f, m_Alpha + static_cast<float>(dt / kFadeIn));
         }
@@ -967,8 +978,10 @@ class CBufferingIndicator : public CHudEntry
     bool m_Stalled = false;
     bool m_Awaiting = false;
     bool m_WasActive = false;
+    bool m_Showing = false;
     double m_ActiveStart = 0;
     double m_LastStalledTime = -1;
+    double m_LastWaitingTime = 0;
     double m_LastTime = -1;
     float m_Alpha = 0.f;
 };
