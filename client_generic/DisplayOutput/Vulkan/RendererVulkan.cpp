@@ -6,6 +6,7 @@
 #include "Image.h"
 #include "Log.h"
 #include "PlatformUtils.h"
+#include "PlatformUtils_Internal.h"
 #include "Rect.h"
 #include "Settings.h"
 
@@ -1955,24 +1956,12 @@ void CRendererVulkan::DrawText(spCBaseText _text,
             dl->AddText(normalFont, fontSizePx, cur, color, segBegin, p);
     };
 
-    // Soft drop shadow, as on Windows: a core copy of the text offset down-right, plus a
-    // faint 1px halo around it. The offset grows with the text. The swapchain is sRGB, so
-    // these alphas blend in linear light; they appear as about 0.6 and 0.3.
-    struct ShadowTap
-    {
-        float dx, dy, alpha;
-    };
-    const float offset = (std::max)(1.0f, std::round(fontSizePx / 16.0f));
-    const ShadowTap shadowTaps[] = {
-        {offset, offset, 0.87f},
-        {offset - 1.0f, offset, 0.54f},
-        {offset + 1.0f, offset, 0.54f},
-        {offset, offset - 1.0f, 0.54f},
-        {offset, offset + 1.0f, 0.54f},
-    };
-    for (const ShadowTap& tap : shadowTaps)
-        renderAt({cursor.x + tap.dx, cursor.y + tap.dy},
-                 IM_COL32(0, 0, 0, static_cast<ImU32>(_color.m_W * tap.alpha * 255.f)));
+    // Drop shadow as on Mac (TextMetal.mm: offset 1pt down-right, radius 0, opacity 1):
+    // one hard black copy, 1px per unit of UI scale. No halo, and the offset doesn't grow
+    // with font size, which made large HUD text smeared and heavy (#816).
+    const float offset = (std::max)(1.0f, std::round(PlatformUtils_GetUIScale()));
+    renderAt({cursor.x + offset, cursor.y + offset},
+             IM_COL32(0, 0, 0, static_cast<ImU32>(_color.m_W * 255.f)));
     renderAt(cursor, col);
 }
 
