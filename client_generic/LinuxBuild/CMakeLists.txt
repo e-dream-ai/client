@@ -110,6 +110,33 @@ if(PKG_CONFIG_FOUND)
             DEPENDS ${XDG_DECORATION_XML}
             COMMENT "Generating xdg-decoration protocol bindings"
         )
+        # Fractional scaling (render at the monitor's real resolution at e.g. 133%,
+        # instead of the compositor enlarging a smaller frame). fractional-scale-v1
+        # is in wayland-protocols >= 1.31; older ones (Ubuntu 22.04) build without it.
+        set(FRACTIONAL_SCALE_XML "${WL_PROTOCOLS_DIR}/staging/fractional-scale/fractional-scale-v1.xml")
+        set(VIEWPORTER_XML "${WL_PROTOCOLS_DIR}/stable/viewporter/viewporter.xml")
+        if(EXISTS ${FRACTIONAL_SCALE_XML} AND EXISTS ${VIEWPORTER_XML})
+            set(HAVE_WP_FRACTIONAL_SCALE ON)
+            foreach(proto_name_xml "fractional-scale-v1;${FRACTIONAL_SCALE_XML}"
+                                   "viewporter;${VIEWPORTER_XML}")
+                list(GET proto_name_xml 0 proto_name)
+                list(GET proto_name_xml 1 proto_xml)
+                add_custom_command(
+                    OUTPUT  ${CMAKE_CURRENT_BINARY_DIR}/${proto_name}-protocol.c
+                            ${CMAKE_CURRENT_BINARY_DIR}/${proto_name}-client-protocol.h
+                    COMMAND ${WAYLAND_SCANNER} private-code
+                            ${proto_xml} ${CMAKE_CURRENT_BINARY_DIR}/${proto_name}-protocol.c
+                    COMMAND ${WAYLAND_SCANNER} client-header
+                            ${proto_xml} ${CMAKE_CURRENT_BINARY_DIR}/${proto_name}-client-protocol.h
+                    DEPENDS ${proto_xml}
+                    COMMENT "Generating ${proto_name} protocol bindings"
+                )
+            endforeach()
+            add_compile_definitions(HAVE_WP_FRACTIONAL_SCALE)
+            message(STATUS "Wayland fractional-scale-v1 found — fractional scaling enabled")
+        else()
+            message(STATUS "Wayland fractional-scale-v1 not found — the compositor scales the window")
+        endif()
         add_compile_definitions(HAVE_WAYLAND)
         if(LIBDECOR_FOUND)
             message(STATUS "libdecor found — Wayland client-side decoration fallback enabled")
@@ -297,6 +324,12 @@ if(WAYLAND_CLIENT_FOUND AND WAYLAND_PROTOCOLS_FOUND AND WAYLAND_SCANNER)
         ${CMAKE_CURRENT_BINARY_DIR}/xdg-shell-protocol.c
         ${CMAKE_CURRENT_BINARY_DIR}/xdg-decoration-unstable-v1-protocol.c
     )
+    if(HAVE_WP_FRACTIONAL_SCALE)
+        list(APPEND SOURCES
+            ${CMAKE_CURRENT_BINARY_DIR}/fractional-scale-v1-protocol.c
+            ${CMAKE_CURRENT_BINARY_DIR}/viewporter-protocol.c
+        )
+    endif()
 endif()
 
 # ---------------------------------------------------------------------------

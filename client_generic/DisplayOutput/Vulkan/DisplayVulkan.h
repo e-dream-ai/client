@@ -17,6 +17,10 @@
 #include <xkbcommon/xkbcommon.h>
 #include "xdg-shell-client-protocol.h"
 #include "xdg-decoration-unstable-v1-client-protocol.h"
+#ifdef HAVE_WP_FRACTIONAL_SCALE
+#include "fractional-scale-v1-client-protocol.h"
+#include "viewporter-client-protocol.h"
+#endif
 #ifdef HAVE_LIBDECOR
 #include <libdecor.h>
 #endif
@@ -74,6 +78,24 @@ class CDisplayVulkan : public CDisplayOutput
     struct wl_data_offer* m_pSelectionOffer = nullptr; // current clipboard contents
     struct zxdg_decoration_manager_v1*   m_pDecorationManager = nullptr;
     struct zxdg_toplevel_decoration_v1*  m_pToplevelDecoration = nullptr;
+#ifdef HAVE_WP_FRACTIONAL_SCALE
+    struct wp_fractional_scale_manager_v1* m_pFractionalScaleManager = nullptr;
+    struct wp_fractional_scale_v1*         m_pFractionalScale        = nullptr;
+    struct wp_viewporter*                  m_pViewporter             = nullptr;
+    struct wp_viewport*                    m_pViewport               = nullptr;
+#endif
+
+    // Fractional scaling. Wayland sizes (configure events, libdecor, pointer
+    // coordinates) are logical: the desktop scale isn't applied. m_Width/m_Height,
+    // which the renderer, HUD and ImGui use, are the buffer's pixels: the logical
+    // size times m_wlScale. With fractional-scale-v1 + viewporter, m_wlScale is the
+    // compositor's preferred scale and the viewport maps the buffer back onto the
+    // logical size; without them it stays 1 and the compositor enlarges the window.
+    uint32_t m_logicalWidth  = 0;
+    uint32_t m_logicalHeight = 0;
+    double   m_wlScale       = 1.0;
+    void setWaylandLogicalSize(uint32_t w, uint32_t h);
+    int32_t toBufferPx(wl_fixed_t logical) const;
 #ifdef HAVE_LIBDECOR
     struct libdecor*      m_pLibdecorContext = nullptr;
     struct libdecor_frame* m_pLibdecorFrame  = nullptr;
@@ -157,6 +179,9 @@ class CDisplayVulkan : public CDisplayOutput
     static void onPointerMotion(void*, wl_pointer*, uint32_t, wl_fixed_t, wl_fixed_t);
     static void onPointerButton(void*, wl_pointer*, uint32_t, uint32_t, uint32_t, uint32_t);
     static void onPointerAxis(void*, wl_pointer*, uint32_t, uint32_t, wl_fixed_t);
+#ifdef HAVE_WP_FRACTIONAL_SCALE
+    static void onPreferredScale(void*, wp_fractional_scale_v1*, uint32_t);
+#endif
 #ifdef HAVE_LIBDECOR
     static void onLibdecorError(struct libdecor*, enum libdecor_error, const char*);
     static void onLibdecorConfigure(struct libdecor_frame*, struct libdecor_configuration*, void*);
