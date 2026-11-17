@@ -403,6 +403,15 @@ def first_dream(media_dir, dreams):
     return next(iter(dreams.values()))
 
 
+def resume_settings(dream_uuid, frame):
+    """settings.content values that make a fresh client resume dream_uuid at frame, as if it
+    had been quit there. The client resumes only when the playlist it saved matches the one
+    the server starts it on, so that is saved too. frame goes into settings.json as it is,
+    so a float or an out-of-range number can be stored."""
+    return {"current_playlist_uuid": PLAYLIST or server.PLAYLIST_UUID,
+            "last_played_uuid": dream_uuid, "last_played_frame": frame}
+
+
 def load_dreams(media_dir, count, min_frames, pick="smallest"):
     """The dreams a test's server will serve: server.load_dreams, or with --playlist up to count
     of that playlist's dreams of any length."""

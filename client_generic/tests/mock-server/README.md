@@ -83,6 +83,16 @@ malformed ones, but no other faults or chaos yet. Written for the Mac; `slow_lin
   order (#835): the first dream used to replay until the downloader, asleep for up to 10 s, had
   fetched the second. Runs twice, on a fast link and on a 1.5 MB/s one, where the next dream must
   be streamed. About two minutes.
+- `resume_past_end_test.py` starts a client set to resume its first dream at 3 times its
+  length (`last_played_frame`) and checks it plays that dream from the start (#666). The decoder
+  used to find no frames there, so the dream ended unseen. About a minute.
+- `bad_setting_test.py` stores `last_played_frame` as 1e23 and as 120.5, which boost::json's
+  `as_uint64()` throws on, and as 120.0 as a control. One fresh client per case; each must play,
+  quit cleanly and leave an integer behind (#666). The first two crash the client until #666's
+  JSONStorage fix lands, and make macOS show a crash dialog (see below).
+- `zero_quota_test.py` serves with `--quota 0`, so nothing is downloaded in the background, and
+  starts a client set to resume its first dream at its last frame. It checks the streamed dream
+  is cached and played again when it ends, without busy-looping (#666, #725). A few seconds.
 - `run_all.py` runs every test above in turn and prints a summary (see "Running the tests").
 - `fixtures.py` makes and checks fixture sets (see "Videos").
 - `screens.py` takes about one screenshot of the client's window a second, to catch a black
@@ -96,7 +106,7 @@ venv/bin/pip install -r requirements.txt
 brew install ffmpeg   # for ffprobe
 
 APP="/path/to/infinidream.app/Contents/MacOS/infinidream"
-venv/bin/python run_all.py --app "$APP"              # all 15, about 25 minutes
+venv/bin/python run_all.py --app "$APP"              # all 18, about 27 minutes
 venv/bin/python run_all.py --app "$APP" --only moon resume
 venv/bin/python moon_test.py --app "$APP"            # or any one test by itself
 ```
