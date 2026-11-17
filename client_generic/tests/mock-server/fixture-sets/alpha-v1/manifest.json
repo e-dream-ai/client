@@ -1,0 +1,591 @@
+{
+  "name": "alpha-v1",
+  "source": "https://api-alpha.infinidream.ai/api/v1",
+  "created": "2026-11-11",
+  "playlists": [
+    {
+      "id": "e45d0e8c-ac8d-47c4-b32b-c615066d3663",
+      "name": "Infinite Visions",
+      "total": 41,
+      "take": 20,
+      "uuids": [
+        "eb107f71-77b6-4079-8afc-6cf30355c403",
+        "169d090b-ebd6-4eb0-9b85-ba160178ec6b",
+        "57451648-9b17-4252-9a32-509b27c14af2",
+        "6ebde710-fb2d-49d1-9e8c-d50e6bc9c77f",
+        "0eaed980-8563-4ab9-b5a7-66078cb506cf",
+        "e04655fd-46f9-4338-8150-022dde7355e5",
+        "41b0d4f1-af3c-426d-9cd4-6bae2b3edfa2",
+        "582c2783-a45d-4fe5-b019-cbc09884f38b",
+        "5926b911-072d-41be-9006-b7c22aced663",
+        "379b94c1-72f6-440a-a6b2-6786b5289d6b",
+        "d7dacca2-f130-4dab-8432-d9746f84e5a9",
+        "b229a305-be61-40f4-94ef-b68c35ee6324",
+        "a2d7d3a0-ccd1-49b3-bdac-ec87210808d4",
+        "18e346e2-63b8-4429-beb6-0166d5f29f1f",
+        "7fadc168-c73f-4a62-807a-dfe2b6402004",
+        "0bcfe891-200f-4299-96c4-15e301fd0ec4",
+        "7e70ce92-6dc2-4b97-84ca-3050d5187976",
+        "e6014f82-69a0-4446-9352-71cf6c5a22ab",
+        "693f12a1-4104-4f4d-b41a-deda7a5ca146",
+        "d7cb1a60-4441-4144-938c-bc4cffeb74c3"
+      ]
+    },
+    {
+      "id": "bd5615c2-5a68-4e33-b9c1-6649fb09dc03",
+      "name": "Pink Floyd",
+      "total": 13,
+      "take": 2,
+      "uuids": [
+        "5d41d3c5-da1f-4040-884a-4f1c5bf3c0a1",
+        "e8958970-501b-42e8-8005-e9768e951603"
+      ]
+    },
+    {
+      "id": "d9726526-b8f2-4221-a0bf-67fbacc01f4d",
+      "name": "Wankel Rotary Engine",
+      "total": 170,
+      "take": 40,
+      "uuids": [
+        "4359336c-49a9-477d-822a-635c8a3eb5e0",
+        "540a5fbf-b5aa-4c16-90ab-20baeab64879",
+        "d02f3856-7a82-4f69-afe8-5fa2be70113f",
+        "9a8b2b04-603c-4a8e-9e77-2235b84318b5",
+        "89cac71b-69c4-4f61-bb06-fb7bb6c967ec",
+        "9ff54af5-fc35-4e73-b892-041651adc205",
+        "3d02ac85-962e-440c-a27e-1d938185e0ab",
+        "2069adce-0644-46ca-8c3a-1daa928b01e8",
+        "bbb11fee-f816-4ddd-9ff8-513fdaa98187",
+        "7ca836fa-a8fb-40ac-be8a-c50523274952",
+        "449db88b-5bcd-4b5c-8db9-de34e4b9dcc6",
+        "613b5f64-bb66-4778-a710-69fcc2874031",
+        "faf2b6a7-930f-445d-8513-e8f8fb6010cc",
+        "b1d38ab8-20b6-4630-b553-3330896e3e5d",
+        "828137d7-e280-4e82-ba89-2d03468d85b8",
+        "1bba4677-ecd2-40a6-adb7-4dd0ff2bb04c",
+        "3444bd5a-bf4c-4e97-a566-61de2929aaa1",
+        "c16f3631-683c-471b-aa80-f5c051a21535",
+        "a4b6ed1d-efff-4838-bbf2-68b170f1f43e",
+        "def173ff-4206-4f59-92da-9616b81a27bc",
+        "f5b76128-734b-45d9-8f8c-4d86d2dfaef8",
+        "e29c5a87-50a4-4c4c-9f58-1d8d43056039",
+        "239606f4-ca24-4eb6-8c0a-68c174345b3a",
+        "3975c429-5610-4ef9-9c53-784aca320e6c",
+        "9856495e-d077-4277-91b2-81b54219f8f6",
+        "05260164-0bf0-49ef-b82e-902cf1a46e95",
+        "74ea1993-4340-446b-81ca-905ed34a785a",
+        "f4b8ff9a-98fe-4836-b8b2-d96ca3229ad1",
+        "74dbe0c1-77e0-48df-b990-786afa99eb1b",
+        "dc45108e-8742-42c5-bb08-0615f52c546a",
+        "43b653c9-a401-4d08-841b-c046df15fdf8",
+        "aab1792f-804f-4534-90fe-3206bf3cf37f",
+        "7c5074ba-a204-4875-bafd-6d782f667bd7",
+        "ce53b9ed-fb1b-43d2-beed-02852d161d4f",
+        "5c79d9ff-c081-4a71-83c7-898bad55de01",
+        "03286efe-47d4-41bd-a980-3351fe2a69cf",
+        "d77f89a3-46ff-4dba-bc47-f0e6a27c9ba4",
+        "9458dcac-7766-4d32-9de5-8ded79bc99d9",
+        "e06a074e-39ae-48d5-8a89-ee40a2a0ca93",
+        "515fbe41-1ea1-4f21-a945-a75ca431caad"
+      ]
+    }
+  ],
+  "dreams": [
+    {
+      "uuid": "eb107f71-77b6-4079-8afc-6cf30355c403",
+      "md5": "26b12309e42fb5dfb31a568ba85ec1e2",
+      "size": 67420185,
+      "frames": 727,
+      "fps": 12.0,
+      "name": "infinite neon candyland; planets, eclipse, vibrant orbs sparkling, visionary, symbolism, fun happy landscapes, futurism; visionary, undulating waves o (1710112068485)_prob4"
+    },
+    {
+      "uuid": "169d090b-ebd6-4eb0-9b85-ba160178ec6b",
+      "md5": "22d3314c367be0b9ebf2d9be53c04b0e",
+      "size": 61585015,
+      "frames": 727,
+      "fps": 12.0,
+      "name": "Healing Visions; infinite neon Cathedreals; Kingdoms; neon space; nebula; Saturn; landscape, love, planets, eclipse, strange hypnotic orbs, visionary, (1710102974138)_prob4"
+    },
+    {
+      "uuid": "57451648-9b17-4252-9a32-509b27c14af2",
+      "md5": "77d005661635f34c756033032ba51327",
+      "size": 49183088,
+      "frames": 727,
+      "fps": 12.0,
+      "name": "Healing Visions; infinite neon Cathedreals; Kingdoms; neon space; nebula; Saturn; landscape, love, planets, eclipse, strange hypnotic orbs, visionary, (1711385066871)_prob4"
+    },
+    {
+      "uuid": "6ebde710-fb2d-49d1-9e8c-d50e6bc9c77f",
+      "md5": "d6a98af495d8001c9cfc23cc08db0f3a",
+      "size": 36688487,
+      "frames": 726,
+      "fps": 12.0,
+      "name": "Healing Visions; infinite neon Cathedreals; Kingdoms; neon space; nebula; Saturn; landscape, love, planets, eclipse, strange hypnotic orbs, visionary, (1711385070970)"
+    },
+    {
+      "uuid": "0eaed980-8563-4ab9-b5a7-66078cb506cf",
+      "md5": "09acec44c15fead282a97436e6f3a300",
+      "size": 55140914,
+      "frames": 727,
+      "fps": 12.0,
+      "name": "Healing Visions; infinite neon Cathedreals; Kingdoms; neon space; nebula; Saturn; landscape, love, planets, eclipse, strange hypnotic orbs, visionary, (1710102849675)_prob4"
+    },
+    {
+      "uuid": "e04655fd-46f9-4338-8150-022dde7355e5",
+      "md5": "f21d05554dc0bff0f333952b5781899b",
+      "size": 56719631,
+      "frames": 727,
+      "fps": 12.0,
+      "name": "Healing Visions; infinite neon Cathedreals; Kingdoms; neon space; nebula; Saturn; landscape, love, planets, eclipse, strange hypnotic orbs, visionary, (1710103180008)_prob4"
+    },
+    {
+      "uuid": "41b0d4f1-af3c-426d-9cd4-6bae2b3edfa2",
+      "md5": "eb0717f6ca92ba08d50ccd17789356e8",
+      "size": 30805237,
+      "frames": 726,
+      "fps": 12.0,
+      "name": "Healing Visions; infinite neon Cathedreals; Kingdoms; neon space; nebula; Saturn; landscape, love, planets, eclipse, strange hypnotic orbs, visionary, (1711385066871)"
+    },
+    {
+      "uuid": "582c2783-a45d-4fe5-b019-cbc09884f38b",
+      "md5": "040375a672aa0065fbc1d77e78937a7c",
+      "size": 58183219,
+      "frames": 727,
+      "fps": 12.0,
+      "name": "Healing Visions; infinite neon Forest; neon space; nebula; Saturn; blackhole; architecture; Tree of Life, planets, eclipse, strange hypnotic orbs, vis (1710087507562)_prob4"
+    },
+    {
+      "uuid": "5926b911-072d-41be-9006-b7c22aced663",
+      "md5": "632991cebd0a7317a5abd01befca4d54",
+      "size": 68227184,
+      "frames": 727,
+      "fps": 12.0,
+      "name": "Healing Visions; infinite neon Forest; neon space; nebula; Saturn; landscape, love, planets, eclipse, strange hypnotic orbs, visionary, symbolism; Sea (1710091804771)_prob4"
+    },
+    {
+      "uuid": "379b94c1-72f6-440a-a6b2-6786b5289d6b",
+      "md5": "1009662c894df451732e02f0e30aa30a",
+      "size": 59206444,
+      "frames": 727,
+      "fps": 12.0,
+      "name": "Healing Visions; infinite neon Forest; neon space; nebula; Saturn; landscape, love, planets, eclipse, strange hypnotic orbs, visionary, symbolism; Sea (1710100924790)_prob4"
+    },
+    {
+      "uuid": "d7dacca2-f130-4dab-8432-d9746f84e5a9",
+      "md5": "9a07bfaee20414333dc74faa59e04973",
+      "size": 62722188,
+      "frames": 727,
+      "fps": 12.0,
+      "name": "Healing Visions; infinite neon Forest; neon space; nebula; Saturn; landscape, love, planets, eclipse, strange hypnotic orbs, visionary, symbolism; Sea (1710100948632)_prob4"
+    },
+    {
+      "uuid": "b229a305-be61-40f4-94ef-b68c35ee6324",
+      "md5": "1df250e72351499982d767a5f5c6d4dd",
+      "size": 59255271,
+      "frames": 727,
+      "fps": 12.0,
+      "name": "Healing Visions; infinite neon Forest; neon space; nebula; Saturn; landscape, love, planets, eclipse, strange hypnotic orbs, visionary, symbolism; Sea (1710100958176)_prob4"
+    },
+    {
+      "uuid": "a2d7d3a0-ccd1-49b3-bdac-ec87210808d4",
+      "md5": "40eeaa406ea687214c2fa7368253b985",
+      "size": 54575589,
+      "frames": 727,
+      "fps": 12.0,
+      "name": "Healing Visions; infinite neon Forest; neon space; nebula; Saturn; landscape, love, planets, eclipse, strange hypnotic orbs, visionary, symbolism; Sea (1710100968299)_prob4"
+    },
+    {
+      "uuid": "18e346e2-63b8-4429-beb6-0166d5f29f1f",
+      "md5": "0335d89c39bd6dd35398623daffe5fc4",
+      "size": 57170732,
+      "frames": 727,
+      "fps": 12.0,
+      "name": "Healing Visions; infinite neon Forest; neon space; nebula; Saturn; landscape, love, planets, eclipse, strange hypnotic orbs, visionary, symbolism; Sea (1710100978342)_prob4"
+    },
+    {
+      "uuid": "7fadc168-c73f-4a62-807a-dfe2b6402004",
+      "md5": "d20a3881a514ef90e3e38b39f500a9f0",
+      "size": 65200696,
+      "frames": 727,
+      "fps": 12.0,
+      "name": "Healing Visions; infinite neon Cathedreals; Kingdoms; neon space; nebula; Saturn; landscape, love, planets, eclipse, strange hypnotic orbs, visionary, (1710102966215)_prob4"
+    },
+    {
+      "uuid": "0bcfe891-200f-4299-96c4-15e301fd0ec4",
+      "md5": "edc713e965737e27ca94681961740844",
+      "size": 57770371,
+      "frames": 727,
+      "fps": 12.0,
+      "name": "Healing Visions; infinite neon Cathedreals; Kingdoms; neon space; nebula; Saturn; landscape, love, planets, eclipse, strange hypnotic orbs, visionary, (1710112076470)_prob4"
+    },
+    {
+      "uuid": "7e70ce92-6dc2-4b97-84ca-3050d5187976",
+      "md5": "17d78388fa849818765197fda9291fd3",
+      "size": 55912268,
+      "frames": 727,
+      "fps": 12.0,
+      "name": "Healing Visions; infinite neon Cathedreals; Kingdoms; neon space; nebula; Saturn; landscape, love, planets, eclipse, strange hypnotic orbs, visionary, (1711385070970)_prob4"
+    },
+    {
+      "uuid": "e6014f82-69a0-4446-9352-71cf6c5a22ab",
+      "md5": "e45042596c0bedd5b30680f4b05f2b40",
+      "size": 56755002,
+      "frames": 727,
+      "fps": 12.0,
+      "name": "Healing Visions; infinite neon Forest; neon space; nebula; Saturn; blackhole; architecture; Tree of Life, planets, eclipse, strange hypnotic orbs, vis (1710091716988)_prob4"
+    },
+    {
+      "uuid": "693f12a1-4104-4f4d-b41a-deda7a5ca146",
+      "md5": "08274bb508de514a1069a61b490a09a4",
+      "size": 59622644,
+      "frames": 727,
+      "fps": 12.0,
+      "name": "Healing Visions; infinite neon Forest; neon space; nebula; Saturn; landscape, love, planets, eclipse, strange hypnotic orbs, visionary, symbolism; Sea (1710100915759)_prob4"
+    },
+    {
+      "uuid": "d7cb1a60-4441-4144-938c-bc4cffeb74c3",
+      "md5": "2af4896af5d2ca4b5967078d9578725a",
+      "size": 56868271,
+      "frames": 727,
+      "fps": 12.0,
+      "name": "Healing Visions; infinite neon Forest; neon space; nebula; Saturn; landscape, love, planets, eclipse, strange hypnotic orbs, visionary, symbolism; Sea (1710100928851)_prob4"
+    },
+    {
+      "uuid": "5d41d3c5-da1f-4040-884a-4f1c5bf3c0a1",
+      "md5": "dab3e91e7c0e11fd4fb21a4588a69678",
+      "size": 786934115,
+      "frames": 11062,
+      "fps": 24.0,
+      "name": "Pink Floyd - Us and Them"
+    },
+    {
+      "uuid": "e8958970-501b-42e8-8005-e9768e951603",
+      "md5": "75f19ccb4b55f734f4454113b56f3ad1",
+      "size": 605189822,
+      "frames": 12290,
+      "fps": 30.0,
+      "name": "wearing the inside outactualfinal"
+    },
+    {
+      "uuid": "4359336c-49a9-477d-822a-635c8a3eb5e0",
+      "md5": "ac712998bcb19b926b64fc799c0788d4",
+      "size": 7043207,
+      "frames": 193,
+      "fps": 24.0,
+      "name": "000_wankel_v001_00001_rhea1"
+    },
+    {
+      "uuid": "540a5fbf-b5aa-4c16-90ab-20baeab64879",
+      "md5": "40ae8ad15c48b6379d252b8a99ade475",
+      "size": 6765384,
+      "frames": 193,
+      "fps": 24.0,
+      "name": "000_wankel_v002_00001_rhea1"
+    },
+    {
+      "uuid": "d02f3856-7a82-4f69-afe8-5fa2be70113f",
+      "md5": "d25d47685419dbccbfda49c219013331",
+      "size": 6705870,
+      "frames": 193,
+      "fps": 24.0,
+      "name": "000_wankel_v003_00001_rhea1"
+    },
+    {
+      "uuid": "9a8b2b04-603c-4a8e-9e77-2235b84318b5",
+      "md5": "c79ecc763d6bceadc405b6da64409871",
+      "size": 6844027,
+      "frames": 193,
+      "fps": 24.0,
+      "name": "001_wankel_v059_00001_rhea1"
+    },
+    {
+      "uuid": "89cac71b-69c4-4f61-bb06-fb7bb6c967ec",
+      "md5": "47038cb7dcf733c3d4201036bb9f660f",
+      "size": 6704476,
+      "frames": 193,
+      "fps": 24.0,
+      "name": "001_wankel_v060_00001_rhea1"
+    },
+    {
+      "uuid": "9ff54af5-fc35-4e73-b892-041651adc205",
+      "md5": "9ec212863ef4878e7484a5abd41007d8",
+      "size": 6615393,
+      "frames": 193,
+      "fps": 24.0,
+      "name": "002_wankel_reduxsa_V05_00001_rhea1"
+    },
+    {
+      "uuid": "3d02ac85-962e-440c-a27e-1d938185e0ab",
+      "md5": "a8ed00d575c6aa7e4beb09817070bdcf",
+      "size": 6671759,
+      "frames": 193,
+      "fps": 24.0,
+      "name": "002_wankel_reduxsa_V06_00001_rhea1"
+    },
+    {
+      "uuid": "2069adce-0644-46ca-8c3a-1daa928b01e8",
+      "md5": "902165ac147daa512ec7c58b971e0881",
+      "size": 5551765,
+      "frames": 193,
+      "fps": 24.0,
+      "name": "002_wankel_reduxsa_V07_00001_rhea1"
+    },
+    {
+      "uuid": "bbb11fee-f816-4ddd-9ff8-513fdaa98187",
+      "md5": "0d8341f7d4e61088f1553d7f7ca4fc4b",
+      "size": 6187547,
+      "frames": 193,
+      "fps": 24.0,
+      "name": "002_wankel_reduxsa_V08_00001_rhea1"
+    },
+    {
+      "uuid": "7ca836fa-a8fb-40ac-be8a-c50523274952",
+      "md5": "a01f2b497e09f42f653f30b0c6a26617",
+      "size": 4667636,
+      "frames": 193,
+      "fps": 24.0,
+      "name": "003_wankel_v004_00001_rhea1"
+    },
+    {
+      "uuid": "449db88b-5bcd-4b5c-8db9-de34e4b9dcc6",
+      "md5": "3ccc6ec3ffe4007455a9a0ae0858b54c",
+      "size": 5438598,
+      "frames": 193,
+      "fps": 24.0,
+      "name": "003_wankel_v005_00001_rhea1"
+    },
+    {
+      "uuid": "613b5f64-bb66-4778-a710-69fcc2874031",
+      "md5": "998339bfefc8ee80909a6193a843b078",
+      "size": 5175523,
+      "frames": 193,
+      "fps": 24.0,
+      "name": "003_wankel_v006_00001_rhea1"
+    },
+    {
+      "uuid": "faf2b6a7-930f-445d-8513-e8f8fb6010cc",
+      "md5": "3d6aa2fd86c922127e89ed4a1a2a6633",
+      "size": 5410330,
+      "frames": 193,
+      "fps": 24.0,
+      "name": "003_wankel_v007_00001_rhea1"
+    },
+    {
+      "uuid": "b1d38ab8-20b6-4630-b553-3330896e3e5d",
+      "md5": "1e9e31033a76f3260b604a58e3576ca8",
+      "size": 8021699,
+      "frames": 193,
+      "fps": 24.0,
+      "name": "004_wankel_reduxa_V01_00001_rhea1"
+    },
+    {
+      "uuid": "828137d7-e280-4e82-ba89-2d03468d85b8",
+      "md5": "084cc12321a658a425cf2f9ea7b48e65",
+      "size": 8278349,
+      "frames": 193,
+      "fps": 24.0,
+      "name": "004_wankel_reduxa_V02_00001_rhea1"
+    },
+    {
+      "uuid": "1bba4677-ecd2-40a6-adb7-4dd0ff2bb04c",
+      "md5": "065a6ae11712fbda5dc95c95daaef43e",
+      "size": 8275871,
+      "frames": 193,
+      "fps": 24.0,
+      "name": "004_wankel_reduxa_V03_00001_rhea1"
+    },
+    {
+      "uuid": "3444bd5a-bf4c-4e97-a566-61de2929aaa1",
+      "md5": "8d8c0109c03901cbc7d63187487f6d85",
+      "size": 6649395,
+      "frames": 193,
+      "fps": 24.0,
+      "name": "005_wankel_v008_00001_rhea1"
+    },
+    {
+      "uuid": "c16f3631-683c-471b-aa80-f5c051a21535",
+      "md5": "5c5f64bcbc19b844dccf68f5825b6408",
+      "size": 7277969,
+      "frames": 193,
+      "fps": 24.0,
+      "name": "005_wankel_v009_00001_rhea1"
+    },
+    {
+      "uuid": "a4b6ed1d-efff-4838-bbf2-68b170f1f43e",
+      "md5": "53f6851a50eed8012456f30f7b9073e1",
+      "size": 6169838,
+      "frames": 193,
+      "fps": 24.0,
+      "name": "005_wankel_v010_00001_rhea1"
+    },
+    {
+      "uuid": "def173ff-4206-4f59-92da-9616b81a27bc",
+      "md5": "e28e5027780627f0f8273cf7d9910d0d",
+      "size": 5496135,
+      "frames": 193,
+      "fps": 24.0,
+      "name": "006_wankel_v018_00001_rhea1"
+    },
+    {
+      "uuid": "f5b76128-734b-45d9-8f8c-4d86d2dfaef8",
+      "md5": "40260c15d51b6c1f34804213e093f135",
+      "size": 6051837,
+      "frames": 193,
+      "fps": 24.0,
+      "name": "006_wankel_v019_00001_rhea1"
+    },
+    {
+      "uuid": "e29c5a87-50a4-4c4c-9f58-1d8d43056039",
+      "md5": "89b6f04a740bec933fe325db786f76d2",
+      "size": 6147660,
+      "frames": 193,
+      "fps": 24.0,
+      "name": "006_wankel_v020_00001_rhea1"
+    },
+    {
+      "uuid": "239606f4-ca24-4eb6-8c0a-68c174345b3a",
+      "md5": "902e599975f15ac18cd2bf600c4153a3",
+      "size": 6747215,
+      "frames": 193,
+      "fps": 24.0,
+      "name": "007_wankel_reduxo_V04_00001_rhea1"
+    },
+    {
+      "uuid": "3975c429-5610-4ef9-9c53-784aca320e6c",
+      "md5": "e98d9ba7a332f520d8cde4a26ee8372e",
+      "size": 6956324,
+      "frames": 193,
+      "fps": 24.0,
+      "name": "007_wankel_reduxo_V06_00001_rhea1"
+    },
+    {
+      "uuid": "9856495e-d077-4277-91b2-81b54219f8f6",
+      "md5": "c9ea795ede52c0ef89cb40dc91cf9e84",
+      "size": 5217013,
+      "frames": 193,
+      "fps": 24.0,
+      "name": "008_wankel_reduxl_V04_00001_rhea1"
+    },
+    {
+      "uuid": "05260164-0bf0-49ef-b82e-902cf1a46e95",
+      "md5": "e95ae03da7eb5e7fbbc452bdf7ffc8b8",
+      "size": 5362492,
+      "frames": 193,
+      "fps": 24.0,
+      "name": "008_wankel_reduxl_V05_00001_rhea1"
+    },
+    {
+      "uuid": "74ea1993-4340-446b-81ca-905ed34a785a",
+      "md5": "09fccc8656eb7f7963643fabdc09df75",
+      "size": 5309782,
+      "frames": 193,
+      "fps": 24.0,
+      "name": "008_wankel_reduxl_V06_00001_rhea1"
+    },
+    {
+      "uuid": "f4b8ff9a-98fe-4836-b8b2-d96ca3229ad1",
+      "md5": "89710fc2079fe15ea4119d507cbf3133",
+      "size": 5157797,
+      "frames": 193,
+      "fps": 24.0,
+      "name": "009_wankel_v011_00001_rhea1"
+    },
+    {
+      "uuid": "74dbe0c1-77e0-48df-b990-786afa99eb1b",
+      "md5": "4fca5ccbfbdbf4d1516a23cd02aea322",
+      "size": 5180036,
+      "frames": 193,
+      "fps": 24.0,
+      "name": "009_wankel_v012_00001_rhea1"
+    },
+    {
+      "uuid": "dc45108e-8742-42c5-bb08-0615f52c546a",
+      "md5": "60924661d50c386e72fe3d4ec3c137a2",
+      "size": 5061961,
+      "frames": 193,
+      "fps": 24.0,
+      "name": "009_wankel_v013_00001_rhea1"
+    },
+    {
+      "uuid": "43b653c9-a401-4d08-841b-c046df15fdf8",
+      "md5": "d3d7d4cf74b69f3f4e1ecd7846f6f2dc",
+      "size": 4822756,
+      "frames": 193,
+      "fps": 24.0,
+      "name": "010_wankel_v028_00001_rhea1"
+    },
+    {
+      "uuid": "aab1792f-804f-4534-90fe-3206bf3cf37f",
+      "md5": "26ed52a86b5d313febca1f2f4848205f",
+      "size": 5058538,
+      "frames": 193,
+      "fps": 24.0,
+      "name": "010_wankel_v029_00001_rhea1"
+    },
+    {
+      "uuid": "7c5074ba-a204-4875-bafd-6d782f667bd7",
+      "md5": "b2d61e269f8cba887ff20828c5922d38",
+      "size": 4478487,
+      "frames": 193,
+      "fps": 24.0,
+      "name": "010_wankel_v030_00001_rhea1"
+    },
+    {
+      "uuid": "ce53b9ed-fb1b-43d2-beed-02852d161d4f",
+      "md5": "470820536f7d94d03f280c600bbd797e",
+      "size": 8480708,
+      "frames": 193,
+      "fps": 24.0,
+      "name": "011_wankel_reduxa_V04_00001_rhea1"
+    },
+    {
+      "uuid": "5c79d9ff-c081-4a71-83c7-898bad55de01",
+      "md5": "4b51527ff13ed7031a699f21f86a5dba",
+      "size": 8568275,
+      "frames": 193,
+      "fps": 24.0,
+      "name": "011_wankel_reduxa_V05_00001_rhea1"
+    },
+    {
+      "uuid": "03286efe-47d4-41bd-a980-3351fe2a69cf",
+      "md5": "b7fedf27988632754bff3a6b2adaa0db",
+      "size": 8493993,
+      "frames": 193,
+      "fps": 24.0,
+      "name": "011_wankel_reduxa_V06_00001_rhea1"
+    },
+    {
+      "uuid": "d77f89a3-46ff-4dba-bc47-f0e6a27c9ba4",
+      "md5": "c0d477a13d2570f0446a683292d21129",
+      "size": 8012058,
+      "frames": 193,
+      "fps": 24.0,
+      "name": "011_wankel_reduxa_V07_00001_rhea1"
+    },
+    {
+      "uuid": "9458dcac-7766-4d32-9de5-8ded79bc99d9",
+      "md5": "0e6d343781a245a2996a83dec7809cbf",
+      "size": 6810392,
+      "frames": 193,
+      "fps": 24.0,
+      "name": "012_wankel_v014_00001_rhea1"
+    },
+    {
+      "uuid": "e06a074e-39ae-48d5-8a89-ee40a2a0ca93",
+      "md5": "4780b96e66bcaa6a5cd2c9335b1132bc",
+      "size": 5689823,
+      "frames": 193,
+      "fps": 24.0,
+      "name": "013_wankel_v016_00001_rhea1"
+    },
+    {
+      "uuid": "515fbe41-1ea1-4f21-a945-a75ca431caad",
+      "md5": "1cfd03ada27866fac163adc301e48f4d",
+      "size": 4678411,
+      "frames": 193,
+      "fps": 24.0,
+      "name": "013_wankel_v017_00001_rhea1"
+    }
+  ]
+}

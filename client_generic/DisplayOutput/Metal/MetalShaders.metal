@@ -54,7 +54,7 @@ fragment float4 drawTextureFragment(ColorInOut vert [[stage_in]],
     constexpr sampler s(address::clamp_to_zero, filter::linear);
     float2 adjustedUV = (vert.uv - uniforms.rect.xy) / uniforms.rect.zw;
     float alpha = uniforms.color.a * all(adjustedUV > 0 && adjustedUV < 1);
-    adjustedUV = (adjustedUV.xy + uniforms.uvRect.xy) * uniforms.uvRect.zw;
+    adjustedUV = uniforms.uvRect.xy + adjustedUV * uniforms.uvRect.zw;
     float4 color = texture.sample(s, adjustedUV).zyxw;
     color.rgb += uniforms.brightness;
     return float4(color.rgb * uniforms.color.rgb, alpha * color.a);

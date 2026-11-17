@@ -510,10 +510,11 @@ void CManager::UpdateProgress(const std::string& _name,
 
     std::stringstream tmp;
     tmp << _name;
-    tmp << "\nDownload status: " << _status;
-    if (_status == "Active")
+    if (_status != "Active")
+        tmp << "\nDownload status: " << _status;  // Status() drops "Completed"
+    else
     {
-        tmp << ", " << (int32_t)_percentComplete << "%";
+        tmp << "\nDownload progress: " << (int32_t)_percentComplete << "%";
         if (_bytesTransferred > 1024 * 1024)
             tmp << std::fixed << std::setprecision(1) << " ("
                 << (_bytesTransferred / (1024.0 * 1024)) << " MB)";

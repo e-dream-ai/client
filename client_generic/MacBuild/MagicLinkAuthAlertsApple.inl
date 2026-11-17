@@ -47,6 +47,32 @@ static void MagicLink_PresentAlert(NSWindow *window, NSString *title, NSString *
     }
 }
 
+// Signup happens on the web; the magic-link endpoint only signs in existing accounts.
+static void MagicLink_ShowAccountNotFoundAlert(NSWindow *window)
+{
+#ifdef STAGE
+    NSURL *signupURL = [NSURL URLWithString:@"https://stage.infinidream.ai/account"];
+#else
+    NSURL *signupURL = [NSURL URLWithString:@"https://alpha.infinidream.ai/account"];
+#endif
+    NSAlert *alert = [[NSAlert alloc] init];
+    alert.messageText = @"Account Not Found";
+    alert.informativeText = @"There is no infinidream account for this email. "
+                            @"Check the address, or create a free account on the web.";
+    alert.alertStyle = NSAlertStyleWarning;
+    [alert addButtonWithTitle:@"Create Account"];
+    [alert addButtonWithTitle:@"OK"];
+    void (^handler)(NSModalResponse) = ^(NSModalResponse response) {
+        if (response == NSAlertFirstButtonReturn)
+            [[NSWorkspace sharedWorkspace] openURL:signupURL];
+    };
+    if (window) {
+        [alert beginSheetModalForWindow:window completionHandler:handler];
+    } else {
+        handler([alert runModal]);
+    }
+}
+
 static void MagicLink_ShowSendFailureAlert(NSWindow *window, const EDreamClient::SendCodeResult& result)
 {
     if (result.httpCode == 0) {
@@ -68,14 +94,7 @@ static void MagicLink_ShowSendFailureAlert(NSWindow *window, const EDreamClient:
         return;
     }
     if (result.errorCode == "USER_NOT_FOUND") {
-        NSMutableString *body = [NSMutableString stringWithString:
-            @"We could not find an account for this email. Confirm the address or ask for an invite."];
-        NSString *srv = MagicLink_StrOpt(result.message);
-        if (srv.length > 0) {
-            [body appendString:@"\n\n"];
-            [body appendString:srv];
-        }
-        MagicLink_PresentAlert(window, @"Account Not Found", body);
+        MagicLink_ShowAccountNotFoundAlert(window);
         return;
     }
     if (result.httpCode >= 400 && result.httpCode < 500) {
@@ -132,14 +151,7 @@ static void MagicLink_ShowValidateFailureAlert(NSWindow *window, const EDreamCli
         return;
     }
     if (result.errorCode == "USER_NOT_FOUND") {
-        NSMutableString *body = [NSMutableString stringWithString:
-            @"We could not find an account for this email. Confirm the address or ask for an invite."];
-        NSString *srv = MagicLink_StrOpt(result.message);
-        if (srv.length > 0) {
-            [body appendString:@"\n\n"];
-            [body appendString:srv];
-        }
-        MagicLink_PresentAlert(window, @"Account Not Found", body);
+        MagicLink_ShowAccountNotFoundAlert(window);
         return;
     }
     if (result.httpCode >= 500) {

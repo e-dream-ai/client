@@ -7,5 +7,6 @@ AppDir/
 appimage-tools/
 deps-src/
 openssl-minimal/
+curl-minimal/
 ffmpeg-minimal/
 *.AppImage

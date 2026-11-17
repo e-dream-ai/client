@@ -149,6 +149,11 @@ class CRenderer
     //
     virtual bool BeginFrame(void) { return (true); };
     virtual bool EndFrame(bool drawn = true) { return (drawn); };
+    // Optional external video output (e.g. Syphon on Mac). Call before
+    // BeginFrame: only the primary display's renderer is enabled.
+    virtual void EnableExternalOutputThisFrame(bool /*enable*/) {}
+    // Publish the video pass to external outputs before HUD overlays.
+    virtual void CaptureExternalOutputBeforeOverlay() {}
     // Synchronize outstanding GPU work before render-owned resources are released.
     virtual void WaitForIdle() {};
 
@@ -162,6 +167,10 @@ class CRenderer
     virtual spCBaseFont GetFont(CFontDescription& _desc) = PureVirtual;
     virtual spCBaseText NewText(spCBaseFont _font,
                                 const std::string& _text) = PureVirtual;
+    // Called on the renderer whose display takes over the overlay (startup
+    // screen and HUD). Text that lives on a view rather than in the renderer's
+    // draw calls moves here.
+    virtual void AdoptOverlayText() {}
     virtual void DrawText(spCBaseText _text,
                           const Base::Math::CVector4& _color) = PureVirtual;
     virtual Base::Math::CVector2 GetTextExtent(spCBaseFont /*_spFont*/,

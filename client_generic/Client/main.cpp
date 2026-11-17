@@ -65,7 +65,7 @@ int32_t main(int argc, char* argv[])
     for (int i = 1; i < argc; ++i)
         if (strcmp(argv[i], "--cached") == 0) { cachedOnlyMode = true; break; }
 
-#if !defined(MAC)  // Linux: --fullscreen starts fullscreen; default is windowed.
+#if !defined(MAC)  // Linux: --fullscreen starts fullscreen; default is windowed (Windows parses it in client_win32.h).
     bool startFullscreen = false;
     for (int i = 1; i < argc; ++i)
         if (strcmp(argv[i], "--fullscreen") == 0) { startFullscreen = true; break; }

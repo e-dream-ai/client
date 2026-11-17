@@ -7,7 +7,12 @@
 #include "SettingsDialogVulkan.h"
 
 #include <X11/Xutil.h>
+#include <X11/extensions/randr.h>
+#include <algorithm>
 #include <chrono>
+#include <cmath>
+#include <dlfcn.h>
+#include <type_traits>
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
@@ -73,15 +78,14 @@ void CDisplayVulkan::onLibdecorConfigure(struct libdecor_frame* frame,
                                          void* data)
 {
     auto* self = static_cast<CDisplayVulkan*>(data);
-    int width = static_cast<int>(self->m_Width);
-    int height = static_cast<int>(self->m_Height);
+    int width = static_cast<int>(self->m_logicalWidth);
+    int height = static_cast<int>(self->m_logicalHeight);
 
     libdecor_configuration_get_content_size(configuration, frame, &width, &height);
-    if (width <= 0) width = static_cast<int>(self->m_Width);
-    if (height <= 0) height = static_cast<int>(self->m_Height);
+    if (width <= 0) width = static_cast<int>(self->m_logicalWidth);
+    if (height <= 0) height = static_cast<int>(self->m_logicalHeight);
 
-    self->m_Width = static_cast<uint32_t>(width);
-    self->m_Height = static_cast<uint32_t>(height);
+    self->setWaylandLogicalSize(static_cast<uint32_t>(width), static_cast<uint32_t>(height));
 
     enum libdecor_window_state windowState = LIBDECOR_WINDOW_STATE_NONE;
     if (libdecor_configuration_get_window_state(configuration, &windowState))
@@ -107,47 +111,98 @@ void CDisplayVulkan::onLibdecorCommit(struct libdecor_frame*, void* data)
 }
 #endif
 
-// wl_output listener — logs the output's DPI for diagnostics only. The surface
-// is committed at buffer scale 1, so the compositor already enlarges it by the
-// desktop scale factor (as for GTK/Qt apps). Deriving uiScale from DPI or from
-// wl_output.scale as well double-scaled the UI, e.g. 1.67 x 1.25 on a 27" 4K
+// wl_output listener. Each output records its current mode's refresh rate for
+// RefreshRateHz (issue #749), and logs its DPI for diagnostics only. uiScale
+// comes only from the fractional-scale-v1 preferred scale (onPreferredScale),
+// which also sizes the buffer, so the compositor no longer enlarges the window.
+// Without that protocol the compositor does enlarge it, as for GTK/Qt apps, and
+// uiScale stays put. Deriving uiScale from DPI or wl_output.scale on top of the
+// compositor's enlargement double-scaled the UI, e.g. 1.67 x 1.25 on a 27" 4K
 // display at 125%, which made the sign-in wizard overflow its window.
-namespace {
-struct WlOutputState { int32_t physWidthMm = 0; int32_t pixelWidth = 0; };
-static WlOutputState s_wlOutputState;
-}
-
-static void onWlOutputGeometry(void*, wl_output*, int32_t, int32_t,
-                                int32_t physical_width_mm, int32_t,
-                                int32_t, const char*, const char*, int32_t)
+void CDisplayVulkan::onWlOutputGeometry(void* data, wl_output*, int32_t, int32_t,
+                                        int32_t physical_width_mm, int32_t,
+                                        int32_t, const char* make, const char* model,
+                                        int32_t)
 {
-    s_wlOutputState.physWidthMm = physical_width_mm;
+    auto* out = static_cast<WaylandOutput*>(data);
+    out->physWidthMm = physical_width_mm;
+    out->label = std::string(make ? make : "") + " " + (model ? model : "");
 }
-static void onWlOutputMode(void*, wl_output*, uint32_t flags, int32_t width, int32_t, int32_t)
+void CDisplayVulkan::onWlOutputMode(void* data, wl_output*, uint32_t flags,
+                                    int32_t width, int32_t, int32_t refresh)
 {
-    // WL_OUTPUT_MODE_CURRENT = 0x1
-    if (flags & 0x1)
-        s_wlOutputState.pixelWidth = width;
-}
-static void onWlOutputDone(void*, wl_output*)
-{
-    // Compute DPI-based scale once both geometry and mode have arrived.
-    g_Log->Info("CDisplayVulkan: wl_output done — physWidthMm=%d pixelWidth=%d",
-                s_wlOutputState.physWidthMm, s_wlOutputState.pixelWidth);
-    if (s_wlOutputState.physWidthMm > 0 && s_wlOutputState.pixelWidth > 0)
+    auto* out = static_cast<WaylandOutput*>(data);
+    if (flags & WL_OUTPUT_MODE_CURRENT)
     {
-        float dpi = static_cast<float>(s_wlOutputState.pixelWidth) * 25.4f
-                    / static_cast<float>(s_wlOutputState.physWidthMm);
-        g_Log->Info("CDisplayVulkan: wl_output DPI=%.1f (uiScale stays %.3f; compositor applies desktop scale)",
-                    dpi, PlatformUtils_GetUIScale());
+        out->pixelWidth = width;
+        out->pendingRefreshMhz = refresh; // mHz
     }
 }
-static void onWlOutputScale(void*, wl_output*, int32_t)
+void CDisplayVulkan::onWlOutputDone(void* data, wl_output*)
+{
+    auto* out = static_cast<WaylandOutput*>(data);
+    g_Log->Info("CDisplayVulkan: wl_output done — %s physWidthMm=%d pixelWidth=%d refresh=%.3f Hz",
+                out->label.c_str(), out->physWidthMm, out->pixelWidth,
+                out->pendingRefreshMhz / 1000.0);
+    if (out->physWidthMm > 0 && out->pixelWidth > 0)
+    {
+        float dpi = static_cast<float>(out->pixelWidth) * 25.4f
+                    / static_cast<float>(out->physWidthMm);
+        g_Log->Info("CDisplayVulkan: wl_output DPI=%.1f (uiScale %.3f, Wayland scale %.3f)",
+                    dpi, PlatformUtils_GetUIScale(), out->self->m_wlScale);
+    }
+    out->refreshMhz = out->pendingRefreshMhz;
+    out->self->updateWaylandRefreshRate();
+}
+void CDisplayVulkan::onWlOutputScale(void*, wl_output*, int32_t)
 {
 }
-static const wl_output_listener s_wlOutputListener = {
-    onWlOutputGeometry, onWlOutputMode, onWlOutputDone, onWlOutputScale,
-};
+
+void CDisplayVulkan::onSurfaceEnter(void* data, wl_surface*, wl_output* output)
+{
+    auto* self = static_cast<CDisplayVulkan*>(data);
+    // The compositor also sends enter for wl_output proxies other code on this
+    // connection bound (libdecor's GTK plugin binds its own); count only ours.
+    const auto& outs = self->m_wlOutputs;
+    if (std::none_of(outs.begin(), outs.end(),
+                     [output](const auto& o) { return o->output == output; }))
+        return;
+    auto& entered = self->m_wlEnteredOutputs;
+    if (std::find(entered.begin(), entered.end(), output) == entered.end())
+        entered.push_back(output);
+    self->updateWaylandRefreshRate();
+}
+void CDisplayVulkan::onSurfaceLeave(void* data, wl_surface*, wl_output* output)
+{
+    auto* self = static_cast<CDisplayVulkan*>(data);
+    auto& entered = self->m_wlEnteredOutputs;
+    entered.erase(std::remove(entered.begin(), entered.end(), output), entered.end());
+    self->updateWaylandRefreshRate();
+}
+
+// The refresh rate of the output the window is on. When it spans several, the
+// fastest one, as on Windows. Before the surface has entered any output (it
+// isn't mapped yet), the only output if there is just one, else unknown.
+// Between a leave and the next enter (the compositor sends both when a window
+// moves, and sometimes on a stall), the last rate stays.
+void CDisplayVulkan::updateWaylandRefreshRate()
+{
+    if (m_wlEnteredOutputs.empty() && m_wlOutputs.size() > 1 && m_RefreshRateHz.load() > 0.0)
+        return;
+
+    const WaylandOutput* best = nullptr;
+    for (const auto& out : m_wlOutputs)
+    {
+        const bool entered = std::find(m_wlEnteredOutputs.begin(), m_wlEnteredOutputs.end(),
+                                       out->output) != m_wlEnteredOutputs.end();
+        if (!entered && !(m_wlEnteredOutputs.empty() && m_wlOutputs.size() == 1))
+            continue;
+        if (out->refreshMhz > 0 && (!best || out->refreshMhz > best->refreshMhz))
+            best = out.get();
+    }
+    setRefreshRateHz(best ? best->refreshMhz / 1000.0 : 0.0,
+                     best ? best->label.c_str() : "no output");
+}
 
 // Clipboard (wl_data_device) — lets the wizard and settings dialog paste with
 // Ctrl+V without wl-paste/xclip/xsel, which a stock desktop doesn't have.
@@ -302,16 +357,55 @@ void CDisplayVulkan::onRegistryGlobal(void* data, wl_registry* registry,
         self->m_pDecorationManager = static_cast<zxdg_decoration_manager_v1*>(
             wl_registry_bind(registry, name, &zxdg_decoration_manager_v1_interface, 1));
     }
+#ifdef HAVE_WP_FRACTIONAL_SCALE
+    else if (strcmp(interface, wp_fractional_scale_manager_v1_interface.name) == 0)
+    {
+        self->m_pFractionalScaleManager = static_cast<wp_fractional_scale_manager_v1*>(
+            wl_registry_bind(registry, name, &wp_fractional_scale_manager_v1_interface, 1));
+    }
+    else if (strcmp(interface, wp_viewporter_interface.name) == 0)
+    {
+        self->m_pViewporter = static_cast<wp_viewporter*>(
+            wl_registry_bind(registry, name, &wp_viewporter_interface, 1));
+    }
+#endif
     else if (strcmp(interface, "wl_output") == 0 && version >= 2)
     {
-        // Bind the first output to read its integer scale factor for HiDPI.
-        wl_output* output = static_cast<wl_output*>(
+        // Every output: its current mode gives the refresh rate, and the
+        // surface's enter/leave events say which one the window is on.
+        static const wl_output_listener s_wlOutputListener = {
+            // name and description (v4) stay null: we bind v2, and older
+            // headers don't have those fields.
+            onWlOutputGeometry, onWlOutputMode, onWlOutputDone, onWlOutputScale,
+        };
+        auto out = std::make_unique<WaylandOutput>();
+        out->self = self;
+        out->registryName = name;
+        out->output = static_cast<wl_output*>(
             wl_registry_bind(registry, name, &wl_output_interface, 2));
-        wl_output_add_listener(output, &s_wlOutputListener, nullptr);
+        wl_output_add_listener(out->output, &s_wlOutputListener, out.get());
+        self->m_wlOutputs.push_back(std::move(out));
     }
 }
 
-void CDisplayVulkan::onRegistryGlobalRemove(void*, wl_registry*, uint32_t) {}
+void CDisplayVulkan::onRegistryGlobalRemove(void* data, wl_registry*, uint32_t name)
+{
+    // An output was unplugged.
+    auto* self = static_cast<CDisplayVulkan*>(data);
+    auto& outputs = self->m_wlOutputs;
+    for (auto it = outputs.begin(); it != outputs.end(); ++it)
+    {
+        if ((*it)->registryName != name)
+            continue;
+        wl_output* output = (*it)->output;
+        auto& entered = self->m_wlEnteredOutputs;
+        entered.erase(std::remove(entered.begin(), entered.end(), output), entered.end());
+        wl_output_destroy(output);
+        outputs.erase(it);
+        self->updateWaylandRefreshRate();
+        return;
+    }
+}
 
 void CDisplayVulkan::onXdgWmBasePing(void*, xdg_wm_base* base, uint32_t serial)
 {
@@ -355,11 +449,54 @@ void CDisplayVulkan::onXdgToplevelConfigure(void* data, xdg_toplevel*,
 
     // width/height == 0 means "compositor defers to us — keep requested size"
     if (width > 0 && height > 0)
-    {
-        self->m_Width  = static_cast<uint32_t>(width);
-        self->m_Height = static_cast<uint32_t>(height);
-    }
+        self->setWaylandLogicalSize(static_cast<uint32_t>(width), static_cast<uint32_t>(height));
 }
+
+// Records the logical (unscaled) window size and sets the buffer size, in
+// m_Width/m_Height, to it times the Wayland scale. The renderer recreates the
+// swapchain when m_Width/m_Height change. The viewport shows the buffer at the
+// logical size; its destination takes effect at the next commit, before or with
+// the first buffer of the new size, so the window doesn't jump in size.
+void CDisplayVulkan::setWaylandLogicalSize(uint32_t w, uint32_t h)
+{
+    if (w == 0 || h == 0)
+        return;
+    m_logicalWidth  = w;
+    m_logicalHeight = h;
+    // Rounded half away from zero, as fractional-scale-v1 specifies.
+    m_Width  = static_cast<uint32_t>(std::lround(w * m_wlScale));
+    m_Height = static_cast<uint32_t>(std::lround(h * m_wlScale));
+#ifdef HAVE_WP_FRACTIONAL_SCALE
+    if (m_pViewport)
+        wp_viewport_set_destination(m_pViewport, static_cast<int32_t>(w), static_cast<int32_t>(h));
+#endif
+}
+
+// A pointer coordinate (logical, surface-local) in buffer pixels, the space the
+// renderer, ImGui and the HUD work in.
+int32_t CDisplayVulkan::toBufferPx(wl_fixed_t logical) const
+{
+    return static_cast<int32_t>(std::floor(wl_fixed_to_double(logical) * m_wlScale));
+}
+
+#ifdef HAVE_WP_FRACTIONAL_SCALE
+// The compositor's preferred scale for our surface, in 120ths (160 = 133%). Sent
+// when the surface is created or moves to an output with a different scale.
+void CDisplayVulkan::onPreferredScale(void* data, wp_fractional_scale_v1*, uint32_t scale120)
+{
+    auto* self = static_cast<CDisplayVulkan*>(data);
+    const double scale = scale120 / 120.0;
+    if (scale <= 0.0 || scale == self->m_wlScale)
+        return;
+    self->m_wlScale = scale;
+    // The UI is drawn this much larger into a buffer this much larger, which the
+    // compositor shows without enlarging, so it looks the same size, but sharp.
+    PlatformUtils_SetUIScale(static_cast<float>(scale));
+    self->setWaylandLogicalSize(self->m_logicalWidth, self->m_logicalHeight);
+    g_Log->Info("CDisplayVulkan: Wayland preferred scale %.3f: logical %ux%u, buffer %ux%u",
+                scale, self->m_logicalWidth, self->m_logicalHeight, self->m_Width, self->m_Height);
+}
+#endif
 
 void CDisplayVulkan::onXdgToplevelClose(void* data, xdg_toplevel*)
 {
@@ -368,6 +505,8 @@ void CDisplayVulkan::onXdgToplevelClose(void* data, xdg_toplevel*)
 
 bool CDisplayVulkan::initWayland(uint32_t w, uint32_t h, bool bFullscreen)
 {
+    m_logicalWidth  = w;
+    m_logicalHeight = h;
     m_pWlDisplay = wl_display_connect(nullptr);
     if (!m_pWlDisplay)
     {
@@ -391,6 +530,32 @@ bool CDisplayVulkan::initWayland(uint32_t w, uint32_t h, bool bFullscreen)
     }
 
     m_pWlSurface = wl_compositor_create_surface(m_pWlCompositor);
+    static const wl_surface_listener s_surfaceListener = {
+        // preferred_buffer_scale/transform (v6) stay null: the compositor is
+        // bound at v4, and older headers don't have those fields.
+        onSurfaceEnter, onSurfaceLeave,
+    };
+    wl_surface_add_listener(m_pWlSurface, &s_surfaceListener, this);
+#ifdef HAVE_WP_FRACTIONAL_SCALE
+    // Fractional scaling needs both: the preferred scale, and a viewport to show
+    // the larger buffer at the logical size (buffer_scale only takes integers).
+    if (m_pFractionalScaleManager && m_pViewporter)
+    {
+        m_pViewport = wp_viewporter_get_viewport(m_pViewporter, m_pWlSurface);
+        m_pFractionalScale = wp_fractional_scale_manager_v1_get_fractional_scale(
+            m_pFractionalScaleManager, m_pWlSurface);
+        static const wp_fractional_scale_v1_listener s_fractionalScaleListener = {
+            onPreferredScale,
+        };
+        wp_fractional_scale_v1_add_listener(m_pFractionalScale, &s_fractionalScaleListener, this);
+        setWaylandLogicalSize(w, h);
+        g_Log->Info("CDisplayVulkan: fractional scaling enabled (fractional-scale-v1 + viewporter)");
+    }
+    else
+    {
+        g_Log->Info("CDisplayVulkan: no fractional-scale-v1/viewporter; the compositor scales the window");
+    }
+#endif
     m_pCursorSurface = wl_compositor_create_surface(m_pWlCompositor);
 
     const char* cursorTheme = getenv("XCURSOR_THEME");
@@ -467,12 +632,10 @@ bool CDisplayVulkan::initWayland(uint32_t w, uint32_t h, bool bFullscreen)
                 libdecor_frame_map(m_pLibdecorFrame);
                 wl_display_roundtrip(m_pWlDisplay);
 
-                if (m_Width == 0)  m_Width = w;
-                if (m_Height == 0) m_Height = h;
-
                 g_Log->Info(
-                    "CDisplayVulkan: Wayland initialized via libdecor %ux%u (fullscreen=%d)",
-                    m_Width, m_Height, static_cast<int>(bFullscreen));
+                    "CDisplayVulkan: Wayland initialized via libdecor %ux%u, buffer %ux%u (fullscreen=%d)",
+                    m_logicalWidth, m_logicalHeight, m_Width, m_Height,
+                    static_cast<int>(bFullscreen));
                 return true;
             }
 
@@ -530,12 +693,9 @@ bool CDisplayVulkan::initWayland(uint32_t w, uint32_t h, bool bFullscreen)
     wl_surface_commit(m_pWlSurface);
     wl_display_roundtrip(m_pWlDisplay);  // receive initial xdg_surface::configure
 
-    // If compositor sent 0,0 it wants us to choose — keep requested dimensions
-    if (m_Width == 0)  m_Width  = w;
-    if (m_Height == 0) m_Height = h;
-
-    g_Log->Info("CDisplayVulkan: Wayland initialized %ux%u (fullscreen=%d)",
-                m_Width, m_Height, (int)bFullscreen);
+    // If the compositor sent 0,0 it wants us to choose: the requested size stays.
+    g_Log->Info("CDisplayVulkan: Wayland initialized %ux%u, buffer %ux%u (fullscreen=%d)",
+                m_logicalWidth, m_logicalHeight, m_Width, m_Height, (int)bFullscreen);
     return true;
 }
 
@@ -718,12 +878,15 @@ void CDisplayVulkan::onPointerEnter(void* data, wl_pointer*, uint32_t serial,
 #endif
     self->updateWaylandCursor();
 
-    FirstTimeSetupVulkan_FeedMousePos(wl_fixed_to_int(surface_x), wl_fixed_to_int(surface_y));
-    SettingsDialogVulkan_FeedMousePos(wl_fixed_to_int(surface_x), wl_fixed_to_int(surface_y));
+    // m_lastPointerX/Y stay logical, for the resize edges; the rest work in buffer pixels.
+    const int32_t px = self->toBufferPx(surface_x);
+    const int32_t py = self->toBufferPx(surface_y);
+    FirstTimeSetupVulkan_FeedMousePos(px, py);
+    SettingsDialogVulkan_FeedMousePos(px, py);
 
     auto& mouseCallback = PlatformUtils_GetMouseCallback();
     if (mouseCallback)
-        mouseCallback(wl_fixed_to_int(surface_x), wl_fixed_to_int(surface_y));
+        mouseCallback(px, py);
 }
 
 void CDisplayVulkan::onPointerLeave(void* data, wl_pointer*, uint32_t, wl_surface* surface)
@@ -759,12 +922,15 @@ void CDisplayVulkan::onPointerMotion(void* data, wl_pointer*, uint32_t,
 #endif
     self->updateWaylandCursor();
 
-    FirstTimeSetupVulkan_FeedMousePos(wl_fixed_to_int(surface_x), wl_fixed_to_int(surface_y));
-    SettingsDialogVulkan_FeedMousePos(wl_fixed_to_int(surface_x), wl_fixed_to_int(surface_y));
+    // m_lastPointerX/Y stay logical, for the resize edges; the rest work in buffer pixels.
+    const int32_t px = self->toBufferPx(surface_x);
+    const int32_t py = self->toBufferPx(surface_y);
+    FirstTimeSetupVulkan_FeedMousePos(px, py);
+    SettingsDialogVulkan_FeedMousePos(px, py);
 
     auto& mouseCallback = PlatformUtils_GetMouseCallback();
     if (mouseCallback)
-        mouseCallback(wl_fixed_to_int(surface_x), wl_fixed_to_int(surface_y));
+        mouseCallback(px, py);
 }
 
 void CDisplayVulkan::onPointerButton(void* data, wl_pointer*, uint32_t serial,
@@ -801,8 +967,9 @@ libdecor_resize_edge CDisplayVulkan::getWaylandResizeEdge(int32_t x, int32_t y) 
         return LIBDECOR_RESIZE_EDGE_NONE;
 
     constexpr int32_t kResizeMarginPx = 12;
-    const int32_t width = static_cast<int32_t>(m_Width);
-    const int32_t height = static_cast<int32_t>(m_Height);
+    // Logical units, like the pointer coordinates it's given.
+    const int32_t width = static_cast<int32_t>(m_logicalWidth);
+    const int32_t height = static_cast<int32_t>(m_logicalHeight);
 
     if (x < 0 || y < 0 || x >= width || y >= height)
         return LIBDECOR_RESIZE_EDGE_NONE;
@@ -918,7 +1085,17 @@ void CDisplayVulkan::destroyWayland()
         xdg_surface_destroy(m_pXdgSurface);
     }
     m_pXdgSurface = nullptr;
+#ifdef HAVE_WP_FRACTIONAL_SCALE
+    if (m_pViewport)               { wp_viewport_destroy(m_pViewport);                                     m_pViewport               = nullptr; }
+    if (m_pFractionalScale)        { wp_fractional_scale_v1_destroy(m_pFractionalScale);                   m_pFractionalScale        = nullptr; }
+    if (m_pViewporter)             { wp_viewporter_destroy(m_pViewporter);                                 m_pViewporter             = nullptr; }
+    if (m_pFractionalScaleManager) { wp_fractional_scale_manager_v1_destroy(m_pFractionalScaleManager);    m_pFractionalScaleManager = nullptr; }
+#endif
     if (m_pWlSurface)         { wl_surface_destroy(m_pWlSurface);                          m_pWlSurface         = nullptr; }
+    m_wlEnteredOutputs.clear();
+    for (auto& out : m_wlOutputs)
+        wl_output_destroy(out->output);
+    m_wlOutputs.clear();
     if (m_pXdgWmBase)         { xdg_wm_base_destroy(m_pXdgWmBase);                         m_pXdgWmBase         = nullptr; }
     if (m_pWlShm)             { wl_shm_destroy(m_pWlShm);                                  m_pWlShm             = nullptr; }
     if (m_pWlCompositor)      { wl_compositor_destroy(m_pWlCompositor);                    m_pWlCompositor      = nullptr; }
@@ -957,6 +1134,193 @@ CDisplayVulkan::~CDisplayVulkan()
     }
     if (m_pDisplay)
         XCloseDisplay(m_pDisplay);
+}
+
+// ===========================================================================
+// Refresh rate (issue #749)
+// ===========================================================================
+
+void CDisplayVulkan::setRefreshRateHz(double hz, const char* source)
+{
+    if (m_RefreshRateHz.exchange(hz) != hz)
+        g_Log->Info("Display refresh rate %.3f Hz (%s)", hz, source);
+}
+
+// XRandR 1.3, declared here and loaded with dlopen so the build needs no
+// libXrandr headers (randr.h, the protocol constants, comes with libx11-dev),
+// and so the AppImage uses the host's libXrandr like the rest of libX*.
+// These layouts match <X11/extensions/Xrandr.h>, which has been stable since 2007.
+namespace
+{
+typedef XID RRCrtc_;
+typedef XID RROutput_;
+typedef XID RRMode_;
+
+struct XRRModeInfo_
+{
+    RRMode_ id;
+    unsigned int width, height;
+    unsigned long dotClock;
+    unsigned int hSyncStart, hSyncEnd, hTotal, hSkew;
+    unsigned int vSyncStart, vSyncEnd, vTotal;
+    char* name;
+    unsigned int nameLength;
+    unsigned long modeFlags;
+};
+
+struct XRRScreenResources_
+{
+    Time timestamp, configTimestamp;
+    int ncrtc;
+    RRCrtc_* crtcs;
+    int noutput;
+    RROutput_* outputs;
+    int nmode;
+    XRRModeInfo_* modes;
+};
+
+struct XRRCrtcInfo_
+{
+    Time timestamp;
+    int x, y;
+    unsigned int width, height;
+    RRMode_ mode;
+    unsigned short rotation;
+    int noutput;
+    RROutput_* outputs;
+    unsigned short rotations;
+    int npossible;
+    RROutput_* possible;
+};
+
+struct XRandRApi
+{
+    Bool (*QueryExtension)(Display*, int*, int*) = nullptr;
+    Status (*QueryVersion)(Display*, int*, int*) = nullptr;
+    void (*SelectInput)(Display*, Window, int) = nullptr;
+    XRRScreenResources_* (*GetScreenResourcesCurrent)(Display*, Window) = nullptr;
+    void (*FreeScreenResources)(XRRScreenResources_*) = nullptr;
+    XRRCrtcInfo_* (*GetCrtcInfo)(Display*, XRRScreenResources_*, RRCrtc_) = nullptr;
+    void (*FreeCrtcInfo)(XRRCrtcInfo_*) = nullptr;
+};
+
+const XRandRApi* loadXRandR()
+{
+    static XRandRApi api;
+    static bool tried = false;
+    static bool ok = false;
+    if (tried)
+        return ok ? &api : nullptr;
+    tried = true;
+    void* lib = dlopen("libXrandr.so.2", RTLD_NOW | RTLD_LOCAL);
+    if (!lib)
+    {
+        g_Log->Warning("CDisplayVulkan: libXrandr.so.2 not found, refresh rate unknown");
+        return nullptr;
+    }
+    auto sym = [lib](auto& fn, const char* name) {
+        fn = reinterpret_cast<std::remove_reference_t<decltype(fn)>>(dlsym(lib, name));
+        return fn != nullptr;
+    };
+    ok = sym(api.QueryExtension, "XRRQueryExtension") &&
+         sym(api.QueryVersion, "XRRQueryVersion") &&
+         sym(api.SelectInput, "XRRSelectInput") &&
+         sym(api.GetScreenResourcesCurrent, "XRRGetScreenResourcesCurrent") &&
+         sym(api.FreeScreenResources, "XRRFreeScreenResources") &&
+         sym(api.GetCrtcInfo, "XRRGetCrtcInfo") &&
+         sym(api.FreeCrtcInfo, "XRRFreeCrtcInfo");
+    if (!ok)
+        g_Log->Warning("CDisplayVulkan: libXrandr.so.2 lacks XRandR 1.3, refresh rate unknown");
+    return ok ? &api : nullptr;
+}
+
+double modeRefreshHz(const XRRModeInfo_& m)
+{
+    double lines = m.vTotal;
+    if (m.modeFlags & RR_DoubleScan)
+        lines *= 2;
+    if (m.modeFlags & RR_Interlace)
+        lines /= 2;
+    if (m.dotClock == 0 || m.hTotal == 0 || lines <= 0)
+        return 0.0;
+    return static_cast<double>(m.dotClock) / (static_cast<double>(m.hTotal) * lines);
+}
+} // namespace
+
+void CDisplayVulkan::initXRandR()
+{
+    const XRandRApi* xrr = loadXRandR();
+    int eventBase = 0, errorBase = 0, major = 0, minor = 0;
+    if (!xrr || !xrr->QueryExtension(m_pDisplay, &eventBase, &errorBase) ||
+        !xrr->QueryVersion(m_pDisplay, &major, &minor) ||
+        major < 1 || (major == 1 && minor < 3))
+    {
+        g_Log->Warning("CDisplayVulkan: XRandR 1.3 unavailable (%d.%d), refresh rate unknown",
+                       major, minor);
+        return;
+    }
+    m_xrrEventBase = eventBase;
+    // Mode changes and hotplug.
+    xrr->SelectInput(m_pDisplay, RootWindow(m_pDisplay, DefaultScreen(m_pDisplay)),
+                     RRScreenChangeNotifyMask | RRCrtcChangeNotifyMask);
+    m_xRefreshDirty = true;
+}
+
+// The refresh rate of the CRTC (monitor) the window overlaps most; on a tie,
+// the faster one.
+void CDisplayVulkan::updateX11RefreshRate()
+{
+    m_xRefreshDirty = false;
+    const XRandRApi* xrr = m_xrrEventBase >= 0 ? loadXRandR() : nullptr;
+    if (!xrr || !m_pDisplay || !m_Window)
+        return;
+
+    const Window root = RootWindow(m_pDisplay, DefaultScreen(m_pDisplay));
+    XWindowAttributes attr{};
+    int wx = 0, wy = 0;
+    Window child = 0;
+    if (!XGetWindowAttributes(m_pDisplay, m_Window, &attr) ||
+        !XTranslateCoordinates(m_pDisplay, m_Window, root, 0, 0, &wx, &wy, &child))
+        return;
+
+    XRRScreenResources_* res = xrr->GetScreenResourcesCurrent(m_pDisplay, root);
+    if (!res)
+        return;
+
+    double bestHz = 0.0;
+    long long bestArea = -1;
+    std::string bestLabel = "no monitor";
+    for (int c = 0; c < res->ncrtc; ++c)
+    {
+        XRRCrtcInfo_* crtc = xrr->GetCrtcInfo(m_pDisplay, res, res->crtcs[c]);
+        if (!crtc)
+            continue;
+        if (crtc->mode != None)
+        {
+            const XRRModeInfo_* mode = nullptr;
+            for (int m = 0; m < res->nmode; ++m)
+                if (res->modes[m].id == crtc->mode)
+                    mode = &res->modes[m];
+            const double hz = mode ? modeRefreshHz(*mode) : 0.0;
+            const long long ow = std::max(0, std::min(wx + attr.width, crtc->x + int(crtc->width)) -
+                                                 std::max(wx, crtc->x));
+            const long long oh = std::max(0, std::min(wy + attr.height, crtc->y + int(crtc->height)) -
+                                                 std::max(wy, crtc->y));
+            const long long area = ow * oh;
+            if (hz > 0.0 && (area > bestArea || (area == bestArea && hz > bestHz)))
+            {
+                bestArea = area;
+                bestHz = hz;
+                char label[96];
+                snprintf(label, sizeof(label), "%ux%u+%d+%d", crtc->width, crtc->height,
+                         crtc->x, crtc->y);
+                bestLabel = label;
+            }
+        }
+        xrr->FreeCrtcInfo(crtc);
+    }
+    xrr->FreeScreenResources(res);
+    setRefreshRateHz(bestHz, bestLabel.c_str());
 }
 
 // ===========================================================================
@@ -1199,6 +1563,9 @@ bool CDisplayVulkan::Initialize(const uint32_t _width, const uint32_t _height,
 
     applyInvisibleCursor();
 
+    initXRandR();
+    updateX11RefreshRate();
+
     if (!createVulkanInstance()) return false;
 
     VkXlibSurfaceCreateInfoKHR si{};
@@ -1389,7 +1756,14 @@ void CDisplayVulkan::checkEvents()
             // appear as an ellipse rather than a rectangle.
             m_Width  = static_cast<uint32_t>(xEvent.xconfigure.width);
             m_Height = static_cast<uint32_t>(xEvent.xconfigure.height);
+            // It may have moved to another monitor.
+            m_xRefreshDirty = true;
         }
+
+        if (m_xrrEventBase >= 0 &&
+            (xEvent.type == m_xrrEventBase + RRScreenChangeNotify ||
+             xEvent.type == m_xrrEventBase + RRNotify))
+            m_xRefreshDirty = true;
 
         if (xEvent.type == MotionNotify)
         {
@@ -1410,6 +1784,10 @@ void CDisplayVulkan::checkEvents()
             SettingsDialogVulkan_FeedMouseButton(btn, pressed);
         }
     }
+
+    // Once per batch of events, so dragging the window doesn't query per event.
+    if (m_xRefreshDirty)
+        updateX11RefreshRate();
 }
 
 // ===========================================================================
@@ -1433,12 +1811,11 @@ void CDisplayVulkan::setFullScreen(bool enabled)
             }
             else
             {
-                m_Width  = 1280;
-                m_Height = 720;
+                setWaylandLogicalSize(1280, 720);
                 libdecor_frame_unset_fullscreen(m_pLibdecorFrame);
                 libdecor_state* state =
-                    libdecor_state_new(static_cast<int>(m_Width),
-                                       static_cast<int>(m_Height));
+                    libdecor_state_new(static_cast<int>(m_logicalWidth),
+                                       static_cast<int>(m_logicalHeight));
                 libdecor_frame_commit(m_pLibdecorFrame, state, nullptr);
                 wl_surface_commit(m_pWlSurface);
                 libdecor_state_free(state);
@@ -1456,8 +1833,7 @@ void CDisplayVulkan::setFullScreen(bool enabled)
         {
             // Switch to a sensible windowed size; the compositor will send 0,0
             // in the configure event (defers to client), so set it here.
-            m_Width  = 1280;
-            m_Height = 720;
+            setWaylandLogicalSize(1280, 720);
             xdg_toplevel_unset_fullscreen(m_pXdgToplevel);
             // Re-assert server-side decorations — some compositors drop them during fullscreen
             if (m_pToplevelDecoration)

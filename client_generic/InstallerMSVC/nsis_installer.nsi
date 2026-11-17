@@ -4,6 +4,11 @@
 
 Unicode true
 SetCompressor /SOLID lzma
+; Without this, Windows bitmap-stretches the whole installer on scaled displays (125%+),
+; which makes all the text fuzzy.
+ManifestDPIAware true
+; NSIS defaults to MS Shell Dlg 8pt (Tahoma); match current Windows UI instead.
+SetFont "Segoe UI" 9
 
 !ifndef PRODUCT_VERSION
   !define PRODUCT_VERSION "0.0.0"
@@ -25,6 +30,14 @@ SetCompressor /SOLID lzma
 
 Name "${PRODUCT_NAME} ${PRODUCT_VERSION}"
 OutFile "${OUT_FILE}"
+; Replaces "Nullsoft Install System v3.x" along the bottom edge.
+BrandingText "${PRODUCT_PUBLISHER}"
+
+; release.py --sign passes these so the uninstaller, which makensis generates itself, is
+; Authenticode-signed before it's packed into the setup exe (%1 is the uninstaller's path).
+!ifdef SIGN_SCRIPT
+  !uninstfinalize '"${SIGN_PYTHON}" "${SIGN_SCRIPT}" --sign-file "%1"' = 0
+!endif
 InstallDir "$PROGRAMFILES64\${PRODUCT_NAME}"
 InstallDirRegKey HKLM "${PRODUCT_DIR_REGKEY}" ""
 RequestExecutionLevel admin
@@ -42,10 +55,19 @@ VIAddVersionKey "LegalCopyright"  "${PRODUCT_PUBLISHER}"
 !include "MUI2.nsh"
 !include "WinVer.nsh"
 !include "x64.nsh"
+!include "FileFunc.nsh"
+!include "LogicLib.nsh"
 
 !define MUI_ABORTWARNING
 !define MUI_ICON   "..\Client\app.ico"
 !define MUI_UNICON "..\Client\app.ico"
+; Welcome/Finish side panel, cropped from the macOS DMG background. MUI2's stretch-to-fit
+; is a crude GDI resize that leaves jagged edges, so welcome\ holds the panel pre-rendered
+; at the image control's exact pixel size for each common DPI (109u x 193u in Segoe UI 9),
+; and WizardImageShow swaps in the matching one unstretched. This largest one is only the
+; fallback for an unlisted DPI. To regenerate: welcome\control_sizes.ps1 prints the sizes,
+; welcome\make_bitmaps.ps1 -Src ..\..\MacBuild\dmg\background@2x.png -OutDir . -Sizes WxH,...
+!define MUI_WELCOMEFINISHPAGE_BITMAP "welcome\welcome-545x1158.bmp"
 
 !define MUI_FINISHPAGE_RUN "$INSTDIR\${PRODUCT_EXE}"
 !define MUI_FINISHPAGE_RUN_TEXT "Run ${PRODUCT_NAME} and sign in"
@@ -62,10 +84,13 @@ VIAddVersionKey "LegalCopyright"  "${PRODUCT_PUBLISHER}"
 ; Doing it from the elevated installer would write to the wrong HKCU hive whenever
 ; a non-admin user installed via UAC prompt with someone else's credentials.
 
+!define MUI_PAGE_CUSTOMFUNCTION_SHOW WelcomeShow
 !insertmacro MUI_PAGE_WELCOME
 !insertmacro MUI_PAGE_LICENSE "..\RuntimeMSVC\License.rtf"
+!define MUI_PAGE_CUSTOMFUNCTION_LEAVE DirectoryLeave
 !insertmacro MUI_PAGE_DIRECTORY
 !insertmacro MUI_PAGE_INSTFILES
+!define MUI_PAGE_CUSTOMFUNCTION_SHOW FinishShow
 !insertmacro MUI_PAGE_FINISH
 
 !insertmacro MUI_UNPAGE_CONFIRM
@@ -85,9 +110,72 @@ Function .onInit
   SetRegView 64
 FunctionEnd
 
+; Always install into a folder of our own. If the user picks e.g. "C:\Program Files"
+; or "D:\", install into "...\Infinidream" under it, so the uninstaller never has to
+; touch a folder that holds anything else.
+; Replace the stretched side-panel image with the copy rendered at the control's exact
+; size, if there is one. Takes the image control on the stack; returns the new bitmap
+; handle (or the old one, unchanged) for MUI2 to free when the page closes.
+Function WizardImageShow
+  Exch $0 ; image control
+  Exch
+  Exch $4 ; current bitmap handle
+  Push $1
+  Push $2
+  Push $3
+  ${IfNot} ${FileExists} "$PLUGINSDIR\welcome\*.bmp"
+    Push $OUTDIR
+    SetOutPath "$PLUGINSDIR\welcome"
+    File "welcome\*.bmp"
+    Pop $1
+    SetOutPath $1
+  ${EndIf}
+  System::Call "*(i,i,i,i)p.r1"
+  System::Call "user32::GetClientRect(p r0, p r1)"
+  System::Call "*$1(i,i,i.r2,i.r3)"
+  System::Free $1
+  ${If} ${FileExists} "$PLUGINSDIR\welcome\welcome-$2x$3.bmp"
+    ${NSD_FreeImage} $4
+    ${NSD_SetImage} $0 "$PLUGINSDIR\welcome\welcome-$2x$3.bmp" $4
+  ${EndIf}
+  Pop $3
+  Pop $2
+  Pop $1
+  Exch $4 ; restore $4, leave the bitmap handle in its stack slot
+  Exch
+  Pop $0
+FunctionEnd
+
+Function WelcomeShow
+  Push $mui.WelcomePage.Image.Bitmap
+  Push $mui.WelcomePage.Image
+  Call WizardImageShow
+  Pop $mui.WelcomePage.Image.Bitmap
+FunctionEnd
+
+Function FinishShow
+  Push $mui.FinishPage.Image.Bitmap
+  Push $mui.FinishPage.Image
+  Call WizardImageShow
+  Pop $mui.FinishPage.Image.Bitmap
+FunctionEnd
+
+Function DirectoryLeave
+  ${GetFileName} "$INSTDIR" $0
+  ${If} $0 != "${PRODUCT_NAME}"
+    StrCpy $1 "$INSTDIR" "" -1
+    ${If} $1 == "\"
+      StrCpy $INSTDIR "$INSTDIR${PRODUCT_NAME}"
+    ${Else}
+      StrCpy $INSTDIR "$INSTDIR\${PRODUCT_NAME}"
+    ${EndIf}
+  ${EndIf}
+FunctionEnd
+
 Function un.onInit
+  ; /SD IDYES: a silent uninstall (uninst.exe /S) goes ahead instead of waiting on this box.
   MessageBox MB_ICONQUESTION|MB_YESNO|MB_DEFBUTTON2 \
-    "Are you sure you want to remove $(^Name) and all of its components?" IDYES +2
+    "Are you sure you want to remove $(^Name) and all of its components?" /SD IDYES IDYES +2
   Abort
   SetRegView 64
 FunctionEnd
@@ -134,26 +222,64 @@ Section -Post
 SectionEnd
 
 Function RunAppAsUser
-  ; Drop installer elevation by routing the launch through Explorer's Shell.Application
-  ; COM object. CoCreateInstance for Shell.Application connects to the user-session
-  ; Explorer.exe (which always runs at user level), and ShellExecute on that interface
-  ; spawns the target as a child of Explorer — i.e. with the user's token, not admin.
+  ; Drop the installer's elevation: explorer.exe started with a path hands it to the
+  ; user's already-running Explorer, which runs at the user's (non-elevated) level and
+  ; launches the app from there. The old way, Shell.Application from an elevated
+  ; PowerShell, got an in-process (elevated) Shell object and launched the app elevated
+  ; (#722 item 2). No plugin, and no hidden PowerShell for AV heuristics to flag.
   ;
-  ; Implemented as a one-liner via PowerShell so we don't need a third-party plugin
-  ; (StdUtils / UAC). PowerShell still runs elevated; only the COM-marshaled Explorer
-  ; call escapes the elevation.
-  Push $0
-  ExecWait `powershell.exe -NoProfile -WindowStyle Hidden -ExecutionPolicy Bypass -Command "(New-Object -ComObject Shell.Application).ShellExecute('$INSTDIR\${PRODUCT_EXE}')"` $0
-  Pop $0
+  ; Windows only lets the foreground process give away the foreground, and the app is
+  ; started by Explorer, so its own SetForegroundWindow would be ignored and its window
+  ; would open behind the others. The installer is in the foreground (the user just
+  ; clicked Finish), so let any process take it (ASFW_ANY = -1) before launching.
+  System::Call 'user32::AllowSetForegroundWindow(i -1)'
+  Exec `"$WINDIR\explorer.exe" "$INSTDIR\${PRODUCT_EXE}"`
+FunctionEnd
+
+; Clears SCRNSAVE.EXE in HKU\$3 if it points at our .scr, whose short path is in $2.
+; Compares files, not strings: Windows' Screen Saver Settings rewrites the value in 8.3
+; form (C:\PROGRA~1\INFINI~1\INFINI~1.SCR) when the user clicks Apply. Both paths go
+; through the same short-name conversion while the .scr still exists; on volumes without
+; 8.3 names both stay long. (StrCmp ignores case.) Uses $0 and $1.
+Function un.ClearOurScreensaver
+  ReadRegStr $0 HKU "$3\Control Panel\Desktop" "SCRNSAVE.EXE"
+  ${If} $0 != ""
+    GetFullPathName /SHORT $1 "$0"
+    ${If} $1 == ""
+      StrCpy $1 $0
+    ${EndIf}
+    ${If} $1 == $2
+      DeleteRegValue HKU "$3\Control Panel\Desktop" "SCRNSAVE.EXE"
+      DetailPrint "Screensaver reset for HKU\$3"
+    ${EndIf}
+  ${EndIf}
 FunctionEnd
 
 Section Uninstall
   SetShellVarContext all
 
-  ; Only reset the screensaver pointer if it's still pointing at us.
-  ReadRegStr $0 HKCU "Control Panel\Desktop" "SCRNSAVE.EXE"
-  StrCmp $0 "$INSTDIR\${PRODUCT_SCR}" 0 +2
-    DeleteRegValue HKCU "Control Panel\Desktop" "SCRNSAVE.EXE"
+  ; Reset the screensaver of every signed-in user whose screensaver is still ours, while
+  ; the .scr still exists (see un.ClearOurScreensaver). Not just HKCU: the uninstaller runs
+  ; elevated, and when a standard user's UAC prompt is approved with an administrator's
+  ; password, HKCU is that administrator's registry, not the user's (#722 item 5). Every
+  ; signed-in user's registry is loaded under HKU\<SID>. Users who aren't signed in aren't
+  ; reached: their registry isn't loaded.
+  GetFullPathName /SHORT $2 "$INSTDIR\${PRODUCT_SCR}"
+  ${If} $2 == ""
+    StrCpy $2 "$INSTDIR\${PRODUCT_SCR}"
+  ${EndIf}
+  StrCpy $4 0
+  ${Do}
+    EnumRegKey $3 HKU "" $4
+    ${If} $3 == ""
+      ${Break}
+    ${EndIf}
+    IntOp $4 $4 + 1
+    StrCpy $5 $3 "" -8
+    ${If} $5 != "_Classes"
+      Call un.ClearOurScreensaver
+    ${EndIf}
+  ${Loop}
 
   ; Per-user data lives in %LOCALAPPDATA%\Infinidream — that's the user's data, not
   ; ours to delete (standard Windows convention). The uninstaller runs elevated and
@@ -171,7 +297,17 @@ Section Uninstall
 
   Delete "$INSTDIR\${PRODUCT_NAME}.url"
   Delete "$INSTDIR\uninst.exe"
-  RMDir /r "$INSTDIR"
+  ; Remove the whole folder only if it's ours (the installer always ends the path in
+  ; \Infinidream; older installers didn't). Otherwise remove just what we install, and
+  ; the folder only if that leaves it empty.
+  ${GetFileName} "$INSTDIR" $0
+  ${If} $0 == "${PRODUCT_NAME}"
+    RMDir /r "$INSTDIR"
+  ${Else}
+    Delete "$INSTDIR\${PRODUCT_EXE}"
+    Delete "$INSTDIR\${PRODUCT_SCR}"
+    RMDir "$INSTDIR"
+  ${EndIf}
 
   DeleteRegKey HKLM "${PRODUCT_UNINST_KEY}"
   DeleteRegKey HKLM "${PRODUCT_DIR_REGKEY}"

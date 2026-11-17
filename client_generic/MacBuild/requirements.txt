@@ -1,0 +1,7 @@
+# Python packages build.py needs (it checks these at startup).
+#   python3 -m pip install -r requirements.txt
+# Pinned: the DMG window layout is written by dmgbuild, so a release should
+# not silently change with a new version. Bump deliberately and check the DMG.
+dmgbuild==1.6.7
+ds_store==1.3.3
+mac_alias==2.2.3

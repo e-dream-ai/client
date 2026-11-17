@@ -529,6 +529,14 @@ void CacheManager::updateDiskCachedItemMd5(const std::string& uuid, const std::s
 
 // MARK: - Quota
 
+void CacheManager::setRemainingQuota(long long newQuota) {
+    const bool rose = newQuota > remainingQuota;
+    remainingQuota = newQuota;
+    // A downloader stopped for lack of quota otherwise waits up to a minute to notice (#835).
+    if (rose)
+        g_ContentDownloader().m_gDownloader.Wake();
+}
+
 void CacheManager::decreaseRemainingQuota(long long amount) {
     g_Log->Info("decreaseRemainingQuota: amount=%lld, before=%lld", amount, remainingQuota);
     if (amount > remainingQuota) {

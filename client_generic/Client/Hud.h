@@ -9,26 +9,41 @@
 namespace Hud
 {
 
+// Color for all HUD and OSD text: the peach of the infinidream logo, the same
+// as the OSD icons (COLOR in osd-icons/make_osd_icons.py, #FFDAB8). Status
+// lights keep their own red/green/yellow.
+inline Base::Math::CVector4 TextColor()
+{
+    return Base::Math::CVector4(1.0f, 0.855f, 0.722f, 1.0f);
+}
+
+// OSD popups and the text overlays (F2, credits, help) fade in quickly and
+// out more slowly (client#782).
+constexpr double kHudFadeIn = 0.1;
+constexpr double kHudFadeOut = 0.4;
+
 /*
  */
 class CHudEntry
 {
-    bool m_bVisible;
+    bool m_bVisible = false;
 
   protected:
     Base::Math::CRect m_Rect;
-    double m_StartTime, m_Duration, m_Delta;
+    double m_StartTime = 0, m_Duration = -1, m_Delta = 0;
 
   public:
     CHudEntry(Base::Math::CRect _rect) : m_Rect(_rect){};
     virtual ~CHudEntry(){};
 
+    // Only CHudManager::Add calls this, and it shows the entry right after.
+    // Don't hide it here: re-adding an entry that's on screen (pressing A/D
+    // repeatedly re-pops the OSD) would hide its text for a frame (client#783).
     void SetTime(double _startTime, double _duration)
     {
         m_StartTime = _startTime;
         m_Duration = _duration;
         m_Delta = 0;
-        Visible(false);
     };
     virtual bool Render(const double _time,
                         DisplayOutput::spCRenderer /*_spRenderer*/)
@@ -47,6 +62,9 @@ class CHudEntry
 
     virtual void Visible(const bool _bState) { m_bVisible = _bState; };
     virtual bool Visible() const { return m_bVisible; };
+    // Whether the HudManager should call Render(). An entry that fades out
+    // after being hidden keeps returning true until it has faded.
+    virtual bool NeedsRender() const { return Visible(); }
 };
 
 MakeSmartPointers(CHudEntry);
@@ -74,6 +92,14 @@ class CHudManager
     spCHudEntry Get(const std::string _what) { return m_EntryMap[_what]; }
 
     bool Render(DisplayOutput::spCRenderer _spRenderer);
+    // Whether Render would draw anything.
+    bool AnyNeedsRender() const
+    {
+        for (const auto& entry : m_EntryMap)
+            if (entry.second && entry.second->NeedsRender())
+                return true;
+        return false;
+    }
     void HideAll();
     void Toggle(const std::string _name);
     void Hide(const std::string _name);

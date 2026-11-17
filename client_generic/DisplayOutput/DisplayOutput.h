@@ -256,6 +256,10 @@ class CDisplayOutput
     virtual bool SetFullscreen(const bool _fullscreen) { (void)_fullscreen; return false; }
     virtual bool IsFullscreen() const { return m_bFullScreen; }
 
+    /// Refresh rate of the monitor this display is on, in Hz, detected from the OS. 0 when
+    /// unknown. Can change when the window moves to another monitor or the mode changes.
+    virtual double RefreshRateHz() { return 0.0; }
+
     bool GetEvent(spCEvent& _event);
     void AppendEvent(spCEvent _event);
     void ClearEvents();
@@ -263,7 +267,19 @@ class CDisplayOutput
     virtual bool HasShaders() { return false; };
     uint32_t Width() { return (m_Width); };
     uint32_t Height() { return (m_Height); };
-    float Aspect() { return ((float)m_Height / (float)m_Width); };
+    // Rows at the top of the client area reserved for chrome (the Windows custom title bar);
+    // the renderer's base viewport starts below them.
+    virtual int VideoTopInsetPx() const { return 0; }
+    // Height / width of the area the renderer draws into (the base viewport), so HUD quads
+    // sized from it come out round, not stretched by the title-bar strip (issue #750).
+    float Aspect()
+    {
+        const int inset = VideoTopInsetPx();
+        const float h = (inset > 0 && static_cast<uint32_t>(inset) < m_Height)
+                            ? static_cast<float>(m_Height - static_cast<uint32_t>(inset))
+                            : static_cast<float>(m_Height);
+        return h / (float)m_Width;
+    };
     // Width() and Height() units per font height unit, for sizing text from the display size.
     virtual float TextScale() const { return 1.0f; }
     bool Closed() { return (m_bClosed); };

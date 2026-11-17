@@ -15,6 +15,7 @@ class CDisplayMetal : public CDisplayOutput
     static uint32_t s_DefaultWidth;
     static uint32_t s_DefaultHeight;
     CGraphicsContext m_GraphicsContext;
+    double m_RefreshRateHz = 0.0;
 
   public:
     CDisplayMetal();
@@ -38,6 +39,10 @@ class CDisplayMetal : public CDisplayOutput
     virtual void Update();
 
     void SwapBuffers();
+
+    // Detected by ESScreensaverView, which knows the window's screen (#749).
+    void SetRefreshRateHz(double _hz) { m_RefreshRateHz = _hz; }
+    double RefreshRateHz() override { return m_RefreshRateHz; }
 };
 
 }; // namespace DisplayOutput

@@ -12,7 +12,6 @@ Cross-platform native desktop application and screensaver for infinidream.ai (ma
 - **Auto-update:** Sparkle framework (EdDSA signatures) — macOS only
 - **Dependencies:** vcpkg (manifest at `vcpkg.json`, submodule at `vcpkg/`); Linux uses system packages
 - **Scripting:** Python (build/release scripts), Bash
-- **Binary Assets:** Git LFS
 
 ## Project Structure
 
@@ -26,7 +25,7 @@ client_generic/
     e-dream.sln          # Visual Studio solution (build Release | x64)
   WinBuild/
     build.py             # MSBuild driver (-v version, -r/-d, --platform, --run-vcpkg)
-    release.py           # NSIS Setup.exe + portable ZIP packaging
+    release.py           # NSIS Setup.exe packaging (version from build.py -v)
   InstallerMSVC/
     nsis_installer.nsi   # NSIS installer script
   LinuxBuild/
@@ -37,12 +36,11 @@ vcpkg/                   # C++ dependency management (git submodule)
 
 ## Commands
 
-Shared setup (all platforms): clone with submodules (`git submodule update --init --recursive`) and install Git LFS.
+Shared setup (all platforms): clone with submodules (`git submodule update --init --recursive`).
 
 **macOS** (Xcode + vcpkg + Sparkle):
 
 ```bash
-brew install git-lfs && git lfs install          # Required for binary assets
 ./vcpkg/bootstrap-vcpkg.sh && ./vcpkg/vcpkg install  # Install C++ deps
 open client_generic/MacBuild/e-dream.xcodeproj   # Open in Xcode
 cd client_generic/MacBuild && ./build.py               # Build app (Debug)
@@ -57,8 +55,8 @@ vcpkg\bootstrap-vcpkg.bat
 vcpkg\vcpkg.exe install --triplet x64-windows
 cd client_generic\WinBuild
 python build.py                               :: Release | x64 (infinidream.exe / .scr)
-python build.py -v X.Y.Z                       :: build with embedded version
-python release.py -v X.Y.Z                     :: NSIS Setup.exe (add --zip for portable ZIP)
+python build.py -v X.Y.Z                       :: release build (without -v: dev build, versioned from the latest tag)
+python release.py                             :: NSIS Setup.exe, versioned as built
 ```
 
 Or open `client_generic/MSVC/e-dream.sln` in Visual Studio 2022 and build **Release | x64**. There is no Sparkle auto-update on Windows.
@@ -82,13 +80,13 @@ cmake -B build-stage -DCMAKE_BUILD_TYPE=Release -DINFINIDREAM_STAGE=ON
 cmake --build build-stage -j$(nproc)
 ```
 
-`build_appimage.py` packages a release AppImage (static OpenSSL/FFmpeg/Boost, glibc shim); `--stage` builds `infinidream-stage-<arch>.AppImage`.
+`build_appimage.py` packages a release AppImage (static OpenSSL/FFmpeg/Boost, glibc shim); `--stage` builds `infinidream-stage-<arch>.AppImage`; `-v X.Y.Z` sets the version (default: latest git tag) and `-g` uploads to GitHub release `X.Y.Z`.
 
 ## Key Patterns
 
 - Dual mode: production (infinidream.ai) and staging (stage.infinidream.ai)
 - Screensaver: embedded in the app bundle (macOS `.saver`); separate `infinidream.scr` on Windows; not applicable on Linux
-- Code signing: macOS auto-discovers Developer ID from Keychain; Windows uses Authenticode (`release.py --sign`)
+- Code signing: macOS auto-discovers Developer ID from Keychain; Windows uses Authenticode via Azure Artifact Signing (`release.py --sign`, after `az login`; see README "Signing")
 - Auto-update via Sparkle appcast XML — macOS only; Windows/Linux ship via GitHub releases without in-app update
 
 ## Runtime Logs
@@ -109,6 +107,6 @@ The screensaver pointer at `HKCU\Control Panel\Desktop\SCRNSAVE.EXE` (Windows) i
 
 ## Deployment
 
-GitHub releases as `infinidream-X.Y.Z.zip`. Appcast URLs:
+GitHub releases as `infinidream-X.Y.Z.dmg`. Appcast URLs:
 - Production: `https://infinidream.ai/appcast.xml`
 - Stage: `https://infinidream.ai/stage/appcast.xml`

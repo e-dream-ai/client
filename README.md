@@ -16,12 +16,11 @@ Originally known as [Electric Sheep](https://github.com/scottdraves/electricshee
 
 # dev docs
 
-this repository uses git LFS, be sure to run
+This repository no longer uses Git LFS. Commits from before LFS was
+dropped (#762) stored `cache/univ-osx/**/libavcodec.a` in LFS, so checking
+one of those out still needs `git lfs install` first.
 
-    brew install git-lfs
-    git lfs install
-
-Also, if you are doing releases you will need:
+If you are doing releases you will need:
     brew install gh
     brew install bugsnag/tap/bugsnag-cli
 
@@ -53,6 +52,47 @@ There are four targets: app, screensaver, staging app, and staging
 screensaver. The staging targets have their own directory
 /Users/Shared/infinidream.ai-stage that can coexist with the normal one
 /Users/Shared/infinidream.ai
+
+## Timing diagnostics
+
+These environment variables add timing detail to the log, on every platform.
+All are off unless set. They are read once at startup, so set them before
+launching, e.g. from a terminal:
+
+```bash
+INFINIDREAM_HEARTBEAT_SECONDS=1 INFINIDREAM_STEP_TIMING_MS=5 \
+  ./infinidream.app/Contents/MacOS/infinidream
+```
+
+| Variable | Effect |
+|---|---|
+| `INFINIDREAM_HEARTBEAT_SECONDS=N` | `Heartbeat` line every N seconds (default 60) with tick counts, `max_tick_ms`, `late_ticks` (ticks over 1.5 display intervals), clamped ticks, `display_fps` and the state of each clip. |
+| `INFINIDREAM_STEP_TIMING_MS=N` | Logs `Slow step <label> ms=<n>` for any timed step taking N ms or more, and `Late tick ms=<n>` for every late tick. `0` logs every timed step on every frame. |
+| `INFINIDREAM_TEST_STALL_MS=N` | Spins the render thread for N ms every `INFINIDREAM_TEST_STALL_EVERY_MS` (default 5000), to check the counters above. |
+
+To find what made a frame late, look at the `Slow step` lines just before each
+`Late tick`; they all come from the render thread unless the label says
+otherwise. A threshold of 5 ms is a good start: a frame is 16.7 ms at 60 Hz.
+
+The timed steps cover:
+- **The player tick:** `player Update total`, `player ProcessPendingCommands`,
+  current and next clip `Update`, the transition preflight, `player PlayNextDream`
+  and `player RenderFrame`.
+- **Starting a clip:** creating the `CClip` and starting or preloading it, in
+  both `PlayClip` and `PreloadClip`.
+- **Opening the decoder:** `avformat_open_input`, `avformat_find_stream_info`,
+  hw device setup, `avcodec_open2` and the total. The total's label says whether
+  it ran on the caller's thread (local files) or the decoder thread (streams).
+- **Dropping the old clip:** `ReleaseRenderResources` and the GPU `WaitForIdle`
+  inside it.
+- **Frame boundaries:** `frame BeginDisplayFrame` and `frame EndDisplayFrame`,
+  which can wait for the next drawable or for vsync, and `frame HUD Render`. The
+  two waits log only when they take longer than a late tick, whatever the
+  threshold.
+
+A late tick with no `Slow step` before it was spent in an untimed step. To time
+one, put a `Base::CStepTimer` on the stack around it
+(`client_generic/Common/StepTimer.h`) with a string-literal label.
 
 ## Build on Linux
 
@@ -128,7 +168,8 @@ cmake --build build-stage -j$(nproc)
 ```
 
 To package a portable AppImage, run `./build_appimage.py` (add `--stage` for
-a stage AppImage).
+a stage AppImage). `-v X.Y.Z` sets the version it reports; without it, it takes the
+latest git tag. `-g` uploads it to the GitHub release `X.Y.Z` (see "to prerelease" below).
 
 ### Authentication
 
@@ -178,7 +219,8 @@ isn't set. Over `http` the client logs a warning, ignores any stored login and s
 `INFINIDREAM_API_KEY`, so set that variable; an `api_key` in `settings.json` isn't used.
 
 The log gets a `Heartbeat` line from the render thread every 60 seconds; set
-`INFINIDREAM_HEARTBEAT_SECONDS=1` to get one per second. It stops whenever frames stop,
+`INFINIDREAM_HEARTBEAT_SECONDS=1` to get one per second (see Timing diagnostics above
+for this and related variables). It stops whenever frames stop,
 which includes a locked screen on macOS, so check for that before calling a missing
 heartbeat a hang.
 
@@ -187,11 +229,12 @@ heartbeat a hang.
 ```bash
 cd client_generic/LinuxBuild/build
 ./infinidream
+./infinidream --fullscreen   # start fullscreen (default is windowed)
 ```
 
 Arrow keys navigate between dreams. `F1`–`F4` toggle HUD overlays (help,
-server stats, render stats, display stats). Close the window or press `Esc`
-to quit.
+server stats, render stats, display stats). `F` toggles fullscreen and `Esc`
+leaves it (`Esc` never quits). Close the window or press `Ctrl-Q` to quit.
 
 ### Hardware video decoding
 
@@ -217,6 +260,7 @@ INFINIDREAM_NO_HW_DECODE=1 ./infinidream
 ### Prerequisites
 - Xcode 14.0 or later
 - macOS 12.4 or later
+- Python packages for `build.py` (it uses dmgbuild to lay out the DMG window): `cd client_generic/MacBuild && python3 -m pip install -r requirements.txt`
 
 ### Quick Build for Debugging
 
@@ -227,6 +271,19 @@ making the embedded screensaver:
    mkdir -p Resources/infinidream.saver
 
 Then in xcode just use command-R.
+
+### Starting fullscreen
+
+For test scripts, the app takes `--fullscreen`, like Windows and Linux. Pass it to the
+executable directly or through `open`:
+
+```bash
+/Applications/infinidream.app/Contents/MacOS/infinidream --fullscreen
+open -a infinidream --args --fullscreen
+```
+
+Launched from the Finder or Dock it opens in a window as usual. In Xcode, add `--fullscreen`
+under Product > Scheme > Edit Scheme > Run > Arguments.
 
 
 ### Build Script
@@ -239,7 +296,7 @@ cd client_generic/MacBuild
 - `-r` : Build in Release mode (default: Debug)
 - `-s` : Build stage version (default: production)
 - `-n` : Enable notarization (requires `-r`)
-- `-v VERSION` : Set version string (e.g., `0.12.0`) for zip naming and GitHub release
+- `-v VERSION` : Set version string (e.g., `0.12.0`) for DMG naming and GitHub release
 - `-g` : Create GitHub release with tag (requires `-v`)
 
 ### Code Signing
@@ -269,7 +326,7 @@ Default keychain profile: `infinidream-notarization`
 # Release with notarization
 ./build.py -r -n
 
-# Release with notarization and version (creates infinidream-0.12.0.zip)
+# Release with notarization and version (creates infinidream-0.12.0.dmg)
 ./build.py -r -n -v 0.12.0
 
 # Full release with appcast and GitHub release
@@ -279,12 +336,13 @@ Default keychain profile: `infinidream-notarization`
 ### Output
 - Screensaver: `build/DerivedData/Build/Products/{Debug|Release}/infinidream.saver`
 - Application: `build/{Debug|Release}/AppExport/infinidream.app`
+- Distribution DMG: `build/{Debug|Release}/infinidream-{version}.dmg` (or `infinidream-{version}-stage.dmg`)
 
-The app bundle contains the embedded screensaver at `infinidream.app/Contents/Resources/infinidream.saver`.
+The app bundle contains the embedded screensaver at `infinidream.app/Contents/Resources/infinidream.saver`. The DMG contains the app plus an Applications symlink for drag-to-install, in a window with a background picture (`client_generic/MacBuild/dmg/`; regenerate it with `make_background.py`, after `python3 -m pip install -r dmg/requirements.txt`).
 
 ## Build on Windows
 
-Covers the native **MSVC** client ([`e-dream.sln`](client_generic/MSVC/e-dream.sln)), **vcpkg** manifest dependencies, and the **NSIS installer** / ZIP distribution via [`client_generic/WinBuild/`](client_generic/WinBuild/) (same style as [`MacBuild/build.py`](client_generic/MacBuild/build.py) and [`release.py`](client_generic/MacBuild/release.py)).
+Covers the native **MSVC** client ([`e-dream.sln`](client_generic/MSVC/e-dream.sln)), **vcpkg** manifest dependencies, and the **NSIS installer** via [`client_generic/WinBuild/`](client_generic/WinBuild/) (same style as [`MacBuild/build.py`](client_generic/MacBuild/build.py) and [`release.py`](client_generic/MacBuild/release.py)).
 
 ### Prerequisites
 
@@ -300,21 +358,25 @@ winget install --id GitHub.cli -e
 
 | Package | Purpose | Notes |
 |---------|---------|-------|
-| `Git.Git` | Clone, submodules. | Bundles Git LFS; after install run `git lfs install` once. |
-| `Python.Python.3.12` | Drives [`WinBuild/build.py`](client_generic/WinBuild/build.py) and [`release.py`](client_generic/WinBuild/release.py). Any 3.10+ works. | |
+| `Git.Git` | Clone, submodules. | |
+| `Python.Python.3.12` | Drives [`WinBuild/build.py`](client_generic/WinBuild/build.py) and [`release.py`](client_generic/WinBuild/release.py), and every MSBuild build runs [`generate_build_version.py`](client_generic/WinBuild/generate_build_version.py). Any 3.10+ works. | `python` must be on `PATH`, for Visual Studio builds too. |
 | `Microsoft.VisualStudio.2022.Community` | MSBuild, C++ toolchain, Windows 10/11 SDK, `signtool.exe`. Use `Microsoft.VisualStudio.2022.BuildTools` for headless/CI. | The winget install launches the VS Installer but **does not select workloads** — add **Desktop development with C++** (and the Windows SDK) in that UI, or pass `--override "--add Microsoft.VisualStudio.Workload.NativeDesktop --includeRecommended"` to winget. |
 | `NSIS.NSIS` | [`makensis`](client_generic/InstallerMSVC/nsis_installer.nsi) for the Windows installer. | Installs to `C:\Program Files (x86)\NSIS\` but does **not** add itself to `PATH`; [`release.py`](client_generic/WinBuild/release.py) auto-discovers it there, or honors `MAKENSIS=<path>`. |
 | `GitHub.cli` | `release.py -g` uploads artifacts via `gh`. | Run `gh auth login` once. |
 
 `vcpkg` is **not** a separate install — it's a git submodule at [`vcpkg/`](vcpkg/) that is bootstrapped with `vcpkg\bootstrap-vcpkg.bat` (see [dev docs](#dev-docs) at the top of this file).
 
-`signtool.exe` for Authenticode signing (`release.py --sign`) ships with the Windows SDK that the VS workload above installs — no separate package needed.
+`signtool.exe` for Authenticode signing (`release.py --sign`) ships with the Windows SDK that the VS workload above installs. Signing also needs `Microsoft.AzureCLI` and `Microsoft.Azure.ArtifactSigningClientTools` from winget; see [Signing](#signing).
 
 ### Quick build in Visual Studio
 
 Open `client_generic/MSVC/e-dream.sln`, choose **Release** and **x64**, build. Typical output directory:
 
 `client_generic/MSVC/Release/` → **`infinidream.exe`**, **`infinidream.scr`**
+
+`infinidream.exe` opens windowed; `infinidream.exe --fullscreen` starts fullscreen (`Esc` or `F11` returns to a window).
+
+**Version:** before compiling, every build runs [`WinBuild/generate_build_version.py`](client_generic/WinBuild/generate_build_version.py), which writes `MSVC/edream_build_version_generated.h` (gitignored). A Visual Studio build is a dev build: its version is the latest git tag and its revision is `git describe --tags --always --dirty` (e.g. `0.16.1-12-g4aeae8cf-dirty`), which Settings shows. Release builds come from `build.py -v`.
 
 **Toolsets:** the solution mixes toolsets — **x64** configurations use **v143**; **Win32** configurations may still reference **v140** and legacy **Boost** paths inside [`electricsheep.vcxproj`](client_generic/MSVC/electricsheep.vcxproj). Prefer **Release | x64** unless you maintain Win32 explicitly (the installer is 64-bit only).
 
@@ -335,7 +397,7 @@ Defaults: **Release**, **x64**, runs MSBuild **restore** then **build** (uses `M
 
 | Flag | Description |
 |------|-------------|
-| `-v SEMVER`, `--version SEMVER` | Embed this version in the binary (Settings / API). Omit to take `VER_*` from [`Common/clientversion.h`](client_generic/Common/clientversion.h). Also embeds `git rev-parse --short HEAD` (or `unknown` without a repo). |
+| `-v SEMVER`, `--version SEMVER` | Release version to embed in the binary (Settings, About, the server, the installer). Without it the build is a dev build, versioned from the latest git tag, and `release.py` won't package it. Either way the revision is `git describe --tags --always --dirty`. |
 | `-r`, `--release` | Configuration **Release** (default). |
 | `-d`, `--debug` | Configuration **Debug** (outputs `infinidreamd.exe`). |
 | `--configuration NAME` | Override configuration (e.g. `DebugMD`). |
@@ -356,54 +418,133 @@ python build.py -d --platform x64
 python build.py --run-vcpkg --triplet x64-windows
 ```
 
-### Release installer and ZIP
+### Release installer
 
-Build with the same semver you will ship (writes `MSVC/edream_build_version_generated.h` then compiles):
+Build with the semver you will ship. `release.py` refuses a dev build (one built without `-v`):
 
 ```bat
 python client_generic\WinBuild\build.py -v 0.14.0
 ```
 
-Then package an NSIS `Setup.exe` (default) and optionally a portable ZIP:
+Then package the NSIS `Setup.exe`. It takes the version the binaries were built with; passing a different `-v` is an error, so the installer and the app always agree:
 
 ```bat
-python client_generic\WinBuild\release.py -v 0.14.0                        :: NSIS Setup.exe
-python client_generic\WinBuild\release.py -v 0.14.0 --zip                  :: also writes a portable ZIP
-python client_generic\WinBuild\release.py -v 0.14.0 --no-installer --zip   :: ZIP only
+python client_generic\WinBuild\release.py
 ```
 
-The installer packages the entire `client_generic\MSVC\Release\` directory (binaries, vcpkg-linked DLLs, fonts, OSD assets) directly — there is no separate staging step. License content is embedded from `client_generic\RuntimeMSVC\License.rtf`.
+The installer packages straight from `client_generic\MSVC\Release\`: the exe and scr plus every `*.dll`, `*.png` and `*.ttf` there. `build.py` empties that folder before every build (like the Mac build), so nothing left over from an older build ships; object files are kept, so builds stay incremental (`--clean` removes those too). After a Visual Studio build, which doesn't empty the folder, run `build.py` before packaging a release. License content is embedded from `client_generic\RuntimeMSVC\License.rtf`.
 
-Output:
-
-- `client_generic\WinBuild\dist\infinidream-windows-{version}-setup.exe` (NSIS)
-- `client_generic\WinBuild\dist\infinidream-windows-{version}.zip` (with `--zip`)
+Output: `client_generic\WinBuild\dist\infinidream-windows-{version}-setup.exe`
 
 Options:
 
 | Flag | Description |
 |------|-------------|
-| `-v`, `--version` | Version string baked into the installer and file names (default `0.0.0`). |
+| `-v`, `--version` | Version for the installer and file name. Defaults to the version `build.py` compiled in; a different value is an error. |
 | `--configuration` | MSVC folder to package (default **Release**). |
-| `--zip` | Also build the portable ZIP. |
-| `--no-installer` | Skip NSIS; useful when `makensis` is unavailable. |
 | `--output-dir DIR` | Where to write artifacts. |
-| `--sign` | Authenticode-sign artifacts via `SIGN_THUMBPRINT` or `SIGN_PFX`. |
-| `-g`, `--github-release` | Upload artifacts with `gh` to the release whose tag matches `--version`. |
+| `--sign` | Authenticode-sign the exe, scr, uninstaller and setup exe (see [Signing](#signing)). |
+| `-g`, `--github-release` | Upload the setup exe with `gh` to the release whose tag is the version (e.g. `0.16.2`). |
+
+#### Signing
+
+`--sign` signs with **Azure Artifact Signing** (formerly Trusted Signing): account `infinidream-signing`, certificate profile `infinidream-public`, configured in [`artifact-signing.json`](client_generic/WinBuild/artifact-signing.json). It signs `infinidream.exe` and `infinidream.scr` in the output folder before packaging, the uninstaller while `makensis` builds it (`!uninstfinalize`), then the setup exe, and checks each signature with `signtool verify /pa`. One-time setup on the release machine:
+
+```bat
+winget install -e --id Microsoft.AzureCLI
+winget install -e --id Microsoft.Azure.ArtifactSigningClientTools
+az login
+```
+
+Your Azure account needs the **Artifact Signing Certificate Profile Signer** role on the profile. The certificates are short-lived (a few days) and every signature is timestamped, so signed releases stay valid. Re-run `az login` when the CLI's login expires.
+
+Overrides: `SIGNTOOL` (x64 `signtool.exe`), `SIGN_DLIB` (`Azure.CodeSigning.Dlib.dll`), `SIGN_METADATA` (another metadata file), `SIGN_TIMESTAMP_URL`. Setting `SIGN_THUMBPRINT` (a certificate in the Windows store) or `SIGN_PFX` / `SIGN_PFX_PASSWORD` signs with that certificate instead.
 
 #### Installer behavior
 
 - **x64 Windows 10+** only; the installer aborts otherwise.
-- Installs everything to `%ProgramFiles%\Infinidream\` (admin required).
-- Creates Start Menu shortcuts (launch, windowed launch, website, uninstall).
-- On the finish page, user can opt-in to set Infinidream as the **current screensaver** (writes `HKCU\Control Panel\Desktop\SCRNSAVE.EXE` to the full path of `infinidream.scr`).
-- Uninstaller prompts to preserve or delete `%ProgramData%\Infinidream\` (downloaded content and logs). Existing installs auto-migrate from the legacy `%ProgramData%\e-dream\` on first launch.
+- Installs to `%ProgramFiles%\Infinidream\` (admin required). A different folder chosen on the directory page always gets `\Infinidream` appended, so the program has a folder of its own.
+- Ships the VC++ runtime DLLs next to the app (the Release build copies them from Visual Studio's `Microsoft.VC143.CRT` redist folder), so no separate redistributable is needed.
+- Creates one Start Menu shortcut.
+- The finish page's "Run Infinidream and sign in" launches the app as the user, not elevated, by handing it to Explorer (`explorer.exe <app>`), and lets its window come to the front.
+- The app, not the installer, selects itself as the **current screensaver** on each launch (`HKCU\Control Panel\Desktop\SCRNSAVE.EXE`), unless "keep screensaver enabled" is turned off in its settings.
+- The uninstaller removes the program folder, shortcut and registry entries, and clears `SCRNSAVE.EXE` if it still points at our `.scr` (in either long or 8.3 form). It keeps the user's data in `%LOCALAPPDATA%\Infinidream\` (sign-in, downloaded content, logs), and removes the legacy `%ProgramData%\Infinidream\` from older builds.
 
 The NSIS script lives at [`client_generic/InstallerMSVC/nsis_installer.nsi`](client_generic/InstallerMSVC/nsis_installer.nsi).
 
 ### Windows crash symbols
 
 Windows builds produce **PDB** files next to binaries (e.g. under `client_generic\MSVC\Release\`). Upload PDBs to BugSnag following their Windows symbol-upload guidance; macOS dSYM instructions below do not apply on Windows.
+
+## to prerelease (for testers, without Sparkle)
+
+A GitHub prerelease lets a few people download a build without any installed client being
+offered it. Sparkle only reads the public appcast, which changes only when Mac `release.py`
+runs, and a prerelease isn't marked Latest, so the website keeps the current version.
+
+**Use plain `X.Y.Z` versions, increasing each time** (0.16.2, 0.16.3, …), not `-beta`
+suffixes. The Mac app reinstalls the screensaver only when the bundled version is higher,
+compared with `NSNumericSearch`, which ranks `0.17.0` *below* `0.17.0-beta.3`. Tags are shared
+with Windows, so pick numbers that don't collide with Windows builds.
+
+The scripts' names don't line up across platforms: Windows `release.py` packages and uploads,
+like the second half of Mac `build.py`, while Mac `release.py` is the separate "go public" step.
+
+| Step | Mac | Windows | Linux |
+|---|---|---|---|
+| Compile | `build.py` | `build.py -v` | `build_appimage.py -v` |
+| Package and sign | `build.py -r -n` | `release.py --sign` | `build_appimage.py` |
+| Tag and create the GitHub release | `build.py -g` | — (needs the Mac one) | — |
+| Upload to the release | `build.py -g` | `release.py -g` | `build_appimage.py -g` |
+| Push to users (Sparkle, website, Latest) | `release.py` | — | — |
+
+Commit and push first, then build the same commit on every machine.
+
+**1. Mac, first.** Creates the tag and the prerelease, and uploads the DMG:
+
+```bash
+cd client_generic/MacBuild
+./build.py -r -n -g -v 0.16.2
+```
+
+**2. Windows.** `release.py -g` uploads to the release Mac created, and fails if it doesn't
+exist yet. It takes the version `build.py -v` compiled in:
+
+```cmd
+git fetch --tags && git checkout 0.16.2
+cd client_generic\WinBuild
+python build.py -v 0.16.2
+python release.py --sign -g
+```
+
+**3. Linux.** `build_appimage.py -g` uploads to the release Mac created, and checks that it
+exists before building:
+
+```bash
+git fetch --tags && git checkout 0.16.2
+cd client_generic/LinuxBuild
+./build_appimage.py -v 0.16.2 -g
+```
+
+**4. Release notes,** from any machine, or edit them on GitHub:
+
+```bash
+gh release edit 0.16.2 --notes-file notes.md
+```
+
+Repeat with the next version for each round. Testers update by hand between prereleases;
+once you promote a version higher than theirs, Sparkle offers it to them like everyone else.
+
+**5. Promote** the one you're happy with (Mac only), as in step 4 of the next section:
+
+```bash
+cd client_generic/MacBuild
+./release.py -v 0.16.5 --dry-run
+./release.py -v 0.16.5
+```
+
+This publishes the appcast, updates the website version and marks the release Latest. Windows
+and Linux have no auto-update; their users get it from the release page.
 
 ## to release (with Sparkle auto-update)
 
@@ -417,7 +558,7 @@ This:
 - Builds and notarizes the app
 - Creates git tag `X.Y.Z` (overwrites if exists)
 - Creates GitHub prerelease `vX.Y.Z` with auto-generated notes
-- Uploads `infinidream-X.Y.Z.zip` to the release
+- Uploads `infinidream-X.Y.Z.dmg` to the release
 
 ### 2. Test the app
 ```bash
@@ -459,15 +600,15 @@ Push and Cloudflare will deploy in a few minutes.
 
 There is **no** Sparkle appcast on Windows in this repo. Typical flow:
 
-1. Build **Release \| x64** (Visual Studio or `client_generic/WinBuild/build.py`).
+1. Build **Release \| x64** with the version: `python client_generic\WinBuild\build.py -v X.Y.Z`. (A Visual Studio build is a dev build, which `release.py` won't package, and doesn't empty the output folder.)
 2. Package:
 
    ```bat
    cd client_generic\WinBuild
-   python release.py -v X.Y.Z --github-release vX.Y.Z
+   python release.py -g
    ```
 
-   Produces **`client_generic/WinBuild/dist/infinidream-windows-X.Y.Z-setup.exe`** (NSIS) and uploads it to the release. Add `--zip` for the portable archive.
+   Produces **`client_generic/WinBuild/dist/infinidream-windows-X.Y.Z-setup.exe`** (NSIS) and uploads it to the GitHub release tagged `X.Y.Z`.
 
 See [Build on Windows](#build-on-windows) above for the full flag list, installer behavior, and signing notes.
 
@@ -478,7 +619,7 @@ See [Build on Windows](#build-on-windows) above for the full flag list, installe
    - Stage app: `https://infinidream.ai/stage/appcast.xml`
 2. Compares `sparkle:version` in appcast with app's `CFBundleVersion`
 3. If newer version found, shows update dialog
-4. User clicks "Update Now" → downloads zip from GitHub → installs → relaunches
+4. User clicks "Update Now" → downloads DMG from GitHub → installs → relaunches
 
 ### Sparkle Tools Setup (one-time)
 
@@ -552,6 +693,19 @@ to test sign-in flow.
 
 Then disable the screensaver, then uninstall the screen saver, then
 run the app and make sure it installs and selects the screen saver.
+
+Also test the screensaver, not just the app. Test it:
+- with the app quit, so the screensaver runs online,
+- while the app is running: the screensaver should still play, offline
+  from cached dreams (#756),
+- on one screen and on multiple screens,
+- with hot plugging: plug in and unplug a second screen while it runs,
+  then dismiss it,
+- in the Preview of the Screen Saver pane in System Settings.
+
+After each test, quit System Settings to clear out its screensaver
+processes, and check that `pgrep -l legacyScreenSaver` prints
+nothing: a leftover process may still be playing invisibly (#755).
 
 ## Upload symbols to BugSnag
 

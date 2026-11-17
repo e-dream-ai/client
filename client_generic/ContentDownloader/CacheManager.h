@@ -89,9 +89,8 @@ public:
         return oss.str();
     }
     
-    void setRemainingQuota(long long newQuota) {
-       remainingQuota = newQuota;
-    }
+    // Wakes the downloader when the quota goes up, e.g. after a top-up.
+    void setRemainingQuota(long long newQuota);
     void decreaseRemainingQuota(long long amount);
 
     // Below this the prefetcher stops; streaming follows the same rule so Next

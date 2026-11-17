@@ -273,9 +273,6 @@
     playerFPS.doubleValue =
         ESScreensaver_GetDoubleSetting("settings.player.player_fps", 23.0);
 
-    displayFPS.doubleValue =
-        ESScreensaver_GetDoubleSetting("settings.player.display_fps", 60.0);
-
     synchronizeVBL.state =
         ESScreensaver_GetBoolSetting("settings.player.vbl_sync", false);
 
@@ -285,18 +282,33 @@
     rotatePortrait.state =
         ESScreensaver_GetBoolSetting("settings.player.rotate_portrait", false);
 
+    syphonOutput.state =
+        ESScreensaver_GetBoolSetting("settings.player.syphon_output", false);
+    // "Share video with" [Syphon]: the word is a link to Syphon's site, like
+    // "Share video with Spout" on Windows. Clicking the checkbox's own text
+    // still toggles it.
+    syphonLink.bordered = NO;
+    syphonLink.attributedTitle = [[NSAttributedString alloc]
+        initWithString:@"Syphon"
+            attributes:@{
+                NSForegroundColorAttributeName : NSColor.linkColor,
+                NSUnderlineStyleAttributeName : @(NSUnderlineStyleSingle),
+                NSFontAttributeName : syphonOutput.font ?: [NSFont systemFontOfSize:0],
+            }];
+#ifndef SCREEN_SAVER
+    [syphonOutput setHidden:NO];
+    [syphonLink setHidden:NO];
+#else
+    [syphonOutput setHidden:YES];
+    [syphonLink setHidden:YES];
+#endif
+
     blackoutMonitors.state =
         ESScreensaver_GetBoolSetting("settings.player.blackout_monitors", true);
-
-    silentMode.state =
-        ESScreensaver_GetBoolSetting("settings.player.quiet_mode", true);
 
 #ifdef SCREEN_SAVER
     [blackoutMonitors setHidden:true];
 #endif
-
-    showAttribution.state =
-        ESScreensaver_GetBoolSetting("settings.app.attributionpng", false);
 
     useProxy.state =
         ESScreensaver_GetBoolSetting("settings.content.use_proxy", false);
@@ -376,13 +388,6 @@
 
     ESScreensaver_SetDoubleSetting("settings.player.player_fps", player_fps);
 
-    double display_fps = displayFPS.doubleValue;
-
-    if (display_fps < .1)
-        display_fps = 60.0;
-
-    ESScreensaver_SetDoubleSetting("settings.player.display_fps", display_fps);
-
     // Hardcode displaymode for now to Cubic as we have removed the setting
     ESScreensaver_SetIntSetting("settings.player.DisplayMode",2);
 
@@ -395,16 +400,13 @@
     ESScreensaver_SetBoolSetting("settings.player.rotate_portrait",
                                  rotatePortrait.state);
 
+    ESScreensaver_SetBoolSetting("settings.player.syphon_output",
+                                 syphonOutput.state);
+
     ESScreensaver_SetBoolSetting("settings.player.blackout_monitors",
                                  blackoutMonitors.state);
 
-    ESScreensaver_SetBoolSetting("settings.app.attributionpng",
-                                 showAttribution.state);
-
     ESScreensaver_SetBoolSetting("settings.content.use_proxy", useProxy.state);
-
-    ESScreensaver_SetBoolSetting("settings.player.quiet_mode",
-                                 silentMode.state);
 
     ESScreensaver_SetStringSetting("settings.content.proxy",
                                    proxyHost.stringValue.UTF8String);
@@ -445,6 +447,11 @@
     
     ESScreensaver_SetBoolSetting("settings.app.auto_install_screensaver", installAndUpdateScreensaverButton.state);
     ESScreensaver_SetBoolSetting("settings.app.keep_screensaver_enabled", keepScreensaverEnabledButton.state);
+}
+
+- (IBAction)openSyphonSite:(id)__unused sender
+{
+    [[NSWorkspace sharedWorkspace] openURL:[NSURL URLWithString:@"https://syphon.info/"]];
 }
 
 // MARK: Create Account

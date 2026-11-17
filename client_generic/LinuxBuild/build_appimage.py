@@ -6,8 +6,9 @@ Builds infinidream and packages it as a self-contained AppImage.
 
 Usage:
     cd client/client_generic/LinuxBuild
-    ./build_appimage.py            # prod
-    ./build_appimage.py --stage    # stage (api-stage.infinidream.ai)
+    ./build_appimage.py                  # prod, dev build versioned from the latest git tag
+    ./build_appimage.py --stage          # stage (api-stage.infinidream.ai)
+    ./build_appimage.py -v 0.16.2 -g     # release build, uploaded to GitHub release 0.16.2
 
 Output: infinidream-<arch>.AppImage (or infinidream-stage-<arch>.AppImage)
 in this directory.
@@ -15,7 +16,7 @@ in this directory.
 Requirements:
   - Build tools: cmake, gcc, g++, make, perl
   - curl / Python urllib  (downloads sources + linuxdeploy / appimagetool on first run)
-  - zig         (used ONLY to compile OpenSSL and FFmpeg against glibc 2.35;
+  - zig         (used ONLY to compile OpenSSL, libcurl and FFmpeg against glibc 2.35;
                  the main binary uses system g++)
                  Install: pacman -S zig  OR  apt install zig
   - nasm/yasm   (FFmpeg assembly optimisations; skipped gracefully if absent)
@@ -126,8 +127,32 @@ def cache_valid(marker: Path, toolchain_marker: Path, expected_tag: str) -> bool
 ARCH = platform.machine()          # e.g. "x86_64"
 SCRIPT_DIR = Path(__file__).resolve().parent
 
-# glibc ABI ceiling (see long comment in build_appimage.sh)
-GLIBC_TARGET = f"{ARCH}-linux-gnu.2.35"
+# glibc ABI ceiling. Every file in the AppImage must stay at or below it:
+# see verify_abi_ceiling().
+#
+# OpenSSL, libcurl and FFmpeg are compiled as shared libraries with zig cc
+# targeting this glibc version, so the bundled .so files don't reference any
+# symbol newer than GLIBC_2.35.
+#
+# The main infinidream binary is compiled with system g++, with libstdc++ and
+# libgcc linked statically. The glibc_compat.c shim intercepts the ~11 symbols
+# that g++ would otherwise bind to newer glibc versions (GLIBC_2.38 /
+# GLIBC_2.43) and redirects them to GLIBC_2.2.5 via .symver directives.
+#
+# Net result: the AppImage runs on glibc >= 2.35, which covers Ubuntu 22.04
+# LTS, Debian 12, Fedora 36+ and Linux Mint 21+.
+GLIBC_CEILING = (2, 35)
+GLIBC_TARGET = f"{ARCH}-linux-gnu.{GLIBC_CEILING[0]}.{GLIBC_CEILING[1]}"
+
+# Newest symbol versions allowed per library ABI. libstdc++ and libgcc are
+# linked statically, so nothing should need them at all; the GLIBCXX/CXXABI
+# caps (GCC 12's libstdc++, as on Ubuntu 22.04 / Debian 12) catch a bundled
+# or host libstdc++ dependency sneaking back in.
+ABI_CEILINGS = {
+    "GLIBC":   GLIBC_CEILING,
+    "GLIBCXX": (3, 4, 30),
+    "CXXABI":  (1, 3, 13),
+}
 
 BUILD_DIR    = SCRIPT_DIR / "build-appimage"
 APPDIR       = SCRIPT_DIR / "AppDir"
@@ -142,6 +167,17 @@ OPENSSL_URL      = (f"https://github.com/openssl/openssl/releases/download/"
                     f"openssl-{OPENSSL_VERSION}/{OPENSSL_TARBALL}")
 OPENSSL_SRC_DIR  = DEPS_SRC / f"openssl-{OPENSSL_VERSION}"
 OPENSSL_INSTALL  = SCRIPT_DIR / "openssl-minimal"
+
+# The distro libcurl drags in LDAP, RTMP, SSH, SASL, PSL and GnuTLS, all of
+# which need the build host's (newer) glibc (#807). We only need HTTP(S).
+CURL_VERSION     = "8.23.0"
+CURL_TARBALL     = f"curl-{CURL_VERSION}.tar.xz"
+CURL_URL         = f"https://curl.se/download/{CURL_TARBALL}"
+CURL_SRC_DIR     = DEPS_SRC / f"curl-{CURL_VERSION}"
+CURL_INSTALL     = SCRIPT_DIR / "curl-minimal"
+
+# Bump when libcurl configure flags change — forces a clean rebuild
+CURL_CONFIG_TAG  = "http-openssl-cafallback"
 
 # 9.x reuses a staging buffer for Vulkan frame downloads on NVIDIA; 8.x
 # imports (allocates and frees) GPU memory for every decoded frame there.
@@ -270,6 +306,84 @@ def build_openssl(zig_cc: Path, zig_cxx: Path) -> None:
 
     toolchain_marker.write_text(GLIBC_TARGET)
     log("OpenSSL build complete.")
+
+
+# ---------------------------------------------------------------------------
+# Build minimal libcurl from source (cached)
+# ---------------------------------------------------------------------------
+def build_curl(zig_cc: Path, zig_cxx: Path) -> None:
+    """
+    Build an HTTP/HTTPS-only libcurl against openssl-minimal with the zig
+    wrappers, so it and its dependencies stay glibc-2.35 clean (#807).
+
+    No CA bundle path is compiled in (the build host's path may not exist on
+    the user's distro). --with-ca-fallback makes libcurl use OpenSSL's default
+    verify paths, which honour SSL_CERT_FILE; AppRun points that at the
+    host's CA bundle.
+    """
+    marker           = CURL_INSTALL / "lib" / "pkgconfig" / "libcurl.pc"
+    toolchain_marker = CURL_INSTALL / ".toolchain-target"
+    expected_tag     = f"{GLIBC_TARGET}-{CURL_VERSION}-{OPENSSL_VERSION}-{CURL_CONFIG_TAG}"
+
+    if cache_valid(marker, toolchain_marker, expected_tag):
+        log(f"Minimal libcurl {CURL_VERSION} already built for {expected_tag}, skipping.")
+        return
+
+    if CURL_INSTALL.exists():
+        log("libcurl cache stale (target or config changed) — rebuilding ...")
+        shutil.rmtree(CURL_INSTALL)
+
+    log(f"Building minimal libcurl {CURL_VERSION} from source ...")
+    tarball = DEPS_SRC / CURL_TARBALL
+    download_source(CURL_URL, tarball)
+
+    if CURL_SRC_DIR.exists():
+        # A previous configure may have cached results for other flags.
+        shutil.rmtree(CURL_SRC_DIR)
+    log("Extracting libcurl source ...")
+    with tarfile.open(tarball) as tf:
+        tf.extractall(DEPS_SRC)
+
+    log(f"Configuring minimal libcurl (target: {GLIBC_TARGET}) ...")
+    run([
+        str(CURL_SRC_DIR / "configure"),
+        f"--prefix={CURL_INSTALL}",
+        "--enable-shared",
+        "--disable-static",
+        f"--with-openssl={OPENSSL_INSTALL}",
+        "--with-ca-fallback",
+        "--without-ca-bundle",
+        "--without-ca-path",
+        # HTTP(S) and HTTP proxies only (Networking.cpp supports a proxy).
+        "--disable-ftp", "--disable-file", "--disable-ldap", "--disable-ldaps",
+        "--disable-rtsp", "--disable-dict", "--disable-telnet", "--disable-tftp",
+        "--disable-pop3", "--disable-imap", "--disable-smb", "--disable-smtp",
+        "--disable-gopher", "--disable-mqtt", "--disable-ipfs",
+        "--disable-websockets",
+        "--disable-manual", "--disable-docs",
+        "--without-gnutls", "--without-libpsl", "--without-libidn2",
+        "--without-librtmp", "--without-libssh2", "--without-libssh",
+        "--without-nghttp2", "--without-ngtcp2", "--without-nghttp3",
+        "--without-brotli", "--without-zstd", "--without-zlib",
+        "--without-libgsasl", "--without-gssapi",
+        f"CC={zig_cc}",
+    ], cwd=CURL_SRC_DIR)
+
+    nproc = os.cpu_count() or 1
+    log(f"Compiling minimal libcurl ({nproc} jobs) ...")
+    run(["make", f"-j{nproc}", "-C", "lib"], cwd=CURL_SRC_DIR)
+
+    log(f"Installing minimal libcurl to {CURL_INSTALL} ...")
+    import tempfile
+    with tempfile.TemporaryDirectory() as tmp:
+        for sub in ("lib", "include"):
+            run(["make", "-C", sub, "install", f"DESTDIR={tmp}"], cwd=CURL_SRC_DIR)
+        run(["make", "install-pkgconfigDATA", f"DESTDIR={tmp}"], cwd=CURL_SRC_DIR)
+        CURL_INSTALL.mkdir(parents=True, exist_ok=True)
+        run(["cp", "-r", f"{tmp}{CURL_INSTALL}/.", str(CURL_INSTALL)])
+
+    toolchain_marker.write_text(expected_tag)
+    log("Minimal libcurl build complete.")
 
 
 # ---------------------------------------------------------------------------
@@ -427,7 +541,7 @@ def compile_glibc_shim() -> Path:
 # ---------------------------------------------------------------------------
 # CMake build
 # ---------------------------------------------------------------------------
-def build_infinidream(shim_obj: Path, stage: bool) -> None:
+def build_infinidream(shim_obj: Path, stage: bool, version: Optional[str]) -> None:
     """
     Build infinidream (Release) with system g++.
 
@@ -437,14 +551,19 @@ def build_infinidream(shim_obj: Path, stage: bool) -> None:
     nproc = os.cpu_count() or 1
 
     linker_flags = (
+        # Host libstdc++ on Ubuntu 22.04 / Debian 12 (GCC 12) lacks symbols
+        # the build host's g++ emits (GLIBCXX_3.4.31+), so link it statically.
+        f"-static-libstdc++ -static-libgcc "
         f"{shim_obj} -lm "
         f"-L{OPENSSL_INSTALL}/lib "
+        f"-L{CURL_INSTALL}/lib "
         f"-L{FFMPEG_INSTALL}/lib "
         f"-Wl,--allow-shlib-undefined"
     )
 
     pkg_config_path = (
         f"{OPENSSL_INSTALL}/lib/pkgconfig:"
+        f"{CURL_INSTALL}/lib/pkgconfig:"
         f"{FFMPEG_INSTALL}/lib/pkgconfig:"
         + os.environ.get("PKG_CONFIG_PATH", "")
     )
@@ -458,10 +577,15 @@ def build_infinidream(shim_obj: Path, stage: bool) -> None:
         "-DCMAKE_C_COMPILER=gcc",
         "-DCMAKE_CXX_COMPILER=g++",
         f"-DOPENSSL_ROOT_DIR={OPENSSL_INSTALL}",
+        # Point FindCURL at curl-minimal, not the system libcurl or its
+        # CURLConfig.cmake.
+        "-DCURL_NO_CURL_CMAKE=ON",
+        f"-DCURL_INCLUDE_DIR={CURL_INSTALL}/include",
+        f"-DCURL_LIBRARY={CURL_INSTALL}/lib/libcurl.so",
         "-DBoost_USE_STATIC_LIBS=ON",
         f"-DCMAKE_EXE_LINKER_FLAGS={linker_flags}",
         f"-DINFINIDREAM_STAGE={'ON' if stage else 'OFF'}",
-    ], env={"PKG_CONFIG_PATH": pkg_config_path, **os.environ})
+    ] + ([f"-DAPP_VERSION={version}"] if version else []), env={"PKG_CONFIG_PATH": pkg_config_path, **os.environ})
 
     log(f"Compiling ({nproc} jobs) ...")
     run(["cmake", "--build", str(BUILD_DIR), f"-j{nproc}"])
@@ -470,38 +594,54 @@ def build_infinidream(shim_obj: Path, stage: bool) -> None:
 # ---------------------------------------------------------------------------
 # glibc ceiling check
 # ---------------------------------------------------------------------------
-def verify_glibc_ceiling() -> None:
+def abi_requirements(path: Path) -> dict[str, tuple[int, ...]]:
+    """Newest GLIBC_/GLIBCXX_/CXXABI_ version an ELF file needs, per ABI."""
+    newest: dict[str, tuple[int, ...]] = {}
+    # -V lists the version needs (.gnu.version_r), e.g. "Name: GLIBC_2.34".
+    for part in capture(["readelf", "-VW", str(path)]).split():
+        abi, sep, ver = part.partition("_")
+        if not sep or abi not in ABI_CEILINGS:
+            continue
+        try:
+            version = tuple(int(x) for x in ver.split("."))
+        except ValueError:
+            continue
+        if version > newest.get(abi, ()):
+            newest[abi] = version
+    return newest
+
+
+def fmt_version(abi: str, version: tuple[int, ...]) -> str:
+    return f"{abi}_{'.'.join(map(str, version))}"
+
+
+def verify_abi_ceiling(files: list[Path], what: str) -> None:
     """
-    Fail fast if the binary references glibc symbols newer than 2.35.
-    Catches regressions before producing a broken AppImage.
+    Fail if any of `files` needs a glibc or libstdc++ symbol version newer
+    than ABI_CEILINGS allows. Catches regressions before producing a broken
+    AppImage.
     """
-    log("Verifying glibc symbol version ceiling ...")
-    binary = BUILD_DIR / "infinidream"
-    readelf_out = capture(["readelf", "-sW", str(binary)])
+    ceilings = ", ".join(fmt_version(a, v) for a, v in ABI_CEILINGS.items())
+    log(f"Verifying ABI ceiling ({ceilings}) for {what} ...")
 
     bad = []
-    for line in readelf_out.splitlines():
-        # Match GLIBC_2.36 and above (2.36–2.99, 3.x+)
-        parts = line.split()
-        for part in parts:
-            if part.startswith("GLIBC_2."):
-                try:
-                    minor = int(part.split(".")[1])
-                    if minor >= 36:
-                        bad.append(part)
-                except ValueError:
-                    pass
+    for f in files:
+        for abi, need in abi_requirements(f).items():
+            if need > ABI_CEILINGS[abi]:
+                bad.append((fmt_version(abi, need), f.name))
 
-    bad = sorted(set(bad))
     if bad:
-        print("\nERROR: Binary references glibc symbols newer than 2.35:", file=sys.stderr)
-        for sym in bad:
-            print(f"  {sym}", file=sys.stderr)
-        print("\nThe AppImage would fail on Ubuntu 22.04 / glibc 2.35.", file=sys.stderr)
-        print("Check glibc_compat.c and add wrappers for the above symbols.", file=sys.stderr)
+        print(f"\nERROR: {what} need symbol versions newer than allowed "
+              f"({ceilings}):", file=sys.stderr)
+        for need, name in sorted(bad):
+            print(f"  {need}  {name}", file=sys.stderr)
+        print("\nThe AppImage would fail on Ubuntu 22.04 / Debian 12.", file=sys.stderr)
+        print("For the binary, check glibc_compat.c (GLIBC_) or the static "
+              "libstdc++ link (GLIBCXX_/CXXABI_). For a bundled library, build "
+              "it from source with the zig wrappers or exclude it.", file=sys.stderr)
         sys.exit(1)
 
-    log("glibc ceiling check passed — no symbols newer than GLIBC_2.35 found.")
+    log(f"ABI ceiling check passed for {len(files)} file(s).")
 
 
 # ---------------------------------------------------------------------------
@@ -551,13 +691,13 @@ EXCLUDED_LIBS = [
     "libXrender.so*", "libXext.so*",
     "libwayland-client.so*", "libwayland-cursor.so*", "libwayland-egl.so*",
     "libxkbcommon.so*", "libdecor-0.so*",
+    # libwayland's own dependency; a bundled copy needs the build host's glibc
+    # and would shadow the host's for its libwayland (#807)
+    "libffi.so*",
     # glibc — must match host
     "libpthread.so*", "libm.so*", "libc.so*", "libdl.so*", "librt.so*",
     # VDPAU — disabled in FFmpeg build; excluded as belt-and-suspenders
     "libvdpau.so*",
-    # Kerberos/GSSAPI — pulled in by libcurl; host libs are glibc-clean
-    "libgssapi_krb5.so*", "libkrb5.so*", "libkrb5support.so*",
-    "libk5crypto.so*", "libkeyutils.so*",
 ]
 
 
@@ -569,7 +709,7 @@ def bundle_libraries(linuxdeploy: Path) -> None:
         exclude_args += ["--exclude-library", lib]
 
     ld_library_path = (
-        f"{OPENSSL_INSTALL}/lib:{FFMPEG_INSTALL}/lib:"
+        f"{OPENSSL_INSTALL}/lib:{CURL_INSTALL}/lib:{FFMPEG_INSTALL}/lib:"
         + os.environ.get("LD_LIBRARY_PATH", "")
     )
 
@@ -617,6 +757,38 @@ def create_appimage(appimagetool: Path) -> None:
 
 
 # ---------------------------------------------------------------------------
+# Version and GitHub release
+# ---------------------------------------------------------------------------
+def normalize_version(value: str) -> str:
+    v = value.strip()
+    if v[:1].lower() == "v" and len(v) > 1 and v[1].isdigit():
+        v = v[1:]
+    return v
+
+
+def latest_git_tag() -> Optional[str]:
+    tag = capture(["git", "-C", str(SCRIPT_DIR), "describe", "--tags", "--abbrev=0"])
+    return normalize_version(tag) if tag else None
+
+
+def check_github_release(tag: str) -> None:
+    """Fail before the (long) build if the upload would fail."""
+    require_cmd("gh")
+    result = subprocess.run(["gh", "release", "view", tag, "--json", "tagName"],
+                            capture_output=True, text=True, cwd=SCRIPT_DIR)
+    if result.returncode != 0:
+        die(f"GitHub release {tag} not found ({result.stderr.strip()}).\n"
+            f"Create it first with the Mac build: "
+            f"cd client_generic/MacBuild && ./build.py -r -n -g -v {tag}")
+
+
+def github_upload(asset: Path, tag: str) -> None:
+    log(f"Uploading {asset.name} to GitHub release {tag} ...")
+    run(["gh", "release", "upload", tag, str(asset), "--clobber"], cwd=SCRIPT_DIR)
+    log("Upload finished.")
+
+
+# ---------------------------------------------------------------------------
 # Main
 # ---------------------------------------------------------------------------
 def main() -> None:
@@ -624,7 +796,26 @@ def main() -> None:
     parser = argparse.ArgumentParser(description="Build the infinidream Linux AppImage.")
     parser.add_argument("--stage", action="store_true",
                         help="build against api-stage.infinidream.ai")
+    parser.add_argument("-v", "--version",
+                        help="release version X.Y.Z compiled into the app. Without it "
+                             "the build is a dev build versioned from the latest git tag.")
+    parser.add_argument("-g", "--github-release", action="store_true",
+                        help="upload the AppImage to the GitHub release whose tag matches "
+                             "--version (created by Mac build.py -g)")
     args = parser.parse_args()
+
+    if args.github_release and not args.version:
+        die("-g/--github-release needs -v/--version X.Y.Z to pick the release.")
+    if args.version:
+        version = normalize_version(args.version)
+    else:
+        version = latest_git_tag()
+        if version:
+            log(f"No -v given: dev build versioned from the latest git tag, {version}.")
+        else:
+            log("No -v given and no git tag found: the AppImage will report 0.0.0.")
+    if args.github_release:
+        check_github_release(version)
     if args.stage:
         OUTPUT_APPIMAGE = SCRIPT_DIR / f"infinidream-stage-{ARCH}.AppImage"
 
@@ -643,24 +834,33 @@ def main() -> None:
 
     pkg_config_path = (
         f"{OPENSSL_INSTALL}/lib/pkgconfig:"
+        f"{CURL_INSTALL}/lib/pkgconfig:"
         f"{FFMPEG_INSTALL}/lib/pkgconfig:"
         + os.environ.get("PKG_CONFIG_PATH", "")
     )
     os.environ["PKG_CONFIG_PATH"] = pkg_config_path
 
     build_openssl(zig_cc, zig_cxx)
+    build_curl(zig_cc, zig_cxx)
     build_ffmpeg(zig_cc, zig_cxx)
 
     linuxdeploy, appimagetool = prepare_appimage_tools()
 
     shim_obj = compile_glibc_shim()
-    build_infinidream(shim_obj, args.stage)
-    verify_glibc_ceiling()
+    build_infinidream(shim_obj, args.stage, version)
+    verify_abi_ceiling([BUILD_DIR / "infinidream"], "the binary")
 
     assemble_appdir()
     bundle_libraries(linuxdeploy)
     verify_symbols_resolve()
+    bundled = sorted(f for f in (APPDIR / "usr" / "lib").glob("*.so*")
+                     if f.is_file() and not f.is_symlink())
+    verify_abi_ceiling(bundled + [APPDIR / "usr" / "bin" / "infinidream"],
+                         "bundled libraries")
     create_appimage(appimagetool)
+
+    if args.github_release:
+        github_upload(OUTPUT_APPIMAGE, version)
 
     print()
     log(f"Done! AppImage created at:")

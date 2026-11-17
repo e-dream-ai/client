@@ -74,16 +74,16 @@ const SettingsPalette kSettingsLight = {
 };
 
 const SettingsPalette kSettingsDark = {
-    ThemeLinux::DarkColor(0.15f, 0.15f, 0.16f, 1.00f), ThemeLinux::DarkColor(0.32f, 0.32f, 0.34f, 1.00f),
-    ThemeLinux::DarkColor(0.92f, 0.92f, 0.94f, 1.00f), ThemeLinux::DarkColor(0.60f, 0.60f, 0.62f, 1.00f),
-    ThemeLinux::DarkColor(0.20f, 0.20f, 0.21f, 1.00f), ThemeLinux::DarkColor(0.15f, 0.15f, 0.16f, 1.00f),
-    ThemeLinux::DarkColor(0.18f, 0.18f, 0.19f, 1.00f), ImVec4(1.f, 1.f, 1.f, 0.08f),
-    ThemeLinux::DarkColor(0.30f, 0.30f, 0.32f, 1.00f), ThemeLinux::DarkColor(0.36f, 0.36f, 0.38f, 1.00f), ThemeLinux::DarkColor(0.24f, 0.24f, 0.26f, 1.00f),
-    ThemeLinux::DarkColor(0.20f, 0.20f, 0.21f, 1.00f), ThemeLinux::DarkColor(0.23f, 0.23f, 0.24f, 1.00f), ThemeLinux::DarkColor(0.25f, 0.25f, 0.26f, 1.00f),
-    ThemeLinux::DarkColor(0.30f, 0.30f, 0.32f, 1.00f), ThemeLinux::DarkColor(0.36f, 0.36f, 0.38f, 1.00f), ThemeLinux::DarkColor(0.24f, 0.24f, 0.26f, 1.00f),
-    ThemeLinux::DarkColor(0.28f, 0.28f, 0.30f, 1.00f),
+    ImVec4(0.15f, 0.15f, 0.16f, 1.00f), ImVec4(0.32f, 0.32f, 0.34f, 1.00f),
+    ImVec4(0.92f, 0.92f, 0.94f, 1.00f), ImVec4(0.60f, 0.60f, 0.62f, 1.00f),
+    ImVec4(0.20f, 0.20f, 0.21f, 1.00f), ImVec4(0.15f, 0.15f, 0.16f, 1.00f),
+    ImVec4(0.18f, 0.18f, 0.19f, 1.00f), ImVec4(1.f, 1.f, 1.f, 0.08f),
+    ImVec4(0.30f, 0.30f, 0.32f, 1.00f), ImVec4(0.36f, 0.36f, 0.38f, 1.00f), ImVec4(0.24f, 0.24f, 0.26f, 1.00f),
+    ImVec4(0.20f, 0.20f, 0.21f, 1.00f), ImVec4(0.23f, 0.23f, 0.24f, 1.00f), ImVec4(0.25f, 0.25f, 0.26f, 1.00f),
+    ImVec4(0.30f, 0.30f, 0.32f, 1.00f), ImVec4(0.36f, 0.36f, 0.38f, 1.00f), ImVec4(0.24f, 0.24f, 0.26f, 1.00f),
+    ImVec4(0.28f, 0.28f, 0.30f, 1.00f),
     ImVec4(0.0f, 0.0f, 0.0f, 0.30f),
-    ImGui::ColorConvertFloat4ToU32(ThemeLinux::DarkColor(92 / 255.f, 92 / 255.f, 96 / 255.f, 1.f)),
+    ImGui::ColorConvertFloat4ToU32(ImVec4(92 / 255.f, 92 / 255.f, 96 / 255.f, 1.f)),
 };
 
 const SettingsPalette& Palette()
@@ -98,7 +98,7 @@ void SetStyleColors(bool dark)
 {
     g_styleIsDark = dark;
     if (dark)
-        ThemeLinux::ApplyDarkBaseColors(ImGui::GetStyle());
+        ImGui::StyleColorsDark(&ImGui::GetStyle());
     else
         ImGui::StyleColorsLight();
 }
@@ -126,11 +126,8 @@ char g_errorPopupMessage[512]    = {};
 std::string g_versionText;
 
 double g_playerFps      = 23.0;
-double g_displayFps     = 60.0;
-bool   g_vsync          = false;
 bool   g_preserveAR     = false;
-bool   g_quietMode      = true;
-bool   g_showAttribution = false;
+bool   g_rotatePortrait = false;
 
 char g_contentDirBuf[512] = {};
 bool g_unlimitedCache     = false;
@@ -405,7 +402,6 @@ static void DrawSettingsDialog(float viewportW, float viewportH)
             const float contentHeight = ImGui::GetContentRegionAvail().y;
             const float rowCenterY    = ImGui::GetCursorPosY() + (contentHeight * 0.5f);
             const float buttonY       = rowCenterY - (closeButtonHeight * 0.5f);
-            const float textY         = rowCenterY - (ImGui::GetTextLineHeight() * 0.5f);
             const float closeX        = originX + contentWidth - closeButtonWidth;
 
             // Once signed in, Close is the default button (blue, Return); while signed out,
@@ -448,9 +444,21 @@ static void DrawSettingsDialog(float viewportW, float viewportH)
             if (helpClicked)
                 PlatformUtils::OpenURLExternally(kUrlHelp);
 
+            // The full version (revision + build time) is long: draw it smaller than the
+            // UI text, and shrink it further if it would still reach the Close button.
             ImGui::SameLine();
-            ImGui::SetCursorPosY(textY);
+            const float versionX    = ImGui::GetCursorPosX();
+            const float versionMaxW = closeX - S(12.f) - versionX;
+            float versionSize = S(15.f);
+            ImGui::PushFont(nullptr, versionSize);
+            const float versionW = ImGui::CalcTextSize(g_versionText.c_str()).x;
+            ImGui::PopFont();
+            if (versionMaxW > 0.f && versionW > versionMaxW)
+                versionSize *= versionMaxW / versionW;
+            ImGui::PushFont(nullptr, versionSize);
+            ImGui::SetCursorPosY(rowCenterY - (ImGui::GetTextLineHeight() * 0.5f));
             ImGui::TextDisabled("%s", g_versionText.c_str());
+            ImGui::PopFont();
         }
         ImGui::EndChild();
     }

@@ -1,6 +1,12 @@
 #ifndef CLIENTVERSION_H_INCLUDED
 #define CLIENTVERSION_H_INCLUDED
 
+// Not the app's version. The version shown in Settings/About, reported to the
+// server and packaged by the installer comes from build.py -v on Windows
+// (MSVC/edream_build_version_generated.h, written by
+// WinBuild/generate_build_version.py; the latest git tag for dev builds) and
+// from Info.plist on the Mac. VER_* only feed the legacy CLIENT_VERSION
+// strings below (e.g. the Windows single-instance mutex name).
 #define VER_MAJOR "0"
 #define VER_MINOR "1"
 #define VER_BUILD "0"

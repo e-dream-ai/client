@@ -68,32 +68,65 @@ void PlatformUtils_SetUIScale(float scale)
 }
 
 // ---------------------------------------------------------------------------
-// Internet reachability — try a non-blocking connect to 8.8.8.8:53
+// Internet reachability: is there a default route? (issue #757)
+//
+// This is called every 2 s from the render thread (RefreshSlowDiagnostics), so it
+// must not block. It used to wait for a TCP handshake with 8.8.8.8:53, which
+// stalled the render loop 100-370 ms each time, and for 2 s when offline. Like
+// SCNetworkReachability on Mac, this asks the kernel whether there is a network
+// path, without sending anything. Whether the server is up shows in HTTP and
+// WebSocket errors.
 // ---------------------------------------------------------------------------
+namespace
+{
+constexpr unsigned kRtfUp = 0x0001;     // RTF_UP
+constexpr unsigned kRtfReject = 0x0200; // RTF_REJECT: "unreachable" routes
+
+// /proc/net/route: Iface Destination Gateway Flags RefCnt Use Metric Mask ...
+bool HasIPv4DefaultRoute()
+{
+    std::ifstream f("/proc/net/route");
+    std::string line;
+    std::getline(f, line); // header
+    while (std::getline(f, line))
+    {
+        std::istringstream ss(line);
+        std::string iface, dest, gateway, mask;
+        unsigned flags = 0, refcnt = 0, use = 0, metric = 0;
+        if (!(ss >> iface >> dest >> gateway >> std::hex >> flags >> std::dec >> refcnt >>
+              use >> metric >> mask))
+            continue;
+        if (iface != "lo" && dest == "00000000" && mask == "00000000" &&
+            (flags & kRtfUp) && !(flags & kRtfReject))
+            return true;
+    }
+    return false;
+}
+
+// /proc/net/ipv6_route: dest dest_plen src src_plen next_hop metric refcnt use flags iface
+bool HasIPv6DefaultRoute()
+{
+    std::ifstream f("/proc/net/ipv6_route");
+    std::string line;
+    while (std::getline(f, line))
+    {
+        std::istringstream ss(line);
+        std::string dest, destPlen, src, srcPlen, nextHop, metric, refcnt, use, iface;
+        unsigned flags = 0;
+        if (!(ss >> dest >> destPlen >> src >> srcPlen >> nextHop >> metric >> refcnt >>
+              use >> std::hex >> flags >> iface))
+            continue;
+        if (iface != "lo" && destPlen == "00" &&
+            dest == std::string(32, '0') && (flags & kRtfUp) && !(flags & kRtfReject))
+            return true;
+    }
+    return false;
+}
+} // namespace
+
 bool PlatformUtils::IsInternetReachable()
 {
-    int sock = socket(AF_INET, SOCK_STREAM, 0);
-    if (sock < 0)
-        return false;
-
-    int flags = fcntl(sock, F_GETFL, 0);
-    fcntl(sock, F_SETFL, flags | O_NONBLOCK);
-
-    struct sockaddr_in addr{};
-    addr.sin_family = AF_INET;
-    addr.sin_port   = htons(53);
-    inet_pton(AF_INET, "8.8.8.8", &addr.sin_addr);
-
-    connect(sock, reinterpret_cast<struct sockaddr*>(&addr), sizeof(addr));
-
-    fd_set writefds;
-    FD_ZERO(&writefds);
-    FD_SET(sock, &writefds);
-    struct timeval tv{2, 0};
-
-    int result = select(sock + 1, nullptr, &writefds, nullptr, &tv);
-    close(sock);
-    return result > 0;
+    return HasIPv4DefaultRoute() || HasIPv6DefaultRoute();
 }
 
 // ---------------------------------------------------------------------------

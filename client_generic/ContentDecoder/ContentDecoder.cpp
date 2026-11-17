@@ -36,6 +36,7 @@
 
 #include "ContentDecoder.h"
 #include "Log.h"
+#include "StepTimer.h"
 #include "PlatformUtils.h"
 #include "PathManager.h"
 #include "EDreamClient.h"
@@ -253,7 +254,12 @@ int CContentDecoder::DumpError(int _err)
     if (_err < 0)
     {
 #ifdef MAC
-        const char* errStr = UNFFERRTAG(_err);
+        // FFmpeg error codes are negated four-character tags. Spell the tag out in a local
+        // array: a compound literal here was a temporary, gone before it was logged
+        // (found by AddressSanitizer, client#733).
+        const int tag = -_err;
+        const char errStr[] = {(char)(tag & 0xFF), (char)((tag >> 8) & 0xFF),
+                               (char)((tag >> 16) & 0xFF), (char)((tag >> 24) & 0xFF), 0};
 #else
         std::string numStr = std::to_string(_err);
         const char* errStr = numStr.c_str();
@@ -393,6 +399,10 @@ bool CContentDecoder::Open()
     std::string _filename = ovi->m_Path;
     ovi->m_TotalFrameCount = 0;
     g_Log->Info("Opening: %s", _filename.c_str());
+    // Local files open on the caller (player/render) thread; remote ones on
+    // the decoder thread (see Start). client#798.
+    Base::CStepTimer openTimer(IsURL(_filename) ? "decoder Open total (remote, decoder thread)"
+                                                : "decoder Open total (local, caller thread)");
 
     if (IsURL(_filename))
     {
@@ -443,6 +453,12 @@ bool CContentDecoder::Open()
                         m_httpStream->Label().c_str(), registered ? 1 : 0);
         }
 
+        m_httpReadPos.store(0);
+        {
+            std::lock_guard<std::mutex> statsLock(m_httpStatsMutex);
+            m_httpStatsStream = m_httpStream;
+        }
+
         constexpr int kIOBufferSize = 32768;
         unsigned char* buffer = static_cast<unsigned char*>(av_malloc(kIOBufferSize));
         if (!buffer) {
@@ -477,7 +493,12 @@ bool CContentDecoder::Open()
     AVDictionary* options = nullptr;
     av_dict_set(&options, "probesize", "10000000", 0);  //
     av_dict_set(&options, "analyzeduration", "0", 0);
-    if (DumpError(avformat_open_input(&ovi->m_pFormatContext, m_IsStreaming ? nullptr : _filename.c_str(), nullptr, &options)) < 0)
+    int openInputResult;
+    {
+        Base::CStepTimer timer("decoder avformat_open_input");
+        openInputResult = avformat_open_input(&ovi->m_pFormatContext, m_IsStreaming ? nullptr : _filename.c_str(), nullptr, &options);
+    }
+    if (DumpError(openInputResult) < 0)
     {
         g_Log->Warning("Failed to open %s...", _filename.c_str());
         return false;
@@ -485,7 +506,12 @@ bool CContentDecoder::Open()
 
     av_dict_free(&options);
 
-    if (DumpError(avformat_find_stream_info(ovi->m_pFormatContext, nullptr)) < 0)
+    int streamInfoResult;
+    {
+        Base::CStepTimer timer("decoder avformat_find_stream_info");
+        streamInfoResult = avformat_find_stream_info(ovi->m_pFormatContext, nullptr);
+    }
+    if (DumpError(streamInfoResult) < 0)
     {
         g_Log->Error("av_find_stream_info failed with %s...", _filename.c_str());
         return false;
@@ -556,6 +582,7 @@ bool CContentDecoder::Open()
         g_Log->Error("unknown codec? ");
         return false;
     }
+    Base::CStepTimer hwDeviceTimer("decoder hw device setup");
 #if USE_HW_ACCELERATION
 #if defined(WIN32) || defined(_WIN32) || defined(_WIN64)
     // D3D11VA: share the renderer's ID3D11Device so decoded textures stay on
@@ -639,6 +666,7 @@ bool CContentDecoder::Open()
     }
 #endif
 #endif
+    hwDeviceTimer.Stop();
     // Copy codec parameters before open. When mp4toannexb BSF is active, use
     // par_out (annex-B extradata) — stream codecpar is HVCC/AVCC length-prefixed
     // and mismatches annex-B packets, causing "Invalid NAL unit size" and zero frames.
@@ -655,8 +683,12 @@ bool CContentDecoder::Open()
     ovi->m_pFormatContext->flags |= AVFMT_FLAG_IGNIDX;   //	Ignore index.
     ovi->m_pFormatContext->flags |= AVFMT_FLAG_NONBLOCK; //	Do not
     // block when reading packets from input.
-    if (DumpError(avcodec_open2(ovi->m_pVideoCodecContext, ovi->m_pVideoCodec,
-                                nullptr)) < 0)
+    int codecOpenResult;
+    {
+        Base::CStepTimer timer("decoder avcodec_open2");
+        codecOpenResult = avcodec_open2(ovi->m_pVideoCodecContext, ovi->m_pVideoCodec, nullptr);
+    }
+    if (DumpError(codecOpenResult) < 0)
     {
         g_Log->Error("avcodec_open failed for %s", _filename.c_str());
         return false;
@@ -713,7 +745,9 @@ int CContentDecoder::ReadPacket(void* opaque, uint8_t* buf, int buf_size)
     CContentDecoder* decoder = static_cast<CContentDecoder*>(opaque);
     if (!decoder->m_httpStream)
         return AVERROR(EIO);
-    return decoder->m_httpStream->Read(decoder->m_httpCursor, buf, buf_size);
+    const int n = decoder->m_httpStream->Read(decoder->m_httpCursor, buf, buf_size);
+    decoder->m_httpReadPos.store(decoder->m_httpCursor.pos);
+    return n;
 }
 
 int64_t CContentDecoder::SeekPacket(void* opaque, int64_t offset, int whence)
@@ -721,7 +755,24 @@ int64_t CContentDecoder::SeekPacket(void* opaque, int64_t offset, int whence)
     CContentDecoder* decoder = static_cast<CContentDecoder*>(opaque);
     if (!decoder->m_httpStream)
         return -1;
-    return decoder->m_httpStream->Seek(decoder->m_httpCursor, offset, whence);
+    const int64_t r = decoder->m_httpStream->Seek(decoder->m_httpCursor, offset, whence);
+    decoder->m_httpReadPos.store(decoder->m_httpCursor.pos);
+    return r;
+}
+
+bool CContentDecoder::GetStreamStats(StreamStats& _out) const
+{
+    std::shared_ptr<Network::ProgressiveHttpStream> stream;
+    {
+        std::lock_guard<std::mutex> lock(m_httpStatsMutex);
+        stream = m_httpStatsStream;
+    }
+    if (!stream)
+        return false;
+    _out.bytesDownloaded = stream->BytesDownloaded();
+    _out.finished = stream->Finished();
+    _out.bytesAhead = stream->AvailableFrom(m_httpReadPos.load());
+    return true;
 }
 
 void CContentDecoder::StopOwnedStream()
@@ -734,6 +785,10 @@ void CContentDecoder::StopOwnedStream()
 
 void CContentDecoder::ReleaseStream()
 {
+    {
+        std::lock_guard<std::mutex> statsLock(m_httpStatsMutex);
+        m_httpStatsStream.reset();
+    }
     if (!m_httpStream)
         return;
     g_Log->Info("Releasing %s download of %s (%s, readers=%d done=%d finished=%d)",
@@ -1316,7 +1371,11 @@ void CContentDecoder::ReadFramesThread()
                     std::lock_guard<std::mutex> qLock(m_FrameQueueMutex);
 #if defined(WIN32) || defined(_WIN32) || defined(_WIN64)
                     std::lock_guard<std::recursive_mutex> d3dCtxLock(GetD3D11ImmediateContextMutex());
-                    if (m_d3d11Device)
+                    // The GPU wait only protects frames ClearQueue is about to release.
+                    // A new clip's first seek (to frame 0 or the resume point) has none,
+                    // and waiting for the GPU to finish the renderer's frame while holding
+                    // its lock cost 16-32 ms at every dream change (client#798).
+                    if (m_d3d11Device && m_FrameQueue.size() > 0)
                     {
                         ComPtr<ID3D11DeviceContext> d3dCtx;
                         m_d3d11Device->GetImmediateContext(&d3dCtx);
@@ -1402,10 +1461,7 @@ void CContentDecoder::ReadFramesThread()
             // (3D engine pegged at 100%) and reduces TDR probability over long runs.
             if (m_CurrentVideoInfo->m_SeekTargetFrame == -1)
             {
-                const size_t queueSize = m_FrameQueue.size();
-                const size_t queueMax = m_FrameQueue.getMaxQueueElements();
-                const size_t highWater = (queueMax > 4) ? (queueMax - 4) : queueMax;
-                if (queueSize >= highWater)
+                if (m_FrameQueue.size() >= QueueHighWater())
                 {
                     PROFILER_END("Main Video Decoder Frame");
                     std::this_thread::sleep_for(std::chrono::milliseconds(2));
