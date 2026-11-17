@@ -151,14 +151,6 @@ def compute_directory_md5(directory: Path) -> str:
     return result.strip()
 
 
-def sign_component(component_path: str, cert: str) -> None:
-    """Sign a component with the given certificate."""
-    run_command([
-        'codesign', '--force', '--options', 'runtime', '--timestamp',
-        '--sign', cert, component_path
-    ])
-
-
 def verify_signature(path: str) -> bool:
     """Verify code signature of a bundle."""
     result = run_command(
@@ -435,45 +427,59 @@ def check_submodules() -> None:
         sys.exit(1)
 
 
-def step0_resign_sparkle(config: BuildConfig) -> None:
-    """Re-sign Sparkle.framework for distribution (Release builds only)."""
-    if not config.release:
-        return
+def verify_sparkle_signing(config: BuildConfig, exported_app: Path) -> None:
+    """Fail the build unless the exported app's Sparkle is signed for distribution.
 
-    print()
-    print("========================================")
-    print("STEP 0: Re-signing Sparkle.framework")
-    print("========================================")
-
-    sparkle_path = Path("Frameworks/Sparkle.framework")
-
-    if not sparkle_path.exists():
-        print_yellow(f"Warning: Sparkle.framework not found at {sparkle_path} - skipping re-sign")
-        return
-
-    print_yellow("Re-signing Sparkle.framework with Developer ID certificate...")
-
-    # Sign components from innermost to outermost
-    components = [
-        sparkle_path / "Versions/B/XPCServices/Installer.xpc",
-        sparkle_path / "Versions/B/XPCServices/Downloader.xpc",
-        sparkle_path / "Versions/B/Updater.app",
-        sparkle_path / "Versions/B/Autoupdate",
-        sparkle_path,
-    ]
-
-    for component in components:
-        name = component.name
-        print(f"Signing {name}...")
-        sign_component(str(component), config.developer_id_cert)
-
-    # Verify the signature
-    print_yellow("Verifying Sparkle.framework signature...")
-    if verify_signature(str(sparkle_path)):
-        print_green("Sparkle.framework signed successfully")
-    else:
-        print_red("Sparkle.framework signature verification failed")
+    The vendored Frameworks/Sparkle.framework is never re-signed in the source
+    tree (that dirtied git on every release build, #662); the export step signs
+    the embedded copy. A helper without our Developer ID signature and hardened
+    runtime would ship an app that can't update itself, so check here.
+    """
+    sparkle = exported_app / "Contents/Frameworks/Sparkle.framework"
+    if not sparkle.exists():
+        print_red(f"Sparkle.framework not found in {exported_app}")
         sys.exit(1)
+
+    print_yellow("Verifying Sparkle.framework signing in exported app...")
+    components = [
+        sparkle / "Versions/B/XPCServices/Installer.xpc",
+        sparkle / "Versions/B/XPCServices/Downloader.xpc",
+        sparkle / "Versions/B/Updater.app",
+        sparkle / "Versions/B/Autoupdate",
+        sparkle,
+    ]
+    failed = False
+    for component in components:
+        result = run_command(
+            ['codesign', '-dvv', str(component)],
+            check=False, capture_output=True
+        )
+        info = (result.stderr or '') + (result.stdout or '')
+        problems = []
+        if result.returncode != 0:
+            problems.append("not signed")
+        else:
+            if 'Authority=Developer ID Application' not in info:
+                problems.append("not Developer ID signed")
+            if f'TeamIdentifier={config.team_id}' not in info:
+                problems.append(f"team is not {config.team_id}")
+            flags = re.search(r'flags=\S*\(([^)]*)\)', info)
+            if not flags or 'runtime' not in flags.group(1).split(','):
+                problems.append("no hardened runtime")
+        if problems:
+            failed = True
+            print_red(f"  {component.name}: {', '.join(problems)}")
+        else:
+            print(f"  {component.name}: ok")
+
+    if not verify_signature(str(sparkle)):
+        failed = True
+        print_red("  Sparkle.framework fails codesign --verify --deep --strict")
+
+    if failed:
+        print_red("Sparkle.framework in the exported app is not signed for distribution")
+        sys.exit(1)
+    print_green("Sparkle.framework signing verified")
 
 
 def step1_build_screensaver(config: BuildConfig) -> Path:
@@ -898,6 +904,9 @@ def step4_export_app(config: BuildConfig, archive_path: Path) -> Path:
             run_command(['codesign', '--force', '--sign', '-', str(app_binary)], check=False)
         else:
             print("  No stale rpaths found")
+
+    if config.release:
+        verify_sparkle_signing(config, exported_app)
 
     return exported_app
 
@@ -1415,9 +1424,6 @@ Environment variables (optional overrides):
     if config.github_release:
         tag_release(config)
     try:
-        # Step 0: Re-sign Sparkle.framework
-        step0_resign_sparkle(config)
-
         # Step 1: Build screensaver
         screensaver_path = step1_build_screensaver(config)
 
