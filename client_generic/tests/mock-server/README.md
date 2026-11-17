@@ -72,6 +72,7 @@ malformed ones, but no other faults or chaos yet. Written for the Mac; `slow_lin
   25% floor; a `play_dream` into the middle of the other dream holds its crossfade while the
   new dream buffers, and no crossfade goes back (the client logs both); and full speed
   returns when the rate goes back up. About three minutes.
+- `run_all.py` runs every test above in turn and prints a summary (see "Running the tests").
 - `fixtures.py` makes and checks fixture sets (see "Videos").
 - `screens.py` takes about one screenshot of the client's window a second, to catch a black
   or frozen picture. It can't see individual dropped frames.
@@ -84,16 +85,16 @@ venv/bin/pip install -r requirements.txt
 brew install ffmpeg   # for ffprobe
 
 APP="/path/to/infinidream.app/Contents/MacOS/infinidream"
-venv/bin/python e2e_test.py --app "$APP"
-venv/bin/python commands_test.py --app "$APP"
-venv/bin/python crash_test.py --app "$APP"
-venv/bin/python throttle_test.py --app "$APP"
-venv/bin/python moon_test.py --app "$APP"
-venv/bin/python resume_test.py --app "$APP"
-venv/bin/python playlist_fade_test.py --app "$APP"
-venv/bin/python playlist_interrupt_test.py --app "$APP"
-venv/bin/python slow_link_test.py --app "$APP"
+venv/bin/python run_all.py --app "$APP"              # all 13, about 20 minutes
+venv/bin/python run_all.py --app "$APP" --only moon resume
+venv/bin/python moon_test.py --app "$APP"            # or any one test by itself
 ```
+
+`run_all.py` runs the tests one after another, writes each one's output to `<name>.log` in a
+temp folder (or `--out DIR`), and prints a line per test and a total. Options after `--app`
+that it doesn't know, like `--keep`, go to every test. A new test must be added to `TESTS` in
+`run_all.py`: the run fails if a `*_test.py` in this folder isn't listed. `keyframe_test.py`
+needs the `wanderlust-v1` set (see "Videos").
 
 Each takes `--set NAME` to serve a fixture set, `--fullscreen` to start the client
 fullscreen instead of in a window, `--no-keep-awake` to let the screen sleep (see below), and
