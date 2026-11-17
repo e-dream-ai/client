@@ -174,7 +174,9 @@ Every test ends with these checks:
 - **No crash hidden by that handler:** `RECEIVED SIGSEGV` in the log fails the run even when
   no report was written.
 - **No hang:** no heartbeat for 3 s, or the current clip's frame not moving for 5 s while the
-  client says it's neither paused nor buffering. The stacks are sampled (`stacks-hang.txt`).
+  client says it's neither paused nor buffering. Holding a seek crossfade while the incoming
+  dream buffers counts as buffering: the outgoing dream waits on its last frame under the
+  buffering moon, which a burst of `next`s over a slow link can stretch past 5 s. The stacks are sampled (`stacks-hang.txt`).
   A locked screen also stops heartbeats, so it's reported as that instead.
 
 ## Frame timing
