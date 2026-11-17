@@ -33,6 +33,7 @@ class CTextMetal : public CBaseText
 
     void UpdateExtents();
     void UpdateContentsScale();
+    void AttachToView();
 
   public:
     CTextMetal(spCFontMetal _font, MTKView* _view);
@@ -42,6 +43,10 @@ class CTextMetal : public CBaseText
     virtual void SetRect(const Base::Math::CRect& _rect);
     virtual void SetEnabled(bool _enabled);
     void SetColor(const Base::Math::CVector4& _color);
+
+    // Text is a layer on one view, not something a renderer draws, so moving
+    // the overlay to another display means moving every text layer there.
+    static void MoveAllToView(MTKView* _view);
 };
 
 MakeSmartPointers(CTextMetal);

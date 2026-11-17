@@ -233,6 +233,13 @@ spCBaseText CRendererMetal::NewText(spCBaseFont _font, const std::string& _text)
     return spCBaseText(text);
 }
 
+void CRendererMetal::AdoptOverlayText()
+{
+    RendererContext* rendererContext =
+        (__bridge RendererContext*)m_pRendererContext;
+    CTextMetal::MoveAllToView(rendererContext->metalView);
+}
+
 Base::Math::CVector2 CRendererMetal::GetTextExtent(spCBaseFont /*_spFont*/,
                                                    const std::string& /*_text*/)
 {

@@ -228,8 +228,9 @@ static BOOL ESIsSystemSettingsApp_(NSRunningApplication *app)
 // (no layer, no on-screen flag), so the check uses what NSWindow reports. A
 // window the host is showing sits at a wallpaper level far below 0. A window
 // WallpaperAgent has dropped (the orphan, or a view left behind when a display
-// is added or removed) sits at NSNormalWindowLevel; the orphan's is also not
-// visible. The process is orphaned when none of its saver views is live.
+// is added or removed) sits at NSNormalWindowLevel. isVisible doesn't separate
+// them: an orphan relaunched after a hotplug reports visible, like a left-behind
+// view. The process is orphaned when none of its saver views is live.
 static const NSTimeInterval kOrphanSeconds = 10.0;
 static const NSTimeInterval kOrphanCheckSeconds = 2.0;
 static NSHashTable<ESScreensaverView *> *s_watchedViews = nil;
@@ -238,10 +239,11 @@ static NSTimeInterval s_orphanFor = 0;
 static NSString *s_lastWatchState = nil;
 
 // A nil window is unknown, never orphaned (that false-positived under System
-// Settings Preview before). Level and visibility both have to say "dropped".
+// Settings Preview before). Level decides, with System Settings open or not:
+// the views Settings hosts sit at the wallpaper level like any other.
 static BOOL ESWindowLooksHosted(NSWindow *win)
 {
-    return !win || win.level != NSNormalWindowLevel || win.isVisible;
+    return !win || win.level != NSNormalWindowLevel;
 }
 #endif
 
@@ -486,6 +488,13 @@ static NSScreen* ESScreenForWindow(NSWindow* window)
 {
 #ifdef SCREEN_SAVER
     [self _stopScreenConnectionMonitor];
+    // This view stops drawing. Hand the overlay to another shown view, or back
+    // to display 0 (the Settings thumbnail, when a full-screen Preview ends).
+    if (m_bStarted && m_displayIdx != 0 && ESScreensaver_OverlayDisplay() == m_displayIdx) {
+        [ESScreensaverView _updateOverlayDisplay];
+        if (ESScreensaver_OverlayDisplay() == m_displayIdx)
+            ESScreensaver_SetOverlayDisplay(0);
+    }
     [NSCursor unhide];
     [self _stopRedrawTimer];
 #else
@@ -824,9 +833,15 @@ static void ESLogExitTiming(void)
         NSWindow *w = v.window;
         if (ESWindowLooksHosted(w))
             live++;
-        [state appendFormat:@" [%ld level=%ld visible=%d]",
-                            (long)(w ? w.windowNumber : -1), (long)w.level, (int)w.isVisible];
+        // occluded is logged as evidence only, in case level stops being enough.
+        [state appendFormat:@" [%ld level=%ld visible=%d occluded=%d]",
+                            (long)(w ? w.windowNumber : -1), (long)w.level, (int)w.isVisible,
+                            (int)!(w.occlusionState & NSWindowOcclusionStateVisible)];
     }
+    // Logged as evidence only, like occluded.
+    if (ESSystemSettingsIsRunning())
+        [state appendString:@" settings=1"];
+    [ESScreensaverView _updateOverlayDisplay];
     // Log only on change: a hotplug or an orphan shows up as one line.
     NSString *summary = [NSString stringWithFormat:@"%lu of %lu view(s) live:%@",
                                                    (unsigned long)live,
@@ -845,6 +860,30 @@ static void ESLogExitTiming(void)
                     s_orphanFor);
         [views.firstObject _forceExitScreensaverWithReason:"orphan-not-hosted" delaySeconds:0];
     }
+}
+#endif
+
+#ifdef SCREEN_SAVER
+// The engine draws the startup screen and HUD on one display. A hotplug can
+// leave that display on a view the host has dropped, with the overlay drawn
+// where nobody sees it, so keep it on a view the host is showing.
++ (void)_updateOverlayDisplay
+{
+    const int current = ESScreensaver_OverlayDisplay();
+    int best = -1;
+    for (ESScreensaverView *v in s_watchedViews.allObjects) {
+        NSWindow *w = v.window;
+        if (!w || w.level == NSNormalWindowLevel)
+            continue;
+        if (v->m_displayIdx == current)
+            return;
+        if (best < 0 || v->m_displayIdx < best)
+            best = v->m_displayIdx;
+    }
+    if (best < 0)
+        return;
+    g_Log->Info("Overlay moves from display %d to %d", current, best);
+    ESScreensaver_SetOverlayDisplay(best);
 }
 #endif
 

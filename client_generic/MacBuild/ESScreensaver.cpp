@@ -150,6 +150,17 @@ bool ESScreensaver_DoFrame(int _displayIdx)
     return gClient.Update(_displayIdx);
 }
 
+void ESScreensaver_SetOverlayDisplay(int _displayIdx)
+{
+    if (_displayIdx >= 0)
+        g_Player().SetOverlayDisplayUnit((uint32_t)_displayIdx);
+}
+
+int ESScreensaver_OverlayDisplay(void)
+{
+    return (int)g_Player().OverlayDisplayUnit();
+}
+
 int ESScreensaver_SetRefreshRate(int _displayIdx, double _hz)
 {
     auto display = std::dynamic_pointer_cast<DisplayOutput::CDisplayMetal>(

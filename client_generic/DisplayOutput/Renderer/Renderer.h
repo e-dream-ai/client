@@ -167,6 +167,10 @@ class CRenderer
     virtual spCBaseFont GetFont(CFontDescription& _desc) = PureVirtual;
     virtual spCBaseText NewText(spCBaseFont _font,
                                 const std::string& _text) = PureVirtual;
+    // Called on the renderer whose display takes over the overlay (startup
+    // screen and HUD). Text that lives on a view rather than in the renderer's
+    // draw calls moves here.
+    virtual void AdoptOverlayText() {}
     virtual void DrawText(spCBaseText _text,
                           const Base::Math::CVector4& _color) = PureVirtual;
     virtual Base::Math::CVector2 GetTextExtent(spCBaseFont /*_spFont*/,

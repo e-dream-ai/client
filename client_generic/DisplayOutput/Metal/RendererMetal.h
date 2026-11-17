@@ -55,6 +55,7 @@ class CRendererMetal : public CRenderer
     spCTextureFlat NewTextureFlat(spCImage _spImage, const uint32_t flags = 0);
     spCBaseFont GetFont(CFontDescription& _desc);
     spCBaseText NewText(spCBaseFont _font, const std::string& _text);
+    void AdoptOverlayText() override;
     void DrawText(spCBaseText _text, const Base::Math::CVector4& _color);
     Base::Math::CVector2 GetTextExtent(spCBaseFont _spFont,
                                        const std::string& _text);
