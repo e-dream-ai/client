@@ -49,6 +49,7 @@ class CElectricSheep_Mac : public CElectricSheep
     std::string m_verStr;
     int m_lckFile;
     bool m_InstanceClaimed = false;
+    bool m_LockReleasedByShutdown = false;
 
   public:
     CElectricSheep_Mac() : CElectricSheep()
@@ -155,17 +156,17 @@ class CElectricSheep_Mac : public CElectricSheep
             return;
         m_InstanceClaimed = true;
 
+        // On a clean install the data dir doesn't exist yet; create it so the
+        // first launch takes the lock too (otherwise a screensaver starting
+        // later becomes the primary instance alongside us).
+        std::error_code ec;
+        std::filesystem::create_directories(m_AppData, ec);
+
         if (std::filesystem::exists(m_AppData)) {
             // check the exclusive file lock to see if we are running alone...
             std::string lockfile = m_AppData + ".instance-lock";
 
-            m_lckFile =
-            open(lockfile.c_str(), O_WRONLY + O_EXLOCK + O_NONBLOCK + O_CREAT,
-                 S_IWUSR + S_IWGRP + S_IWOTH);
-
-            m_MultipleInstancesMode = (m_lckFile < 0);
-            if (m_lckFile >= 0)
-                WriteInstanceOwner();
+            m_MultipleInstancesMode = !TakeInstanceLock();
         } else {
             m_MultipleInstancesMode = false;
         }
@@ -179,6 +180,19 @@ class CElectricSheep_Mac : public CElectricSheep
     virtual ~CElectricSheep_Mac() {}
 
   private:
+    // Try to take the exclusive instance lock; true if we now hold it.
+    bool TakeInstanceLock()
+    {
+        const std::string lockfile = m_AppData + ".instance-lock";
+        m_lckFile =
+            open(lockfile.c_str(), O_WRONLY + O_EXLOCK + O_NONBLOCK + O_CREAT,
+                 S_IWUSR + S_IWGRP + S_IWOTH);
+        if (m_lckFile < 0)
+            return false;
+        WriteInstanceOwner();
+        return true;
+    }
+
     // Record our PID and kind next to the lock so a secondary screensaver can
     // tell whether the holder is the app (play offline) or another screensaver
     // process (a Settings ghost, exit). The lock file itself is created
@@ -300,6 +314,19 @@ class CElectricSheep_Mac : public CElectricSheep
 
         printf("Startup()\n");
 
+        // Shutdown() gave the lock up; an in-process restart (e.g. after
+        // first-time setup) must take it back, or the next screensaver
+        // becomes a second primary instance.
+        if (m_LockReleasedByShutdown) {
+            m_LockReleasedByShutdown = false;
+            if (TakeInstanceLock()) {
+                g_Log->Info("Instance lock re-taken after restart");
+            } else {
+                g_Log->Info("Instance lock taken by another instance during restart");
+                m_MultipleInstancesMode = true;
+            }
+        }
+
         // This was determined in constructor, and we've already initialized logging
         if (m_MultipleInstancesMode) {
             g_Log->Info("⛓️‍💥⛓️‍💥⛓️‍💥 Running in busy mode ⛓️‍💥⛓️‍💥⛓️‍💥");
@@ -347,6 +374,7 @@ class CElectricSheep_Mac : public CElectricSheep
         {
             close(m_lckFile);
             m_lckFile = -1;
+            m_LockReleasedByShutdown = true;
         }
     }
 
