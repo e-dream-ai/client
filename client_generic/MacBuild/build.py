@@ -1041,7 +1041,9 @@ def step6_create_distribution(config: BuildConfig, exported_app: Path, output_sa
         'filesystem': 'APFS',
         'files': [str(exported_app)],
         'symlinks': {'Applications': '/Applications'},
-        'icon': 'infinidream.icns',
+        # The app icon cut to a circle (dmg/make_volume_icon.py): a volume
+        # icon is drawn unmasked, so the full-bleed app icon shows as a square.
+        'icon': str(dmg_dir / 'volume.icns'),
         # background.png + background@2x.png, drawn by dmg/make_background.py;
         # window size and icon positions below must match that script.
         'background': str(dmg_dir / 'background.png'),
