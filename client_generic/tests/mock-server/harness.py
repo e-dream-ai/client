@@ -368,7 +368,10 @@ class Run:
 
 # Command-line options every test shares.
 
-DEFAULT_MEDIA_DIR = server.CLIENT_CACHE
+# The fixture set a test serves when given neither --set nor --media-dir: a fixed set of videos,
+# so a run doesn't change when the alpha client's cache does. A test can choose its own with
+# parser.set_defaults(set=...).
+DEFAULT_SET = "local-v1"
 
 
 # A real playlist of a snapshot set to serve instead of made-up playlists (--playlist).
@@ -380,9 +383,10 @@ FULLSCREEN = False
 
 def add_media_args(parser):
     group = parser.add_mutually_exclusive_group()
-    group.add_argument("--set", help="fixture set to serve (see fixtures.py), by name or path")
-    group.add_argument("--media-dir", default=DEFAULT_MEDIA_DIR,
-                       help="folder of <uuid>.mp4 to serve; defaults to the alpha client's cache")
+    group.add_argument("--set", help="fixture set to serve (see fixtures.py), by name or path; "
+                       f"defaults to {DEFAULT_SET}")
+    group.add_argument("--media-dir", help="folder of <uuid>.mp4 to serve instead of a fixture set, "
+                       f"such as the alpha client's cache, {server.CLIENT_CACHE}")
     parser.add_argument("--playlist", help="serve only this real playlist of a snapshot --set, all "
                         "its dreams whatever their length, and start the client on it")
     parser.add_argument("--fullscreen", action="store_true",
@@ -459,7 +463,8 @@ def keep_awake():
 
 
 def resolve_media(args):
-    """Points args.media_dir at the chosen fixture set, after checking its md5s."""
+    """Points args.media_dir at the chosen fixture set, after checking its md5s. With neither
+    --set nor --media-dir, that's DEFAULT_SET."""
     global PLAYLIST, FULLSCREEN
     PLAYLIST = getattr(args, "playlist", None)
     FULLSCREEN = getattr(args, "fullscreen", False)
@@ -469,6 +474,8 @@ def resolve_media(args):
         print(f"Serving only playlist {PLAYLIST}", flush=True)
     if not getattr(args, "no_keep_awake", False):
         keep_awake()
+    if not args.set and not args.media_dir:
+        args.set = DEFAULT_SET
     if not args.set:
         return
     import fixtures

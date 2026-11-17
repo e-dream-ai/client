@@ -115,9 +115,11 @@ venv/bin/python moon_test.py --app "$APP"            # or any one test by itself
 temp folder (or `--out DIR`), and prints a line per test and a total. Options after `--app`
 that it doesn't know, like `--keep`, go to every test. A new test must be added to `TESTS` in
 `run_all.py`: the run fails if a `*_test.py` in this folder isn't listed. `keyframe_test.py`
-needs the `wanderlust-v1` set (see "Videos").
+needs the `wanderlust-v1` set, `slow_link_test.py`, `speed_preload_test.py` and
+`uncached_playlist_test.py` need `alpha-v1`, and the rest serve `local-v1` (see "Videos").
 
-Each takes `--set NAME` to serve a fixture set, `--fullscreen` to start the client
+Each takes `--set NAME` to serve a different fixture set, `--media-dir DIR` to serve a folder of
+videos instead, `--fullscreen` to start the client
 fullscreen instead of in a window, `--no-keep-awake` to let the screen sleep (see below), and
 `--keep` to keep the run folder (logs, server events, crash reports, stack samples) even when
 everything passes; it's always kept when a check fails.
@@ -211,14 +213,18 @@ counters, `INFINIDREAM_TEST_STALL_MS=150` makes the render thread spin for 150 m
 
 ## Videos
 
-No videos are stored in this repo. By default the server reads `<uuid>.mp4` files from
-`--media-dir`, which defaults to the alpha client's cache at
-`/Users/Shared/infinidream.ai/content/mp4`, and serves the three smallest (or with
+No videos are stored in this repo. The tests serve a **fixture set**, a frozen folder of
+`<uuid>.mp4` files with a manifest of md5s, so every run plays the same videos. Unless a test
+picks its own (`keyframe_test.py` serves `wanderlust-v1`; `slow_link_test.py`,
+`speed_preload_test.py` and `uncached_playlist_test.py` serve `alpha-v1`), it serves `local-v1`:
+6 dreams of 900 frames, 4.5 to 113 MB. The server serves the three smallest (or with
 `--pick largest`, the largest) that have at least 900 frames, so a dream doesn't end by itself
-during a test. Nothing in that folder is changed.
+during a test. `--set NAME` serves another set.
 
-That cache changes as the client runs, so for repeatable runs make a **fixture set**, a frozen
-copy with a manifest of md5s, and serve it with `--set`:
+`--media-dir DIR` serves a folder of videos instead, such as the alpha client's cache at
+`/Users/Shared/infinidream.ai/content/mp4`. Nothing in it is changed, but that cache changes as
+the client runs, so the videos a test gets change with it: a new, mostly black dream once failed
+`e2e_test.py`'s black-screen check. To make a set from it:
 
 ```bash
 venv/bin/python fixtures.py import-cache --set local-v1   # 6 videos spread across sizes
