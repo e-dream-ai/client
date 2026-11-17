@@ -404,8 +404,9 @@ def main():
                         help="limit media to this many bytes a second in total; 0 means no limit")
     parser.add_argument("--playlist", help="serve only this real playlist of a snapshot set, "
                         "and start the client on it")
-    parser.add_argument("--default-playlist", default=PLAYLIST_UUID,
-                        help="the playlist the client starts on, e.g. a snapshot set's real one")
+    parser.add_argument("--default-playlist",
+                        help="the playlist the client starts on, e.g. a snapshot set's real one; "
+                        "wins over --playlist's (default: --playlist, else the mock playlist)")
     parser.add_argument("--transition-time", type=float, default=2,
                         help="every playlist's end-of-dream fade, in seconds")
     parser.add_argument("--event-log", default="events.jsonl")
@@ -414,7 +415,8 @@ def main():
     dreams = load_dreams(args.media_dir, args.dreams, args.min_frames, args.pick, args.playlist)
     with open(args.event_log, "w", buffering=1) as event_log:
         server = MockServer(args.media_dir, dreams, event_log, args.port, args.media_rate,
-                            args.playlist or args.default_playlist, args.transition_time)
+                            args.default_playlist or args.playlist or PLAYLIST_UUID,
+                            args.transition_time)
         web.run_app(server.app(), host="127.0.0.1", port=args.port, print=None)
 
 

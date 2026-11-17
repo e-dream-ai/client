@@ -77,6 +77,12 @@ malformed ones, but no other faults or chaos yet. Written for the Mac; `slow_lin
   speed 7, then up to speed 9. It checks that the preloaded dream, and the one after it, take as
   long as their frames at the new speed (#833): the preloaded clip used to keep the old speed for
   its whole length. About a minute and a half.
+- `uncached_playlist_test.py` starts on a one-dream playlist of the `alpha-v1` set at 80 fps,
+  waits for the downloader to go idle, switches to the Wankel Rotary Engine playlist with none of
+  its dreams cached, and checks that the first 4 dreams after the switch are all different and in
+  order (#835): the first dream used to replay until the downloader, asleep for up to 10 s, had
+  fetched the second. Runs twice, on a fast link and on a 1.5 MB/s one, where the next dream must
+  be streamed. About two minutes.
 - `run_all.py` runs every test above in turn and prints a summary (see "Running the tests").
 - `fixtures.py` makes and checks fixture sets (see "Videos").
 - `screens.py` takes about one screenshot of the client's window a second, to catch a black
@@ -90,7 +96,7 @@ venv/bin/pip install -r requirements.txt
 brew install ffmpeg   # for ffprobe
 
 APP="/path/to/infinidream.app/Contents/MacOS/infinidream"
-venv/bin/python run_all.py --app "$APP"              # all 14, about 20 minutes
+venv/bin/python run_all.py --app "$APP"              # all 15, about 25 minutes
 venv/bin/python run_all.py --app "$APP" --only moon resume
 venv/bin/python moon_test.py --app "$APP"            # or any one test by itself
 ```

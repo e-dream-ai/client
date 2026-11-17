@@ -230,6 +230,8 @@ bool PlaylistManager::parsePlaylist(const std::string& playlistUUID,
                     m_playlistTimestamp, m_playlist.size());
     }
 
+    // The new playlist may have dreams to fetch; don't leave the downloader asleep (#835).
+    g_ContentDownloader().m_gDownloader.Wake();
     return true;
 }
 
@@ -511,22 +513,18 @@ std::optional<std::string> PlaylistManager::getNextUncachedDream() const {
         return selected;
     }
     
-    // No successors found, try to return any random uncached dream
-    std::vector<std::string> allUncachedDreams;
-    for (const auto& entry : m_playlist) {
-        if (!cm.hasDiskCachedItem(entry.uuid) && 
+    // No successors found: take the first uncached dream in playing order, from the dream
+    // after the current one, or from the start before playback has begun. Right after a
+    // switch to an uncached playlist that's dream 2, which is played next; a random pick
+    // left the client with nothing in order to move on to (client#835).
+    const size_t first = m_started ? m_currentPosition + 1 : 0;
+    for (size_t j = 0; j < m_playlist.size(); j++) {
+        const auto& entry = m_playlist[(first + j) % m_playlist.size()];
+        if (!cm.hasDiskCachedItem(entry.uuid) &&
             !downloader.IsDreamBeingDownloaded(entry.uuid)) {
-            allUncachedDreams.push_back(entry.uuid);
+            g_Log->Info("No successors found, returning next uncached dream in playlist order");
+            return entry.uuid;
         }
-    }
-    
-    if (!allUncachedDreams.empty()) {
-        static std::random_device rd;
-        static std::mt19937 gen(rd());
-        std::uniform_int_distribution<> dis(0, allUncachedDreams.size() - 1);
-        std::string selected = allUncachedDreams[dis(gen)];
-        g_Log->Info("No successors found, returning random uncached dream");
-        return selected;
     }
     
     // Everything is cached
@@ -898,6 +896,27 @@ std::optional<PlaylistManager::NextDreamDecision> PlaylistManager::preflightNext
         
         // If we found unplayed dreams but none were cached, we need to reset
         if (foundUnplayedButUncached && !canStream) {
+            // Right after a switch to a new playlist, only the first dream is cached (it was
+            // streamed). Resetting the history would replay it, over and over, until the
+            // downloader catches up. Stream the next unplayed dream instead, if there's quota
+            // to stream with (client#835; at quota 0 stay cache-only, #710).
+            if (m_cacheManager.hasQuotaToDownload()) {
+                for (size_t j = 1; j < m_playlist.size(); j++) {
+                    const size_t i = (m_currentPosition + j) % m_playlist.size();
+                    if (isDreamPlayed(m_playlist[i].uuid))
+                        continue;
+                    const auto& nextEntry = m_playlist[i];
+                    decision = {
+                        i,
+                        determineTransitionType(currentEntry, nextEntry),
+                        m_cacheManager.getDream(nextEntry.uuid),
+                        nextEntry.startKeyframe,
+                        nextEntry.endKeyframe
+                    };
+                    g_Log->Info("Preflight : no unplayed dream cached yet, streaming position %zu", i);
+                    return decision;
+                }
+            }
             g_Log->Info("Preflight : has unplayed dreams but none are cached, resetting play history");
             // Cast away const to reset - this is a special case where we need to modify state
             const_cast<PlaylistManager*>(this)->resetPlayHistory();
