@@ -228,8 +228,9 @@ static BOOL ESIsSystemSettingsApp_(NSRunningApplication *app)
 // (no layer, no on-screen flag), so the check uses what NSWindow reports. A
 // window the host is showing sits at a wallpaper level far below 0. A window
 // WallpaperAgent has dropped (the orphan, or a view left behind when a display
-// is added or removed) sits at NSNormalWindowLevel; the orphan's is also not
-// visible. The process is orphaned when none of its saver views is live.
+// is added or removed) sits at NSNormalWindowLevel. isVisible doesn't separate
+// them: an orphan relaunched after a hotplug reports visible, like a left-behind
+// view. The process is orphaned when none of its saver views is live.
 static const NSTimeInterval kOrphanSeconds = 10.0;
 static const NSTimeInterval kOrphanCheckSeconds = 2.0;
 static NSHashTable<ESScreensaverView *> *s_watchedViews = nil;
@@ -238,10 +239,14 @@ static NSTimeInterval s_orphanFor = 0;
 static NSString *s_lastWatchState = nil;
 
 // A nil window is unknown, never orphaned (that false-positived under System
-// Settings Preview before). Level and visibility both have to say "dropped".
-static BOOL ESWindowLooksHosted(NSWindow *win)
+// Settings Preview before). Level decides. While System Settings is open a
+// visible level-0 window also counts, since Settings may host a warm instance
+// that way; an orphan spared by that exits once Settings quits.
+static BOOL ESWindowLooksHosted(NSWindow *win, BOOL settingsRunning)
 {
-    return !win || win.level != NSNormalWindowLevel || win.isVisible;
+    if (!win || win.level != NSNormalWindowLevel)
+        return YES;
+    return settingsRunning && win.isVisible;
 }
 #endif
 
@@ -819,14 +824,19 @@ static void ESLogExitTiming(void)
         return;
     }
     NSUInteger live = 0;
+    BOOL settingsRunning = ESSystemSettingsIsRunning();
     NSMutableString *state = [NSMutableString string];
     for (ESScreensaverView *v in views) {
         NSWindow *w = v.window;
-        if (ESWindowLooksHosted(w))
+        if (ESWindowLooksHosted(w, settingsRunning))
             live++;
-        [state appendFormat:@" [%ld level=%ld visible=%d]",
-                            (long)(w ? w.windowNumber : -1), (long)w.level, (int)w.isVisible];
+        // occluded is logged as evidence only, in case level stops being enough.
+        [state appendFormat:@" [%ld level=%ld visible=%d occluded=%d]",
+                            (long)(w ? w.windowNumber : -1), (long)w.level, (int)w.isVisible,
+                            (int)!(w.occlusionState & NSWindowOcclusionStateVisible)];
     }
+    if (settingsRunning)
+        [state appendString:@" settings=1"];
     // Log only on change: a hotplug or an orphan shows up as one line.
     NSString *summary = [NSString stringWithFormat:@"%lu of %lu view(s) live:%@",
                                                    (unsigned long)live,
