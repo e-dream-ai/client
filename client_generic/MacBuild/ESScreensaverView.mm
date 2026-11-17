@@ -239,14 +239,11 @@ static NSTimeInterval s_orphanFor = 0;
 static NSString *s_lastWatchState = nil;
 
 // A nil window is unknown, never orphaned (that false-positived under System
-// Settings Preview before). Level decides. While System Settings is open a
-// visible level-0 window also counts, since Settings may host a warm instance
-// that way; an orphan spared by that exits once Settings quits.
-static BOOL ESWindowLooksHosted(NSWindow *win, BOOL settingsRunning)
+// Settings Preview before). Level decides, with System Settings open or not:
+// the views Settings hosts sit at the wallpaper level like any other.
+static BOOL ESWindowLooksHosted(NSWindow *win)
 {
-    if (!win || win.level != NSNormalWindowLevel)
-        return YES;
-    return settingsRunning && win.isVisible;
+    return !win || win.level != NSNormalWindowLevel;
 }
 #endif
 
@@ -831,18 +828,18 @@ static void ESLogExitTiming(void)
         return;
     }
     NSUInteger live = 0;
-    BOOL settingsRunning = ESSystemSettingsIsRunning();
     NSMutableString *state = [NSMutableString string];
     for (ESScreensaverView *v in views) {
         NSWindow *w = v.window;
-        if (ESWindowLooksHosted(w, settingsRunning))
+        if (ESWindowLooksHosted(w))
             live++;
         // occluded is logged as evidence only, in case level stops being enough.
         [state appendFormat:@" [%ld level=%ld visible=%d occluded=%d]",
                             (long)(w ? w.windowNumber : -1), (long)w.level, (int)w.isVisible,
                             (int)!(w.occlusionState & NSWindowOcclusionStateVisible)];
     }
-    if (settingsRunning)
+    // Logged as evidence only, like occluded.
+    if (ESSystemSettingsIsRunning())
         [state appendString:@" settings=1"];
     [ESScreensaverView _updateOverlayDisplay];
     // Log only on change: a hotplug or an orphan shows up as one line.
