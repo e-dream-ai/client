@@ -49,6 +49,10 @@ public:
     
     // Get the next dream to download from PlaylistManager
     std::optional<std::string> GetNextDreamToDownload();
+
+    // Ends the downloader's idle wait now, e.g. when the playlist changes and there may be
+    // new dreams to fetch (client#835).
+    void Wake();
     
     // Check if a dream is currently being downloaded, by us or by the player
     bool IsDreamBeingDownloaded(const std::string& uuid) const; 
@@ -91,6 +95,12 @@ private:
     
     // Disk space warning flag
     std::atomic<bool> m_diskSpaceLow{false};
+
+    // Idle wait between searches, which Wake() ends early.
+    void WaitForWork();
+    boost::mutex m_wakeMutex;
+    boost::condition_variable m_wakeCondition;
+    bool m_wakeRequested = false;
 
 };
 

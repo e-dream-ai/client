@@ -38,6 +38,7 @@ TESTS = [
     ("keyframe", []),  # serves the wanderlust-v1 set by default
     ("repro", []),
     ("speed_preload", []),  # serves alpha-v1's Wankel playlist by default
+    ("uncached_playlist", []),  # serves alpha-v1 by default
 ]
 
 

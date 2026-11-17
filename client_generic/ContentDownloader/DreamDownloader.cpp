@@ -83,6 +83,27 @@ void DreamDownloader::CheckDiskSpace() {
     }
 }
 
+void DreamDownloader::Wake() {
+    {
+        boost::lock_guard<boost::mutex> lock(m_wakeMutex);
+        m_wakeRequested = true;
+    }
+    m_wakeCondition.notify_all();
+}
+
+void DreamDownloader::WaitForWork() {
+    // Nothing to download, or no room for it. Look again in a minute, or as soon as Wake()
+    // says something changed, such as the playlist. It used to sleep 10 s with no way to wake
+    // it, so after a switch to an uncached playlist the client replayed the first dream while
+    // the downloader slept (client#835). The wait is a thread interruption point, so
+    // StopFindingDreams still ends it at once.
+    constexpr int kIdleSeconds = 60;
+    boost::unique_lock<boost::mutex> lock(m_wakeMutex);
+    m_wakeCondition.timed_wait(lock, boost::posix_time::seconds(kIdleSeconds),
+                               [this] { return m_wakeRequested; });
+    m_wakeRequested = false;
+}
+
 // MARK: Thread function
 void DreamDownloader::FindDreamsThread() {
     PlatformUtils::SetThreadName("FindDreamsToDownload");
@@ -220,9 +241,7 @@ void DreamDownloader::FindDreamsThread() {
         }
 
         //SetDownloadStatus("No dream to download");
-        // Sleep for a while before the next iteration
-        boost::this_thread::sleep(boost::get_system_time() +
-                             boost::posix_time::seconds(10));
+        WaitForWork();
     }
     
     } catch (boost::thread_interrupted&) {
