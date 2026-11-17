@@ -21,6 +21,8 @@
 #include <iostream>
 
 #include <string_view>
+#include <filesystem>
+#include <cstdint>
 #include <mutex>
 #include <thread>
 
@@ -63,6 +65,16 @@ extern void ProfilerEnd(const char* name);
 
 namespace Base
 {
+
+struct LogPruneResult
+{
+    size_t removedFiles = 0;
+    std::uintmax_t removedBytes = 0;
+};
+
+//    Deletes old client logs in dir, keeping keepName. See Log.cpp.
+LogPruneResult PruneOldLogs(const std::filesystem::path& dir,
+                            const std::string& keepName) noexcept;
 
 /*
         CLog.

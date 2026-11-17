@@ -17,12 +17,19 @@
 #include <xkbcommon/xkbcommon.h>
 #include "xdg-shell-client-protocol.h"
 #include "xdg-decoration-unstable-v1-client-protocol.h"
+#ifdef HAVE_WP_FRACTIONAL_SCALE
+#include "fractional-scale-v1-client-protocol.h"
+#include "viewporter-client-protocol.h"
+#endif
 #ifdef HAVE_LIBDECOR
 #include <libdecor.h>
 #endif
 #endif
 
+#include <atomic>
+#include <memory>
 #include <string>
+#include <vector>
 #include "DisplayOutput.h"
 
 namespace DisplayOutput
@@ -71,6 +78,24 @@ class CDisplayVulkan : public CDisplayOutput
     struct wl_data_offer* m_pSelectionOffer = nullptr; // current clipboard contents
     struct zxdg_decoration_manager_v1*   m_pDecorationManager = nullptr;
     struct zxdg_toplevel_decoration_v1*  m_pToplevelDecoration = nullptr;
+#ifdef HAVE_WP_FRACTIONAL_SCALE
+    struct wp_fractional_scale_manager_v1* m_pFractionalScaleManager = nullptr;
+    struct wp_fractional_scale_v1*         m_pFractionalScale        = nullptr;
+    struct wp_viewporter*                  m_pViewporter             = nullptr;
+    struct wp_viewport*                    m_pViewport               = nullptr;
+#endif
+
+    // Fractional scaling. Wayland sizes (configure events, libdecor, pointer
+    // coordinates) are logical: the desktop scale isn't applied. m_Width/m_Height,
+    // which the renderer, HUD and ImGui use, are the buffer's pixels: the logical
+    // size times m_wlScale. With fractional-scale-v1 + viewporter, m_wlScale is the
+    // compositor's preferred scale and the viewport maps the buffer back onto the
+    // logical size; without them it stays 1 and the compositor enlarges the window.
+    uint32_t m_logicalWidth  = 0;
+    uint32_t m_logicalHeight = 0;
+    double   m_wlScale       = 1.0;
+    void setWaylandLogicalSize(uint32_t w, uint32_t h);
+    int32_t toBufferPx(wl_fixed_t logical) const;
 #ifdef HAVE_LIBDECOR
     struct libdecor*      m_pLibdecorContext = nullptr;
     struct libdecor_frame* m_pLibdecorFrame  = nullptr;
@@ -99,7 +124,24 @@ class CDisplayVulkan : public CDisplayOutput
     enum libdecor_resize_edge m_hoverResizeEdge = LIBDECOR_RESIZE_EDGE_NONE;
 #endif
 
+    // One per wl_output global. The current mode's refresh rate comes from the
+    // mode event and takes effect on done (issue #749).
+    struct WaylandOutput
+    {
+        CDisplayVulkan* self = nullptr;
+        wl_output* output = nullptr;
+        uint32_t registryName = 0;
+        int32_t physWidthMm = 0;
+        int32_t pixelWidth = 0;
+        int32_t refreshMhz = 0;
+        int32_t pendingRefreshMhz = 0;
+        std::string label; // "make model" from the geometry event
+    };
+    std::vector<std::unique_ptr<WaylandOutput>> m_wlOutputs;
+    std::vector<wl_output*> m_wlEnteredOutputs; // outputs our surface is on
+
     bool initWayland(uint32_t w, uint32_t h, bool bFullscreen);
+    void updateWaylandRefreshRate();
     void destroyWayland();
     void createDataDevice();
     std::string readClipboardText();
@@ -112,6 +154,13 @@ class CDisplayVulkan : public CDisplayOutput
     // Wayland listener callbacks (static so they match C function-pointer ABI)
     static void onRegistryGlobal(void*, wl_registry*, uint32_t, const char*, uint32_t);
     static void onRegistryGlobalRemove(void*, wl_registry*, uint32_t);
+    static void onWlOutputGeometry(void*, wl_output*, int32_t, int32_t, int32_t,
+                                   int32_t, int32_t, const char*, const char*, int32_t);
+    static void onWlOutputMode(void*, wl_output*, uint32_t, int32_t, int32_t, int32_t);
+    static void onWlOutputDone(void*, wl_output*);
+    static void onWlOutputScale(void*, wl_output*, int32_t);
+    static void onSurfaceEnter(void*, wl_surface*, wl_output*);
+    static void onSurfaceLeave(void*, wl_surface*, wl_output*);
     static void onXdgWmBasePing(void*, xdg_wm_base*, uint32_t);
     static void onXdgSurfaceConfigure(void*, xdg_surface*, uint32_t);
     static void onXdgToplevelConfigure(void*, xdg_toplevel*, int32_t, int32_t, wl_array*);
@@ -130,6 +179,9 @@ class CDisplayVulkan : public CDisplayOutput
     static void onPointerMotion(void*, wl_pointer*, uint32_t, wl_fixed_t, wl_fixed_t);
     static void onPointerButton(void*, wl_pointer*, uint32_t, uint32_t, uint32_t, uint32_t);
     static void onPointerAxis(void*, wl_pointer*, uint32_t, uint32_t, wl_fixed_t);
+#ifdef HAVE_WP_FRACTIONAL_SCALE
+    static void onPreferredScale(void*, wp_fractional_scale_v1*, uint32_t);
+#endif
 #ifdef HAVE_LIBDECOR
     static void onLibdecorError(struct libdecor*, enum libdecor_error, const char*);
     static void onLibdecorConfigure(struct libdecor_frame*, struct libdecor_configuration*, void*);
@@ -147,6 +199,17 @@ class CDisplayVulkan : public CDisplayOutput
     // Vulkan
     VkInstance   m_instance = VK_NULL_HANDLE;
     VkSurfaceKHR m_surface  = VK_NULL_HANDLE;
+
+    // Detected refresh rate of the monitor the window is on; 0 = unknown.
+    // Written on the event thread, read by the player (issue #749).
+    std::atomic<double> m_RefreshRateHz{0.0};
+    void setRefreshRateHz(double hz, const char* source);
+
+    // X11: XRandR, loaded with dlopen so the build needs no libXrandr headers.
+    int  m_xrrEventBase = -1;      // -1 = XRandR unavailable
+    bool m_xRefreshDirty = false;  // window moved or the screen configuration changed
+    void initXRandR();
+    void updateX11RefreshRate();
 
     bool createVulkanInstance();
     void setFullScreen(bool enabled);
@@ -170,6 +233,7 @@ class CDisplayVulkan : public CDisplayOutput
     virtual bool IsFullscreen() const override { return m_bFullScreen; }
     virtual void SwapBuffers() override {} // presentation managed by RendererVulkan
     virtual bool HasShaders() override { return true; }
+    double RefreshRateHz() override { return m_RefreshRateHz.load(); }
 
     // Accessors for CRendererVulkan
     VkInstance   GetInstance()  const { return m_instance; }

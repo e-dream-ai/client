@@ -256,7 +256,7 @@ class CStatsConsole : public CConsole
         CStat* stat;
         DisplayOutput::spCBaseText text;
         bool isRightAligned = false;
-        Base::Math::CVector4 color = {1, 1, 1, 1};  // Default white
+        Base::Math::CVector4 color = TextColor();
         std::string alignWithStat;  // For right-aligned stats and columns, which left stat to align with
         bool isColumn = false;  // Drawn to the right of alignWithStat, on the same rows
     };
@@ -264,6 +264,19 @@ class CStatsConsole : public CConsole
     std::vector<std::pair<std::string, StatText>> m_Stats;
     DisplayOutput::CFontDescription m_Desc;
     Base::Math::CRect m_TotalExtent;
+
+    // Fade (client#782): Visible() is whether the console is shown, and
+    // m_Alpha follows it, so a hidden console keeps rendering until it has
+    // faded out.
+    float m_Alpha = 0.f;
+    double m_LastFadeTime = -1;
+
+    void DisableTexts()
+    {
+        for (auto& entry : m_Stats)
+            if (entry.second.text)
+                entry.second.text->SetEnabled(false);
+    }
 
   public:
     CStatsConsole(Base::Math::CRect _rect, const std::string& _FontName,
@@ -294,7 +307,7 @@ class CStatsConsole : public CConsole
         m_Stats.clear();
     }
 
-    void Add(CStat* _pStat, bool _isRightAligned = false, Base::Math::CVector4 _color = {1, 1, 1, 1}, const std::string& _alignWithStat = "")
+    void Add(CStat* _pStat, bool _isRightAligned = false, Base::Math::CVector4 _color = TextColor(), const std::string& _alignWithStat = "")
     {
         // Check if stat already exists to prevent duplicates
         auto it = std::find_if(m_Stats.begin(), m_Stats.end(),
@@ -322,7 +335,7 @@ class CStatsConsole : public CConsole
     void AddColumn(CStat* _pStat, const std::string& _alignWithStat)
     {
         const size_t count = m_Stats.size();
-        Add(_pStat, false, {1, 1, 1, 1}, _alignWithStat);
+        Add(_pStat, false, TextColor(), _alignWithStat);
         if (m_Stats.size() > count)
             m_Stats.back().second.isColumn = true;
     }
@@ -347,20 +360,7 @@ class CStatsConsole : public CConsole
         return it->second.stat;
     }
 
-    virtual void Visible(const bool _bState) override
-    {
-        CHudEntry::Visible(_bState);
-        if (!_bState)
-        {
-            for (auto i = m_Stats.begin(); i != m_Stats.end(); ++i)
-            {
-                if (i->second.text)
-                {
-                    i->second.text->SetEnabled(false);
-                }
-            }
-        }
-    }
+    bool NeedsRender() const override { return Visible() || m_Alpha > 0.f; }
 
     // Set _text to _full, truncating with a trailing ellipsis if it would be
     // wider than _maxWidth (normalized [0,1] screen width). _maxWidth <= 0 means
@@ -408,6 +408,21 @@ class CStatsConsole : public CConsole
     {
         if (!CHudEntry::Render(_time, _spRenderer))
             return false;
+
+        const double dt = m_LastFadeTime < 0 ? 0 : std::max(0.0, _time - m_LastFadeTime);
+        m_LastFadeTime = _time;
+        if (Visible())
+            m_Alpha = std::min(1.f, m_Alpha + static_cast<float>(dt / kHudFadeIn));
+        else
+            m_Alpha = std::max(0.f, m_Alpha - static_cast<float>(dt / kHudFadeOut));
+        if (!Visible() && m_Alpha <= 0.f)
+        {
+            // Faded out. NeedsRender() is now false, so this is the last call
+            // until the console is shown again.
+            DisableTexts();
+            m_LastFadeTime = -1;
+            return true;
+        }
 
         if (m_Stats.empty() || !g_Player().HasStarted())
             return true; // Skip rendering but keep entry alive (false = remove from HudManager)
@@ -590,7 +605,9 @@ class CStatsConsole : public CConsole
                 DisplayOutput::spCBaseText& text = i->second.text;
                 if (text)
                 {
-                    _spRenderer->DrawText(text, i->second.color);
+                    Base::Math::CVector4 color = i->second.color;
+                    color.m_W *= m_Alpha;
+                    _spRenderer->DrawText(text, color);
                 }
             }
         }

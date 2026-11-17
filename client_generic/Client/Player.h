@@ -98,10 +98,17 @@ class CPlayer : public Base::CSingleton<CPlayer>
     void ReapBackgroundTasks();
     /// Periodic log line from the render thread: its absence is the hang signal.
     void LogHeartbeat();
+    void UpdateDisplayFps(const DisplayOutput::spCDisplayOutput& display);
     std::chrono::steady_clock::time_point m_HeartbeatLastTick{};
     std::chrono::steady_clock::time_point m_HeartbeatLastLog{};
     double m_HeartbeatMaxTickMs = 0.0;
+    double m_HeartbeatSumTickMs = 0.0;
     uint32_t m_HeartbeatTicks = 0;
+    uint32_t m_HeartbeatLateTicks = 0;
+    uint32_t m_HeartbeatClampedTicks = 0;
+    double m_HeartbeatLostMs = 0.0;
+    /// Spins on the render thread, for testing the counters above (client#733).
+    void MaybeTestStall();
     void WaitForBackgroundTasks();
     
     ContentDecoder::spCClip m_currentClip;
@@ -150,6 +157,12 @@ class CPlayer : public Base::CSingleton<CPlayer>
     std::atomic<bool> m_firstRunWizardPlaybackHold{false};
     
     bool m_PreloadingNextClip = false;
+    std::atomic<uint64_t> m_ContentSettledCount{0};
+    std::weak_ptr<ContentDecoder::CClip> m_LastSettledClip;  // last clip counted as appearing
+    // Crossfade logging for tests (UpdateTransition).
+    std::weak_ptr<ContentDecoder::CClip> m_FadeTrackedClip;
+    double m_FadeMaxProgress = 0.0;
+    bool m_FadeHoldLogged = false;
     std::string m_PreloadingDreamUUID;
 
     Base::CBlockingQueue<std::string> m_NextClipInfoQueue;
@@ -405,7 +418,10 @@ class CPlayer : public Base::CSingleton<CPlayer>
     void prepareCrossfadeTransition();
 
     bool PreloadClip(const std::shared_ptr<const Cache::Dream>& dream);
-    
+
+    // Sets a clip's decode rate from the current perceptual fps and its dream's activity level.
+    void SyncClipRate(const ContentDecoder::spCClip& clip);
+
     // Handle buffering states
     void SetPausedForBuffering(bool paused) {
         m_PausedForBuffering = paused;
@@ -425,6 +441,31 @@ class CPlayer : public Base::CSingleton<CPlayer>
 
     bool IsAnyClipBuffering() const;
     bool IsPreloading() const;
+    // The current clip has played to its end and is held on its last frame
+    // because the next clip is not ready yet, or a crossfade is held because
+    // the incoming clip ran out of frames partway through it.
+    bool IsStalledAtTransition() const;
+
+    // Ticks when a change of what's on screen settles: a new clip starts to
+    // appear (its crossfade begins, a seamless swap, or a hard cut), or a
+    // requested change is given up (nothing to play, fetch or decoder failed).
+    // The client records it when a command asks for new content and shows the
+    // buffering moon until it moves (client#474). Natural transitions tick it
+    // too, which is harmless: they also mean new content is on screen.
+    uint64_t GetContentSettledCount() const { return m_ContentSettledCount.load(); }
+    // The clip waiting to fade in plays from a local file. Seeking into one
+    // still takes up to a couple of seconds (decode from the keyframe), but
+    // it isn't waiting on the network.
+    bool IsIncomingClipLocal() const;
+    // The clip on screen is playing below the requested speed because its
+    // stream can't keep up (client#770). Shows the buffering moon.
+    bool IsPlaybackSlowed() const;
+    // The clip on screen started playing and then ran out of frames (stream or
+    // disk too slow). Its initial fill, which may be a seek, isn't counted.
+    bool IsCurrentClipRebuffering() const;
+    // That clip's speed as a fraction of the requested one (1.0 = not slowed).
+    double GetPlaybackSpeed() const;
+    void NoteContentSettled() { m_ContentSettledCount.fetch_add(1); }
     bool IsAnyClipStreaming() const;
 };
 

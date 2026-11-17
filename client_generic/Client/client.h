@@ -12,12 +12,14 @@
 #include <cstdlib>   // for exit()
 #if defined(_WIN32) || defined(_WIN64)
 #include <stdlib.h>  // _exit() on Windows
+#include <windows.h> // TerminateProcess()
 #else
 #include <unistd.h>  // for _exit()
 #endif
 
 #include "Exception.h"
 #include "Log.h"
+#include "StepTimer.h"
 #include "Networking.h"
 #include "PlayCounter.h"
 #include "Player.h"
@@ -32,9 +34,6 @@
 #include "EDreamClient.h"
 #include "Hud.h"
 #include "Matrix.h"
-#include "ServerMessage.h"
-#include "MessageQueue.h"
-#include "Splash.h"
 #include "../MacBuild/OSD.hpp"
 #include "StartupScreen.h"
 #include "StatsConsole.h"
@@ -52,6 +51,24 @@
 
 // Flag to cancel the shutdown watchdog when restarting (e.g., after wizard)
 static std::atomic<bool> s_shutdownCancelled{false};
+
+// Ends the process at once, for the shutdown watchdog and the offline fast exit.
+// On Windows, _exit() takes the CRT's exit lock. If the main thread has already
+// returned from main and is running atexit destructors, it holds that lock, and a
+// destructor that blocks (e.g. an io_context waiting on its operations) would
+// leave the watchdog waiting on the lock forever. TerminateProcess() needs no CRT
+// lock. The macOS screensaver keeps exit(0) so atexit/destructors run.
+[[noreturn]] static inline void ForceExitProcess()
+{
+#if defined(_WIN32) || defined(_WIN64)
+    TerminateProcess(GetCurrentProcess(), 0);
+    _exit(0); // not reached
+#elif defined(SCREEN_SAVER)
+    exit(0);
+#else
+    _exit(0);
+#endif
+}
 
 #if defined(WIN32) && defined(_MSC_VER)
 #include "../msvc/cpu_usage_win32.h"
@@ -84,6 +101,13 @@ extern void ESSetShowFirstTimeSetupCallback(ShowFirstTimeSetupCallback_t);
 extern void ESShowFirstTimeSetup();
 extern bool ESHasFirstTimeSetupCallback();
 
+/// Quits the app the way the user would (Cmd-Q on Mac). Registered by the app; used by the
+/// test-only "quit" remote-control command, which the client honors only when
+/// INFINIDREAM_DATA_DIR is set (client#733). Returns false if no callback is registered.
+typedef void (*QuitCallback_t)();
+extern void ESSetQuitCallback(QuitCallback_t);
+extern bool ESRequestQuit();
+
 #if defined(WIN32)
 /// True while the first-run ImGui wizard is active (used to skip game HUD compositing).
 bool FirstTimeSetupWin32_IsWizardVisible();
@@ -106,12 +130,6 @@ inline float TapsToBrightness(double taps) {
 inline const char* HudIndicatorBulletUtf8() noexcept {
     return "\xE2\x97\x8F"; // U+25CF BLACK CIRCLE ●
 }
-inline const char* HudBufferingArrowUtf8() noexcept {
-    return "\xE2\x86\xBB"; // U+21BB CLOCKWISE OPEN CIRCLE ARROW ↻
-}
-inline const char* HudPreloadingArrowUtf8() noexcept {
-    return "\xE2\x86\x93"; // U+2193 DOWNWARDS ARROW ↓
-}
 
 /*
         CElectricSheep().
@@ -120,8 +138,6 @@ inline const char* HudPreloadingArrowUtf8() noexcept {
 class CElectricSheep
 {
   private:
-    Cache::MessageQueue m_MessageQueue;
-    bool wasShowingBufferIndicator = false;
     std::atomic<bool> m_TimecodeUpdaterRunning{false};
     std::thread m_TimecodeUpdaterThread;
     std::mutex m_TimecodeHudMutex;
@@ -193,11 +209,13 @@ class CElectricSheep
     int m_GpuUsage;
     int m_HighCpuUsageCounter;
     int m_CpuUsageThreshold;
-    std::string m_PreviousDlState; // Track download status
+    // Shown in the transfers block until the background downloader runs
+    // ("Preparing downloader...", "Downloading disabled", ...).
+    std::string m_DownloaderIdleText;
     bool m_MultipleInstancesMode;
     bool m_CachedOnlyMode = false;
     bool m_CachedOnlyModeChecked = false;
-    bool m_StartFullscreen = false;  // Linux: start fullscreen (--fullscreen); default is windowed
+    bool m_StartFullscreen = false;  // Linux/Windows: start fullscreen (--fullscreen); default is windowed
     bool m_OfflineDueToNoInternetOnly = false;  // true when m_MultipleInstancesMode was set only because internet was down (don't show Busy in that case)
     bool m_bConfigMode;
     bool m_bIsPreview;
@@ -213,8 +231,6 @@ class CElectricSheep
 
     Hud::spCHudManager m_HudManager;
     Hud::spCStartupScreen m_StartupScreen;
-
-    double m_PNGDelayTimer;
 
     //	The base framerate(from config).
     double m_PlayerFps;
@@ -238,17 +254,15 @@ class CElectricSheep
 
     // Our OSD
     Hud::spCOSD m_spOSD;
+    Hud::spCBufferingIndicator m_spBufferingIndicator;
+    uint64_t m_AwaitContentBaseline = 0;
+    double m_AwaitContentDeadline = 0.0;  // 0 = not waiting for new content
+    double m_AwaitContentStart = 0.0;
 
-    // Splash PNG
-    Hud::spCSplashImage m_spSplashPNG;
-    Base::CTimer m_SplashPNGDelayTimer;
-    int m_nSplashes;
     int m_StatsCodeCounter;
-    std::string m_SplashFilename;
 
     Hud::spCCrossFade m_spCrossFade;
 
-    std::deque<std::string> m_ConnectionErrors;
     std::string m_HudFontName;
     // HUD text height in font units (see CFontDescription::Height). Windows units draw larger
     // than Mac points on a similar screen, so it uses a smaller number for the same size.
@@ -374,9 +388,6 @@ class CElectricSheep
         m_HudFontName = g_Settings()->Get(
             "settings.player.m_HudFontName", std::string("Lato"));
 
-        m_PNGDelayTimer =
-            g_Settings()->Get("settings.player.pngdelaytimer", 600);
-
         m_HudManager = std::make_shared<Hud::CHudManager>();
     }
     
@@ -460,17 +471,17 @@ class CElectricSheep
         spStats->Add(new Hud::CStringStat("loginstatus", "", "Not signed in"));
         spStats->Add(
             new Hud::CStringStat("all", "Content cache: ", "unknown..."));
-        spStats->Add(new Hud::CStringStat("transfers", "", " \n "));
         if (m_MultipleInstancesMode == true)
-            spStats->Add(new Hud::CTimeCountDownStat(
-                "svstat", "", "Downloading disabled, busy mode"));
+            m_DownloaderIdleText = "Downloading disabled, busy mode";
         else if (g_Settings()->Get("settings.content.download_mode", true) ==
                  false)
-            spStats->Add(new Hud::CTimeCountDownStat("svstat", "",
-                                                     "Downloading disabled"));
+            m_DownloaderIdleText = "Downloading disabled";
         else
-            spStats->Add(new Hud::CTimeCountDownStat(
-                "svstat", "", "Preparing downloader..."));
+            m_DownloaderIdleText = "Preparing downloader...";
+        // Active transfers, or the downloader's status when there are none.
+        spStats->Add(new Hud::CStringStat("transfers", "",
+                                          m_DownloaderIdleText + "\n "));
+        spStats->Add(new Hud::CStringStat("preloading", "", ""));
 
         spStats->Add(new Hud::CStringStat("zzacpu", "CPU: ", "measuring..."));
         spStats->Add(new Hud::CStringStat("zzagpu2", "GPU: ", "measuring..."));
@@ -511,7 +522,6 @@ class CElectricSheep
                 "displayfps",
                 rendererDesc + " display at ", " fps",
                 1.0));
-        spStats->Add(new Hud::CStringStat(std::string("zconnerror"), "", ""));
     }
     
     void AddCreditsHud()
@@ -527,20 +537,20 @@ class CElectricSheep
         creditsConsole->Add(new Hud::CStringStat("credits-artist", "", ""));
         creditsConsole->Add(new Hud::CStringStat("credits-playlist", "", ""));
         creditsConsole->Add(new Hud::CStringStat("credits-mode", "", ""));
-        creditsConsole->Add(new Hud::CStringStat("credits-download-base", "", " "));  // Base for download line
+        // Empty bottom row: the buffering moon (CBufferingIndicator) sits at its right end.
+        creditsConsole->Add(new Hud::CStringStat("credits-download-base", "", " "));
 
         // Add right-aligned stats with explicit alignment
         // Move most stats down one row to avoid overlap with long titles
-        creditsConsole->Add(new Hud::CStringStat("credits-track", "", ""), true, Base::Math::CVector4(1, 1, 1, 1), "credits-title");
-        creditsConsole->Add(new Hud::CStringStat("credits-time", "", ""), true, Base::Math::CVector4(1, 1, 1, 1), "credits-artist");
-        creditsConsole->Add(new Hud::CStringStat("credits-fps", "", ""), true, Base::Math::CVector4(1, 1, 1, 1), "credits-playlist");
+        creditsConsole->Add(new Hud::CStringStat("credits-track", "", ""), true, Hud::TextColor(), "credits-title");
+        creditsConsole->Add(new Hud::CStringStat("credits-time", "", ""), true, Hud::TextColor(), "credits-artist");
+        creditsConsole->Add(new Hud::CStringStat("credits-fps", "", ""), true, Hud::TextColor(), "credits-playlist");
         // Indicator order (left to right): Busy, Net, Remote, Disk, Update
         creditsConsole->Add(new Hud::CStringStat("credits-busy", "", ""), true, Base::Math::CVector4(1, 0, 0, 1), "credits-mode");  // Red busy indicator
-        creditsConsole->Add(new Hud::CStringStat("credits-net", "", ""), true, Base::Math::CVector4(1, 1, 1, 1), "credits-mode");
-        creditsConsole->Add(new Hud::CStringStat("credits-ws", "", ""), true, Base::Math::CVector4(1, 1, 1, 1), "credits-mode");
-        creditsConsole->Add(new Hud::CStringStat("credits-dsk", "", ""), true, Base::Math::CVector4(1, 1, 1, 1), "credits-mode");
+        creditsConsole->Add(new Hud::CStringStat("credits-net", "", ""), true, Hud::TextColor(), "credits-mode");
+        creditsConsole->Add(new Hud::CStringStat("credits-ws", "", ""), true, Hud::TextColor(), "credits-mode");
+        creditsConsole->Add(new Hud::CStringStat("credits-dsk", "", ""), true, Hud::TextColor(), "credits-mode");
         creditsConsole->Add(new Hud::CStringStat("credits-upd", "", ""), true, Base::Math::CVector4(1, 1, 0, 1), "credits-mode");  // Yellow update indicator
-        creditsConsole->Add(new Hud::CStringStat("credits-download", "", ""), true, Base::Math::CVector4(1, 1, 1, 1), "credits-download-base");
     }
     
     void AddNetworkIndicatorHud()
@@ -754,80 +764,11 @@ class CElectricSheep
     {
         // We pass min max values for speed and brightness
         m_spOSD = std::make_shared<Hud::COSD>(Base::Math::CRect(1, 1), 0, 9, -13, 13);
-    }
-    
-    void AddSplashHud()
-    {
-#ifndef LINUX_GNU
-        std::string defaultDir = std::string(".\\");
-#else
-        std::string defaultDir = std::string("");
-#endif
-        // PNG splash
-        m_SplashFilename = g_Settings()->Get(
-            "settings.player.attrpngfilename",
-            g_Settings()->Get("settings.app.InstallDir", PlatformUtils::GetWorkingDir()) +
-                "e-dream-attr.png");
 
-        bool splashFound = false;
-
-        const char* percent;
-
-        if (m_SplashFilename.empty() == false)
-        {
-            if ((percent = strchr(m_SplashFilename.c_str(), '%')))
-            {
-                if (percent[1] == 'd')
-                {
-                    FILE* test;
-                    while (1)
-                    {
-                        char fNameFormatted[FILENAME_MAX];
-                        snprintf(fNameFormatted, FILENAME_MAX,
-                                 m_SplashFilename.c_str(), m_nSplashes);
-                        if ((test = fopen(fNameFormatted, "r")))
-                        {
-                            splashFound = true;
-                            fclose(test);
-                            m_nSplashes++;
-                        }
-                        else
-                        {
-                            break;
-                        }
-                    }
-                }
-            }
-            else
-            {
-                FILE* test = fopen(m_SplashFilename.c_str(), "r");
-
-                if (test != nullptr)
-                {
-                    splashFound = true;
-                    fclose(test);
-                }
-            }
-        }
-
-        if (!splashFound)
-        {
-            m_SplashFilename =
-                g_Settings()->Get("settings.app.InstallDir", PlatformUtils::GetWorkingDir()) +
-                "e-dream-attr.png";
-            g_Settings()->Set("settings.player.attrpngfilename",
-                              m_SplashFilename);
-        }
-
-        // if multiple splashes are found then they are loaded when the timer
-        // goes off, not here
-        if (m_SplashFilename.empty() == false &&
-            g_Settings()->Get("settings.app.attributionpng", false) == true)
-            m_spSplashPNG = std::make_shared<Hud::CSplashImage>(
-                0.2f, m_SplashFilename.c_str(),
-                float(g_Settings()->Get("settings.app.pngfadein", 10)),
-                float(g_Settings()->Get("settings.app.pnghold", 10)),
-                float(g_Settings()->Get("settings.app.pngfadeout", 10)));
+        // Its own entry, never shared with m_spOSD: the two used to be one
+        // object, so any OSD popup cancelled the buffering icon (client#732).
+        m_spBufferingIndicator = std::make_shared<Hud::CBufferingIndicator>(kHudFontSize);
+        m_HudManager->Add("buffering-indicator", m_spBufferingIndicator);
     }
     
     void AddProgressHud()
@@ -1002,7 +943,6 @@ class CElectricSheep
         AddHelpHud();
         AddDreamStatsHud();
         AddProgressHud();
-        AddSplashHud();
         AddOSDHud();
 
         {
@@ -1097,7 +1037,6 @@ class CElectricSheep
             });
 
         //	And we're off.
-        m_SplashPNGDelayTimer.Reset();
         m_Timer.Reset();
         // For the first few seconds while the initial auth refresh is in flight,
         // suppress the Remote indicator so brief startup delays don't flash errors.
@@ -1135,7 +1074,7 @@ class CElectricSheep
             // The watchdog checks s_shutdownCancelled before exiting, so if
             // Startup() is called (e.g., when restarting after wizard), it
             // will cancel the watchdog by setting s_shutdownCancelled = true.
-            // On macOS screensaver use exit(0) so atexit/destructors run; standalone app uses _exit(0).
+            // See ForceExitProcess() for how each platform exits.
             std::thread([]() {
                 std::this_thread::sleep_for(std::chrono::milliseconds(200));
                 if (s_shutdownCancelled.load()) {
@@ -1143,22 +1082,14 @@ class CElectricSheep
                     return;
                 }
                 printf("Force exiting after shutdown timeout\n");
-                #ifdef SCREEN_SAVER
-                exit(0);
-                #else
-                _exit(0);
-                #endif
+                ForceExitProcess();
             }).detach();
 
             // FAST EXIT: If network is unreachable, exit immediately without waiting
             g_NetworkManager->Abort();
             if (!PlatformUtils::IsInternetReachable()) {
                 printf("Network unreachable - forcing immediate exit\n");
-                #ifdef SCREEN_SAVER
-                exit(0);
-                #else
-                _exit(0);
-                #endif
+                ForceExitProcess();
             }
         }
         else
@@ -1172,12 +1103,10 @@ class CElectricSheep
         DestroyUpdateThreads();
 #endif
 
-        m_spSplashPNG = nullptr;
-        m_nSplashes = 0;
-        m_SplashFilename = std::string();
         m_spCrossFade = nullptr;
         m_StartupScreen = nullptr;
         m_spOSD = nullptr;
+        m_spBufferingIndicator = nullptr;
         m_HudManager = nullptr;
         m_bPaused = false;
 
@@ -1219,7 +1148,9 @@ class CElectricSheep
             // (content) rate. Capping at m_PerceptualFPS throttled the whole
             // loop to the dream animation rate (often 2-20 fps), making motion
             // choppy and defeating frame blending. FIFO present already gates
-            // on vblank; this cap is a safety net. 0 = uncapped (let vsync pace).
+            // on vblank; this cap is a safety net. The rate is the detected refresh
+            // rate of the window's monitor (issue #749), so a 144 Hz display is no
+            // longer held to 60. 0 = uncapped (let vsync pace).
             double displayFps = g_Player().GetDisplayFps();
             if (displayFps > 0.0)
                 g_Player().FpsCap(displayFps);
@@ -1550,8 +1481,16 @@ class CElectricSheep
 // MARK: Main per frame update loop
     virtual bool DoRealFrameUpdate(uint32_t displayUnit)
     {
+        // Begin/EndDisplayFrame can wait for the next drawable or for vsync
+        // every frame, so with step timing on they only log when they take
+        // longer than a late tick (1.5 display intervals).
+        const double displayFps = g_Player().GetDisplayFps();
+        const double frameWaitMinMs = displayFps > 0.0 ? 1500.0 / displayFps : 0.0;
+
+        Base::CStepTimer beginFrameTimer("frame BeginDisplayFrame", frameWaitMinMs);
         if (!g_Player().BeginDisplayFrame(displayUnit))
             return true;
+        beginFrameTimer.Stop();
 
         const double frameStartTime = m_Timer.Time();
 
@@ -1636,75 +1575,6 @@ class CElectricSheep
                         pTmp->Visible(false);
                 }
                 //	Process any server messages.
-                std::string msg;
-                double duration;
-/*
-                // TODO : Is that some old splash screen mechanism ?
-                if (m_spSplashPNG)
-                {
-                    if (m_SplashPNGDelayTimer.Time() > m_PNGDelayTimer)
-                    {
-                        // update m_spSplashPNG here, so every time it is shown,
-                        // it is randomized among our shuffle group.
-
-                        if (m_nSplashes > 0)
-                        {
-                            char fNameFormatted[FILENAME_MAX];
-                            snprintf(fNameFormatted, FILENAME_MAX,
-                                     m_SplashFilename.c_str(),
-                                     rand() % m_nSplashes);
-                            if (m_SplashFilename.empty() == false &&
-                                g_Settings()->Get("settings.app.attributionpng",
-                                                  false) == true)
-                                m_spSplashPNG =
-                                    std::make_shared<Hud::CSplashImage>(
-                                        0.2f, fNameFormatted,
-                                        float(g_Settings()->Get(
-                                            "settings.app.pngfadein", 10)),
-                                        float(g_Settings()->Get(
-                                            "settings.app.pnghold", 10)),
-                                        float(g_Settings()->Get(
-                                            "settings.app.pngfadeout", 10)));
-                        }
-
-                        m_HudManager->Add(
-                            "splash_png", m_spSplashPNG,
-                            float(
-                                g_Settings()->Get("settings.app.pngfadein",
-                                                  10) +
-                                g_Settings()->Get("settings.app.pnghold", 10) +
-                                g_Settings()->Get("settings.app.pngfadeout",
-                                                  10)));
-                        m_SplashPNGDelayTimer.Reset();
-                    }
-                }
-*/
-                if (m_MessageQueue.PopMessage(msg, duration))
-                {
-                    bool addtohud = true;
-                    time_t lt = time(nullptr);
-
-                    if ((msg == "error connecting to server") ||
-                        (msg == "server request failed, using free one"))
-                    {
-                        std::string temptime = ctime(&lt);
-                        msg = temptime.substr(0, temptime.length() - strlen("\n")) + " " + msg;
-                        g_Log->Error(msg.c_str());
-                        if (m_ConnectionErrors.size() > 20)
-                            m_ConnectionErrors.pop_front();
-                        m_ConnectionErrors.push_back(msg);
-                        if (g_Settings()->Get("settings.player.quiet_mode", true) == true)
-                            addtohud = false;
-                    }
-
-                    if (addtohud == true)
-                    {
-                        m_HudManager->Add("servermessage",
-                                          std::make_shared<Hud::CServerMessage>(
-                                              msg, Base::Math::CRect(1, 1), 24),
-                                          duration);
-                    }
-                }
                 if (m_F1F4Timer.Time() > 20 * 60)
                 {
                     m_F1F4Timer.Reset();
@@ -1793,7 +1663,16 @@ class CElectricSheep
                 m_RuntimeDiagnostics.downloadStatus =
                     g_ContentDownloader().m_gDownloader.GetDownloadStatus();
                 updateNextCheckTimeDisplay();
-                if (isStreamingCurrent) {
+                const double playbackSpeed = g_Player().GetPlaybackSpeed();
+                if (isStreamingCurrent && playbackSpeed < 1.0) {
+                    // Slowed to match the network (client#770): show the rate
+                    // frames actually advance, and say why.
+                    ((Hud::CStringStat*)spStats->Get("decodefps"))
+                        ->SetSample(string_format(
+                            " %.2f fps (streaming, slowed to %.0f%%)",
+                            realFps * playbackSpeed, playbackSpeed * 100.0));
+                }
+                else if (isStreamingCurrent) {
                     ((Hud::CStringStat*)spStats->Get("decodefps"))
                         ->SetSample(
                             string_format(" %.2f fps (streaming)", realFps));
@@ -1850,23 +1729,30 @@ class CElectricSheep
 
                 // Buffering and preloading checks
                 bool isBuffering = g_Player().IsAnyClipBuffering();
-                bool isPreloading = g_Player().IsPreloading();
-                bool isCurrentClipStreaming = isStreamingCurrent; // Use existing variable that tracks if current clip is streaming
-                
-                // Show indicator only if current clip is buffering (not preloading next clip)
-                bool shouldShowBufferIndicator = isCurrentClipStreaming && isBuffering;
 
-                // Manage the buffering icon
-                if (shouldShowBufferIndicator && !wasShowingBufferIndicator) {
-                    // Buffering or preloading started on a streaming clip - show the icon
-                    m_spOSD->SetType(Hud::Buffering);
-                    m_HudManager->Add("osd-rebuffering", m_spOSD, 60);
-                    wasShowingBufferIndicator = true;
-                } else if (!shouldShowBufferIndicator && wasShowingBufferIndicator) {
-                    // Buffering/preloading ended or not streaming anymore - hide the icon
-                    m_HudManager->Hide("osd-rebuffering");
-                    wasShowingBufferIndicator = false;
+                // Lower-right moon while the picture is stalled waiting for
+                // video: the clip on screen ran dry (streaming, or a slow disk
+                // for a cached one), or it ended and the next clip isn't ready.
+                // A cached clip's initial fill (a seek can take ~2 s) is left
+                // to the kAwaitLocalGrace path below. Preloading ahead of a
+                // transition is not a stall; it is reported on the F2 overlay.
+                bool awaitingContent = false;
+                if (m_AwaitContentDeadline > 0.0) {
+                    if (g_Player().GetContentSettledCount() != m_AwaitContentBaseline ||
+                        m_Timer.Time() >= m_AwaitContentDeadline)
+                        m_AwaitContentDeadline = 0.0;
+                    else
+                        awaitingContent = !g_Player().IsIncomingClipLocal() ||
+                                          m_Timer.Time() - m_AwaitContentStart >= kAwaitLocalGrace;
                 }
+                if (m_spBufferingIndicator)
+                    m_spBufferingIndicator->SetStalled(
+                        ((isStreamingCurrent && isBuffering) ||
+                         g_Player().IsCurrentClipRebuffering() ||
+                         g_Player().IsStalledAtTransition() ||
+                         g_Player().IsPlaybackSlowed()) &&
+                            !IsPreview(),
+                        awaitingContent && !IsPreview());
 
                 // Simple pause/unpause logic - any buffering means pause
                 if (isBuffering && !g_Player().IsPausedForBuffering()) {
@@ -2182,17 +2068,6 @@ class CElectricSheep
                         ((Hud::CStringStat*)spStats->Get("credits-upd"))
                             ->SetSample("");  // Hide when no update available
                     }
-
-                    // Update download indicator
-                    if (isStreamingCurrent && isBuffering) {
-                        ((Hud::CStringStat*)spStats->Get("credits-download"))
-                            ->SetSample(std::string(HudBufferingArrowUtf8()) + " buffering");
-                    } else if (isPreloading) {
-                        ((Hud::CStringStat*)spStats->Get("credits-download"))
-                            ->SetSample(std::string(HudPreloadingArrowUtf8()) + " preloading");
-                    } else {
-                        ((Hud::CStringStat*)spStats->Get("credits-download"))->SetSample("");  // Clear
-                    }
                 }
 
                 if (clipMetadata && spStats && creditsVisible)
@@ -2293,10 +2168,25 @@ class CElectricSheep
                     (Hud::CStringStat*)spStats->Get("transfers");
                 if (pTmp)
                 {
-                    const std::string& serverStatus =
-                        m_RuntimeDiagnostics.serverStatus;
-                    pTmp->SetSample(serverStatus.empty() ? " \n " : serverStatus);
+                    // One block for downloads: the active transfers if any,
+                    // otherwise the background downloader's status (searching,
+                    // requesting a link, all cached, ...). Padded to two lines,
+                    // the height of one transfer, so the HUD doesn't jump.
+                    std::string text = m_RuntimeDiagnostics.serverStatus;
+                    if (text.empty())
+                        text = g_ContentDownloader().m_gDownloader.IsRunning()
+                                   ? m_RuntimeDiagnostics.downloadStatus
+                                   : m_DownloaderIdleText;
+                    if (text.find('\n') == std::string::npos)
+                        text += text.empty() ? " \n " : "\n ";
+                    pTmp->SetSample(text);
                 }
+
+                // Fetching and decoding the next dream ahead of its transition.
+                // Normal, not a stall (stalls show the lower-right moon).
+                pTmp = (Hud::CStringStat*)spStats->Get("preloading");
+                if (pTmp)
+                    pTmp->SetSample(g_Player().IsPreloading() ? "Preloading the next dream" : "");
 
                 pTmp = (Hud::CStringStat*)spStats->Get("loginstatus");
                 if (pTmp)
@@ -2324,44 +2214,38 @@ class CElectricSheep
                 }
 
 
-                pTmp = (Hud::CStringStat*)spStats->Get("zconnerror");
-                if (pTmp)
-                {
-                    if (m_ConnectionErrors.size() > 0)
-                    {
-                        std::string allConnectionErrors;
-                        for (size_t ii = 0; ii < m_ConnectionErrors.size();
-                             ++ii)
-                            allConnectionErrors +=
-                                m_ConnectionErrors.at(ii) + "\n";
-                        if (allConnectionErrors.size() > 0)
-                            allConnectionErrors.erase(
-                                allConnectionErrors.size() - 1);
-                        pTmp->SetSample(allConnectionErrors);
-                    }
-                    else
-                        pTmp->SetSample("");
-                }
-
-                Hud::CTimeCountDownStat* pTcd =
-                    (Hud::CTimeCountDownStat*)spStats->Get("svstat");
-                if (pTcd)
-                {
-                    std::string dlState =
-                        m_RuntimeDiagnostics.downloadStatus;
-
-                    if (dlState != m_PreviousDlState)
-                    {
-                        pTcd->SetSample(dlState);
-                        pTcd->Visible(true);
-                        m_PreviousDlState = dlState;
-                    }
-                }
                 } // if (spStats) - dreamstats
 
                 //	Finally render hud.
                 const double hudStartTime = m_Timer.Time();
-                m_HudManager->Render(g_Player().Renderer());
+#if (defined(MAC) && !defined(SCREEN_SAVER)) || defined(WIN32)
+                // Publish Syphon/Spout from the video pass before OSD/icon quads
+                // are drawn into the framebuffer (local HUD overlays are not
+                // included in the external feed).
+                if (displayUnit == 0)
+                {
+                    if (auto spRenderer = g_Player().Renderer())
+                        spRenderer->CaptureExternalOutputBeforeOverlay();
+                }
+#endif
+                {
+#if defined(WIN32)
+                    // Take the D3D11 context lock once for the whole HUD. Each quad
+                    // takes it again (recursive, so then for free); otherwise the
+                    // OSD's quads each wait behind the hardware decoder, which
+                    // shares the lock, and the OSD can cost more than a frame at
+                    // high playback speeds.
+                    std::unique_lock<std::recursive_mutex> d3dLock(
+                        GetD3D11ImmediateContextMutex(), std::defer_lock);
+                    if (m_HudManager->AnyNeedsRender())
+                    {
+                        Base::CStepTimer lockTimer("frame HUD context lock wait");
+                        d3dLock.lock();
+                    }
+#endif
+                    Base::CStepTimer timer("frame HUD Render");
+                    m_HudManager->Render(g_Player().Renderer());
+                }
                 MaybeLogFramePerf(m_Timer.Time(), frameStartTime, hudStartTime);
 
                 //	Update display events.
@@ -2373,6 +2257,7 @@ class CElectricSheep
             if (displayUnit == 0 && (showStartup || drawn))
                 frameDrawn = true;
 
+            Base::CStepTimer endFrameTimer("frame EndDisplayFrame", frameWaitMinMs);
             g_Player().EndDisplayFrame(displayUnit, frameDrawn);
         }
 
@@ -2408,8 +2293,27 @@ class CElectricSheep
         CLIENT_COMMAND_SPEED_7,
         CLIENT_COMMAND_SPEED_8,
         CLIENT_COMMAND_SPEED_9,
-        CLIENT_COMMAND_RESET_PLAYLIST
+        CLIENT_COMMAND_RESET_PLAYLIST,
+        // Server asked to play a dream / playlist: show feedback (client#474).
+        // The play itself goes through the player's own queue.
+        CLIENT_COMMAND_PLAY_DREAM_RECEIVED,
+        CLIENT_COMMAND_PLAY_PLAYLIST_RECEIVED
     };
+
+    // A command asked for new content (next, previous, jump, play dream or
+    // playlist). Show the buffering moon until the player reports the change
+    // has settled: the new clip starts to fade in, or the change was given up.
+    // The deadline is a backstop for a failure path that doesn't report.
+    static constexpr double kAwaitContentTimeout = 30.0;
+    // A seek into a cached dream can take ~2 s to decode up to the target
+    // frame, so the moon waits this long before counting a local load as slow.
+    static constexpr double kAwaitLocalGrace = 1.5;
+    void BeginAwaitingContent()
+    {
+        m_AwaitContentBaseline = g_Player().GetContentSettledCount();
+        m_AwaitContentStart = m_Timer.Time();
+        m_AwaitContentDeadline = m_AwaitContentStart + kAwaitContentTimeout;
+    }
 
     void popOSD(Hud::OSDType type) {
         if (type == Hud::Brightness) {
@@ -2505,6 +2409,7 @@ class CElectricSheep
                 return true;
             case CLIENT_COMMAND_PREVIOUS:
                 popOSD(Hud::Previous);
+                BeginAwaitingContent();
 
                 g_Player().ReturnToPrevious();
                 EDreamClient::SendStateUpdate();
@@ -2556,6 +2461,14 @@ class CElectricSheep
                 g_Player().SetPerceptualFPS(SpeedToPerceptualFPS(9));
                 EDreamClient::SendStateUpdate();
                 return true;
+            case CLIENT_COMMAND_PLAY_DREAM_RECEIVED:
+                popOSD(Hud::Play);
+                BeginAwaitingContent();
+                return true;
+            case CLIENT_COMMAND_PLAY_PLAYLIST_RECEIVED:
+                popOSD(Hud::PlayPlaylist);
+                BeginAwaitingContent();
+                return true;
             case CLIENT_COMMAND_RESET_PLAYLIST:
                 printf("RESET PLAYLIST\n");
                 g_Settings()->Set("settings.content.current_playlist_uuid", std::string(""));
@@ -2564,6 +2477,7 @@ class CElectricSheep
                 //  Force Next Sheep
             case CLIENT_COMMAND_NEXT:
                 popOSD(Hud::Next);
+                BeginAwaitingContent();
 
                 /*if (g_Player().m_CurrentClips.size() > 1) {
                     auto [fadeInTime, _] =
@@ -2633,6 +2547,7 @@ class CElectricSheep
             case CLIENT_COMMAND_SKIP_FW:
                 if (!g_Player().IsJumpDisabled()) {
                     popOSD(Hud::Forward10);
+                    BeginAwaitingContent();
                 }
                 g_Player().SkipForward(10);
                 EDreamClient::SendStateUpdate();
@@ -2640,6 +2555,7 @@ class CElectricSheep
             case CLIENT_COMMAND_SKIP_BW:
                 if (!g_Player().IsJumpDisabled()) {
                     popOSD(Hud::Back10);
+                    BeginAwaitingContent();
                 }
                 g_Player().SkipForward(-10);
                 return true;

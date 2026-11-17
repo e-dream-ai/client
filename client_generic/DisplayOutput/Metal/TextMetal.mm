@@ -57,7 +57,10 @@ void CTextMetal::SetText(const std::string& _text)
     m_TextLayer.string = @(_text.c_str());
     UpdateContentsScale();
     NSSize contentSize = [m_TextLayer preferredFrameSize];
-    m_TextLayer.frame = NSMakeRect(0, 0, contentSize.width, contentSize.height);
+    // Keep the origin: callers follow with SetRect, and resetting it to (0, 0)
+    // could show the text at the window corner for a frame (client#783).
+    NSPoint origin = m_TextLayer.frame.origin;
+    m_TextLayer.frame = NSMakeRect(origin.x, origin.y, contentSize.width, contentSize.height);
     UpdateExtents();
 }
 

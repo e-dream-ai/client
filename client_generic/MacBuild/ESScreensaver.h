@@ -10,11 +10,19 @@ int ESScreenSaver_AddGraphicsContext(void* _graphicsContext);
 
 bool ESScreensaver_Start(bool _bPreview, uint32_t _width, uint32_t _height);
 bool ESScreensaver_DoFrame(int _displayIdx);
+/// Tell the display its screen's refresh rate. Returns 1 if it changed, 0 if not,
+/// -1 if the display doesn't exist yet.
+int ESScreensaver_SetRefreshRate(int _displayIdx, double _hz);
 void ESScreensaver_Stop(void);
 void ESScreensaver_Resume(void);
 bool ESScreensaver_Stopped(void);
-/// True when this process failed to take the exclusive instance lock (secondary).
-bool ESScreensaver_IsSecondaryInstance(void);
+/// Take the instance lock and attach the log (once). The saver calls this from
+/// startAnimation, not at bundle load; the app's constructor already did it.
+void ESScreensaver_ClaimInstance(void);
+/// True when another screensaver process holds the exclusive instance lock,
+/// e.g. the extra legacyScreenSaver that opening System Settings spawns.
+/// False when we hold it, or when the app holds it (then we play offline).
+bool ESScreensaver_IsGhostInstance(void);
 void ESScreensaver_ForceWidthAndHeight(uint32_t _width, uint32_t _height);
 void ESScreensaver_SetVideoRotation(uint32_t _degrees);
 void ESScreensaver_Deinit(void);

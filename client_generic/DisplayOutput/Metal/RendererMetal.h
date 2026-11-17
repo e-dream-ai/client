@@ -26,6 +26,8 @@ class CRendererMetal : public CRenderer
     std::shared_mutex m_textureMutex;
     std::map<std::string, spCBaseFont> m_fontPool;
     bool* m_pIsAlive;
+    bool m_externalOutputThisFrame = false;  // primary display, set per frame
+    bool m_syphonCaptureThisFrame = false;   // a Syphon client is receiving
 #ifdef __OBJC__
     bool
     CreateMetalTextureFromDecoderFrame(CVPixelBufferRef pixelBuffer,
@@ -46,6 +48,7 @@ class CRendererMetal : public CRenderer
     void Defaults();
     bool BeginFrame(void);
     bool EndFrame(bool drawn = true);
+    void CaptureExternalOutputBeforeOverlay() override;
     void Apply();
     void Reset(const uint32_t _flags);
     spCTextureFlat NewTextureFlat(const uint32_t flags = 0);
@@ -66,6 +69,10 @@ class CRendererMetal : public CRenderer
                   const Base::Math::CRect& _uvRect);
     float GetGPUFrameTimeMs();
     float GetGPUUtilization();
+    void EnableExternalOutputThisFrame(bool enable) override
+    {
+        m_externalOutputThisFrame = enable;
+    }
 
 };
 

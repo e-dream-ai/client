@@ -11,14 +11,17 @@
 #define OSD_hpp
 
 #include <stdio.h>
+#include <algorithm>
 #include <cmath>
 #include <string>
 
 #include "Hud.h"
+#include "Log.h"
 #include "Rect.h"
 #include "fastbez.h"
 #include "Settings.h"
 #include "Player.h"
+#include "PlatformUtils.h"
 #include "../Client/StringFormat.h"
 
 namespace Hud {
@@ -41,9 +44,9 @@ enum OSDType {
     Like,
     Dislike,
     Report,
-    Buffering,
     Repeat,
-    Shuffle
+    Shuffle,
+    PlayPlaylist
 };
 
 class COSD : public CHudEntry {
@@ -87,32 +90,17 @@ public:
             m_spDotTexture_u = g_Player().Renderer()->NewTextureFlat();
             m_spDotTexture_u->Upload(tmpDotU);
         }
-        
-        // Grab our dot red texture
-        DisplayOutput::spCImage tmpDotR(new DisplayOutput::CImage());
-        if (tmpDotR->Load(g_Settings()->Get("settings.app.InstallDir", defaultDir) +
-                           "osd-pill-r.png", false))
-        {
-            m_spDotTexture_r = g_Player().Renderer()->NewTextureFlat();
-            m_spDotTexture_r->Upload(tmpDotR);
-        }
 
-        // Grab our dot blue texture
-        DisplayOutput::spCImage tmpDotB(new DisplayOutput::CImage());
-        if (tmpDotB->Load(g_Settings()->Get("settings.app.InstallDir", defaultDir) +
-                           "osd-pill-b.png", false))
+        // The row of dots as two strips, so any level draws in two quads instead
+        // of one per dot (each quad costs a lock and a constant-buffer map).
+        DisplayOutput::spCImage stripDot = MakeDotStrip(tmpDot);
+        DisplayOutput::spCImage stripDotU = MakeDotStrip(tmpDotU);
+        if (stripDot && stripDotU)
         {
-            m_spDotTexture_b = g_Player().Renderer()->NewTextureFlat();
-            m_spDotTexture_b->Upload(tmpDotB);
-        }
-        
-        // Grab our symbols texture
-        DisplayOutput::spCImage tmpSymbolSpeed(new DisplayOutput::CImage());
-        if (tmpSymbolSpeed->Load(g_Settings()->Get("settings.app.InstallDir", defaultDir) +
-                           "osd-speed.png", false))
-        {
-            m_spSymbolSpeedTexture = g_Player().Renderer()->NewTextureFlat();
-            m_spSymbolSpeedTexture->Upload(tmpSymbolSpeed);
+            m_spDotStripTexture = g_Player().Renderer()->NewTextureFlat();
+            m_spDotStripTexture->Upload(stripDot);
+            m_spDotStripTexture_u = g_Player().Renderer()->NewTextureFlat();
+            m_spDotStripTexture_u->Upload(stripDotU);
         }
         
         DisplayOutput::spCImage tmpSymbolBrightness(new DisplayOutput::CImage());
@@ -204,20 +192,20 @@ public:
             m_spReportTexture->Upload(tmpReport);
         }
         
-        DisplayOutput::spCImage tmpBuffering(new DisplayOutput::CImage());
-        if (tmpBuffering->Load(g_Settings()->Get("settings.app.InstallDir", defaultDir) +
-                               "network.png", false))
-        {
-            m_spBufferingTexture = g_Player().Renderer()->NewTextureFlat();
-            m_spBufferingTexture->Upload(tmpBuffering);
-        }
-
         DisplayOutput::spCImage tmpRepeat(new DisplayOutput::CImage());
         if (tmpRepeat->Load(g_Settings()->Get("settings.app.InstallDir", defaultDir) +
                                "osd-repeat.png", false))
         {
             m_spRepeatTexture = g_Player().Renderer()->NewTextureFlat();
             m_spRepeatTexture->Upload(tmpRepeat);
+        }
+
+        DisplayOutput::spCImage tmpPlaylist(new DisplayOutput::CImage());
+        if (tmpPlaylist->Load(g_Settings()->Get("settings.app.InstallDir", defaultDir) +
+                               "osd-playlist.png", false))
+        {
+            m_spPlaylistTexture = g_Player().Renderer()->NewTextureFlat();
+            m_spPlaylistTexture->Upload(tmpPlaylist);
         }
 
         DisplayOutput::spCImage tmpShuffle(new DisplayOutput::CImage());
@@ -409,10 +397,7 @@ public:
         // Large HUD
         tmpBg = NULL;
         tmpDot = NULL;
-        tmpDotR = NULL;
-        tmpDotB = NULL;
         tmpDotU = NULL;
-        tmpSymbolSpeed = NULL;
         tmpSymbolBrightness = NULL;
 
         // Mini HUD
@@ -426,23 +411,6 @@ public:
         tmpLike = NULL;
         tmpDislike = NULL;
         tmpReport = NULL;
-        
-        // Set buffering icon position in top left
-        m_BufferingCRect = rect;
-        m_BufferingCRect.m_X1 *= aspect;
-
-        auto w_buffering = m_BufferingCRect.Width();
-        auto h_buffering = m_BufferingCRect.Height();
-        const float s_buffering = 0.05f;  // Scale for buffering icon
-
-        // Position in top left with padding
-        m_BufferingCRect.m_X0 = 0.02f;  // 2% from left edge
-        m_BufferingCRect.m_Y0 = 0.04f;  // 4% from top edge
-        m_BufferingCRect.m_X1 = m_BufferingCRect.m_X0 + (w_buffering * s_buffering);
-        m_BufferingCRect.m_Y1 = m_BufferingCRect.m_Y0 + (h_buffering * s_buffering);
-
-        // Remember to clean up the temporary image
-        tmpBuffering = NULL;
     };
 
     using CHudEntry::Visible;
@@ -453,20 +421,50 @@ public:
     virtual void Visible(const bool _bState) override
     {
         CHudEntry::Visible(_bState);
-        if (!_bState && m_spFpsText != NULL)
+        if (!_bState)
+        {
+            if (m_spFpsText != NULL)
+                m_spFpsText->SetEnabled(false);
+            ResetFade();
+        }
+    }
+
+    void ResetFade()
+    {
+        m_Alpha = 0.f;
+        m_LastFadeTime = -1;
+        if (m_spFpsText != NULL)
             m_spFpsText->SetEnabled(false);
     }
 
+    // Popups fade in quickly and fade out more slowly (client#782). The
+    // HudManager duration is how long the popup stays fully up; the fade-out
+    // runs after it, so the entry lives kFadeOut longer. A popup re-shown while
+    // it's still on screen (e.g. repeated A/D) keeps its current alpha instead
+    // of fading in again.
+    static constexpr double kFadeIn = kHudFadeIn;
+    static constexpr double kFadeOut = kHudFadeOut;
+
     bool Render(const double _time, DisplayOutput::spCRenderer _spRenderer)
     {
-        if (!CHudEntry::Render(_time, _spRenderer))
+        const double elapsed = _time - m_StartTime;
+        const bool holding = m_Duration <= 0.0 || elapsed < m_Duration;
+        if (!holding && (m_Alpha <= 0.f || elapsed >= m_Duration + kFadeOut))
         {
-            // OSD is being hidden, disable FPS text
-            if (m_spFpsText != NULL) {
-                m_spFpsText->SetEnabled(false);
-            }
+            // Faded out: let the HudManager drop the entry.
+            ResetFade();
             return false;
         }
+        const double dt = m_LastFadeTime < 0 ? 0 : std::max(0.0, _time - m_LastFadeTime);
+        m_LastFadeTime = _time;
+        if (holding)
+            m_Alpha = std::min(1.f, m_Alpha + static_cast<float>(dt / kFadeIn));
+        else
+            m_Alpha = std::max(0.f, m_Alpha - static_cast<float>(dt / kFadeOut));
+        // The first frame after a pop draws at a small alpha instead of nothing.
+        if (holding && m_Alpha <= 0.f)
+            m_Alpha = 0.01f;
+        const Base::Math::CVector4 tint(1, 1, 1, m_Alpha);
 
         if (m_spBgTexture == NULL)
             return false;
@@ -482,32 +480,7 @@ public:
 
         DisplayOutput::spCRenderer spRenderer = _spRenderer;
 
-        if (type == Buffering) {
-            // Hide FPS text for non-Speed types
-            if (m_spFpsText != NULL) {
-                m_spFpsText->SetEnabled(false);
-            }
-            
-            // Use a sine wave for smooth pulsing
-            float pulse = (sin(_time * m_BufferingPulseSpeed) + 1.0f) * 0.5f; // Produces 0.0 to 1.0
-            float alpha = m_BufferingMinAlpha + pulse * (m_BufferingMaxAlpha - m_BufferingMinAlpha);
-            
-            // Draw just the buffering icon without background
-            spRenderer->Reset(DisplayOutput::eTexture | DisplayOutput::eShader);
-            spRenderer->SetTexture(m_spBufferingTexture, 0);
-            spRenderer->SetBlend("alphablend");
-            spRenderer->SetShader(NULL);
-            spRenderer->Apply();
-            
-            // Draw with pulsing alpha
-            spRenderer->DrawQuad(
-                m_BufferingCRect,
-                Base::Math::CVector4(1, 1, 1, alpha),
-                m_spBufferingTexture->GetRect()
-            );
-            
-            return true;
-        } else if (type == Speed || type == Brightness) {
+        if (type == Speed || type == Brightness) {
             // Setup & Draw background
             spRenderer->Reset(DisplayOutput::eTexture | DisplayOutput::eShader);
             spRenderer->SetTexture(m_spBgTexture, 0);
@@ -515,7 +488,7 @@ public:
             spRenderer->SetShader(NULL);
             spRenderer->Apply();
 
-            spRenderer->DrawQuad(m_BgCRect, Base::Math::CVector4(1, 1, 1, 1), m_spBgTexture->GetRect());
+            spRenderer->DrawQuad(m_BgCRect, tint, m_spBgTexture->GetRect());
             
             // Setup & Draw symbol/text based on type
             if (type == Speed) {
@@ -530,37 +503,37 @@ public:
                     if (m_spRabbitTexture != NULL) {
                         spRenderer->SetTexture(m_spRabbitTexture, 0);
                         spRenderer->Apply();
-                        spRenderer->DrawQuad(m_TurtleCRect, Base::Math::CVector4(1, 1, 1, 1), m_spRabbitTexture->GetRect());
+                        spRenderer->DrawQuad(m_TurtleCRect, tint, m_spRabbitTexture->GetRect());
                     }
                     if (m_spBirdTexture != NULL) {
                         spRenderer->SetTexture(m_spBirdTexture, 0);
                         spRenderer->Apply();
-                        spRenderer->DrawQuad(m_RabbitCRect, Base::Math::CVector4(1, 1, 1, 1), m_spBirdTexture->GetRect());
+                        spRenderer->DrawQuad(m_RabbitCRect, tint, m_spBirdTexture->GetRect());
                     }
                 } else if (isSlowZone) {
                     // Slow zone: One snail on left, one turtle on right
                     if (m_spSnailTexture != NULL) {
                         spRenderer->SetTexture(m_spSnailTexture, 0);
                         spRenderer->Apply();
-                        spRenderer->DrawQuad(m_TurtleCRect, Base::Math::CVector4(1, 1, 1, 1), m_spSnailTexture->GetRect());
+                        spRenderer->DrawQuad(m_TurtleCRect, tint, m_spSnailTexture->GetRect());
                     }
                     if (m_spTurtleTexture != NULL) {
                         spRenderer->SetTexture(m_spTurtleTexture, 0);
                         spRenderer->Apply();
-                        spRenderer->DrawQuad(m_RabbitCRect, Base::Math::CVector4(1, 1, 1, 1), m_spTurtleTexture->GetRect());
+                        spRenderer->DrawQuad(m_RabbitCRect, tint, m_spTurtleTexture->GetRect());
                     }
                 } else {
                     // Normal zone: One turtle on left, one rabbit on right
                     if (m_spTurtleTexture != NULL) {
                         spRenderer->SetTexture(m_spTurtleTexture, 0);
                         spRenderer->Apply();
-                        spRenderer->DrawQuad(m_TurtleCRect, Base::Math::CVector4(1, 1, 1, 1), m_spTurtleTexture->GetRect());
+                        spRenderer->DrawQuad(m_TurtleCRect, tint, m_spTurtleTexture->GetRect());
                     }
                     
                     if (m_spRabbitTexture != NULL) {
                         spRenderer->SetTexture(m_spRabbitTexture, 0);
                         spRenderer->Apply();
-                        spRenderer->DrawQuad(m_RabbitCRect, Base::Math::CVector4(1, 1, 1, 1), m_spRabbitTexture->GetRect());
+                        spRenderer->DrawQuad(m_RabbitCRect, tint, m_spRabbitTexture->GetRect());
                     }
                 }
                 
@@ -615,8 +588,9 @@ public:
                         m_spFpsText->SetRect(Base::Math::CRect(textX, textY, textX + textW, textY + textH));
                     }
                     m_spFpsText->SetEnabled(true);
-                    // Use renderer's DrawText to set color (osd-pill orange)
-                    spRenderer->DrawText(m_spFpsText, Base::Math::CVector4(1.0f, 0.855f, 0.722f, 1.0f));
+                    Base::Math::CVector4 textColor = TextColor();
+                    textColor.m_W *= m_Alpha;
+                    spRenderer->DrawText(m_spFpsText, textColor);
                 }
             } else {
                 // Brightness - use original symbol, hide FPS text
@@ -626,7 +600,7 @@ public:
                 // Blend and shader already set from background draw
                 spRenderer->SetTexture(m_spSymbolBrightnessTexture, 0);
                 spRenderer->Apply();
-                spRenderer->DrawQuad(m_SymbolCRect, Base::Math::CVector4(1, 1, 1, 1), m_spSymbolBrightnessTexture->GetRect());
+                spRenderer->DrawQuad(m_SymbolCRect, tint, m_spSymbolBrightnessTexture->GetRect());
             }
             
             // Setup & Draw dots (batched to minimize Apply() calls)
@@ -643,66 +617,52 @@ public:
 
             bool isFastZone = scaledValue > 27;
             bool isSlowZone = scaledValue < 0.8;
-            bool isNormalZone = !isFastZone && !isSlowZone;
 
-            // Precompute which dots are "selected" (lit) vs "unselected"
-            // Then batch draw all selected dots first, then all unselected dots
-            // This reduces Apply() calls from 27 to just 2
-            
+            // How many dots are lit: those with index below the value (the dot
+            // row wraps in the fast and slow zones).
+            const double litBelow = isFastZone ? scaledValue - kDots
+                                  : isSlowZone ? scaledValue + kDots
+                                               : scaledValue;
+            const int litCount = litBelow <= 0 ? 0
+                               : std::min(kDots, static_cast<int>(std::ceil(litBelow)));
+
             spRenderer->SetBlend("alphablend");
             spRenderer->SetShader(NULL);
-            
-            // First pass: draw all selected (lit) dots
-            if (m_spDotTexture != NULL) {
-                spRenderer->SetTexture(m_spDotTexture, 0);
-                spRenderer->Apply();
-                for (int i = 0; i < 27; i++) {
-                    bool isSelected = false;
-                    if (isFastZone && i < (scaledValue - 27)) {
-                        isSelected = true;
-                    } else if (isSlowZone && i < (scaledValue + 27)) {
-                        isSelected = true;
-                    } else if (isNormalZone && i < scaledValue) {
-                        isSelected = true;
-                    }
-                    
-                    if (isSelected) {
-                        spRenderer->DrawQuad(
-                            Base::Math::CRect(
-                                m_DotCRect.m_X0 + i * dotGap,
-                                m_DotCRect.m_Y0,
-                                m_DotCRect.m_X1 + i * dotGap,
-                                m_DotCRect.m_Y1),
-                            Base::Math::CVector4(1, 1, 1, 1),
-                            m_spDotTexture->GetRect());
-                    }
+
+            if (m_spDotStripTexture != NULL && m_spDotStripTexture_u != NULL) {
+                // Two quads: the lit strip cropped to the first litCount cells,
+                // the unlit strip to the rest. Each dot sits centred in its cell.
+                const float x0 = m_DotCRect.m_X0 -
+                    dotGap * (kDotCellPx - kDotWidthPx) / (2.f * kDotCellPx);
+                const float split = x0 + litCount * dotGap;
+                const float u = static_cast<float>(litCount) / kDots;
+                if (litCount > 0) {
+                    spRenderer->SetTexture(m_spDotStripTexture, 0);
+                    spRenderer->Apply();
+                    spRenderer->DrawQuad(
+                        Base::Math::CRect(x0, m_DotCRect.m_Y0, split, m_DotCRect.m_Y1),
+                        tint, Base::Math::CRect(0.f, 0.f, u, 1.f));
                 }
-            }
-            
-            // Second pass: draw all unselected dots
-            if (m_spDotTexture_u != NULL) {
-                spRenderer->SetTexture(m_spDotTexture_u, 0);
-                spRenderer->Apply();
-                for (int i = 0; i < 27; i++) {
-                    bool isSelected = false;
-                    if (isFastZone && i < (scaledValue - 27)) {
-                        isSelected = true;
-                    } else if (isSlowZone && i < (scaledValue + 27)) {
-                        isSelected = true;
-                    } else if (isNormalZone && i < scaledValue) {
-                        isSelected = true;
-                    }
-                    
-                    if (!isSelected) {
-                        spRenderer->DrawQuad(
-                            Base::Math::CRect(
-                                m_DotCRect.m_X0 + i * dotGap,
-                                m_DotCRect.m_Y0,
-                                m_DotCRect.m_X1 + i * dotGap,
-                                m_DotCRect.m_Y1),
-                            Base::Math::CVector4(1, 1, 1, 1),
-                            m_spDotTexture_u->GetRect());
-                    }
+                if (litCount < kDots) {
+                    spRenderer->SetTexture(m_spDotStripTexture_u, 0);
+                    spRenderer->Apply();
+                    spRenderer->DrawQuad(
+                        Base::Math::CRect(split, m_DotCRect.m_Y0,
+                                          x0 + kDots * dotGap, m_DotCRect.m_Y1),
+                        tint, Base::Math::CRect(u, 0.f, 1.f, 1.f));
+                }
+            } else {
+                // Strips unavailable: one quad per dot.
+                for (int i = 0; i < kDots; i++) {
+                    const DisplayOutput::spCTextureFlat& dot = i < litCount ? m_spDotTexture : m_spDotTexture_u;
+                    if (dot == NULL)
+                        continue;
+                    spRenderer->SetTexture(dot, 0);
+                    spRenderer->Apply();
+                    spRenderer->DrawQuad(
+                        Base::Math::CRect(m_DotCRect.m_X0 + i * dotGap, m_DotCRect.m_Y0,
+                                          m_DotCRect.m_X1 + i * dotGap, m_DotCRect.m_Y1),
+                        tint, dot->GetRect());
                 }
             }
         } else {
@@ -719,7 +679,7 @@ public:
             spRenderer->SetShader(NULL);
             spRenderer->Apply();
 
-            spRenderer->DrawQuad(m_BgSqCRect, Base::Math::CVector4(1, 1, 1, 1), m_spBgSqTexture->GetRect());
+            spRenderer->DrawQuad(m_BgSqCRect, tint, m_spBgSqTexture->GetRect());
             
             // Setup & Draw symbol (blend and shader already set from background)
             DisplayOutput::spCTextureFlat symbolTexture;
@@ -757,6 +717,9 @@ public:
                 case Shuffle:
                     symbolTexture = m_spShuffleTexture;
                     break;
+                case PlayPlaylist:
+                    symbolTexture = m_spPlaylistTexture;
+                    break;
                 default:
                     symbolTexture = m_spPauseTexture;
                     break;
@@ -765,7 +728,7 @@ public:
             if (symbolTexture != NULL) {
                 spRenderer->SetTexture(symbolTexture, 0);
                 spRenderer->Apply();
-                spRenderer->DrawQuad(m_LargeSymbolCRect, Base::Math::CVector4(1, 1, 1, 1), symbolTexture->GetRect());
+                spRenderer->DrawQuad(m_LargeSymbolCRect, tint, symbolTexture->GetRect());
             }
         }
         
@@ -820,20 +783,48 @@ private:
     OSDType type;
 
     // Textures and coordinates for main hud (large 700px)
-    DisplayOutput::spCTextureFlat m_spBgTexture, m_spDotTexture, m_spDotTexture_u, m_spDotTexture_r, m_spDotTexture_b, m_spSymbolSpeedTexture, m_spSymbolBrightnessTexture;
+    DisplayOutput::spCTextureFlat m_spBgTexture, m_spDotTexture, m_spDotTexture_u, m_spSymbolBrightnessTexture;
+    DisplayOutput::spCTextureFlat m_spDotStripTexture, m_spDotStripTexture_u;  // all 27 dots, see MakeDotStrip
+
+    // The dot row: kDots dots, each kDotCellPx wide in osd-bg-700.png's pixels
+    // (a 16 px dot and an 8 px gap; see dotGap).
+    static constexpr int kDots = 27;
+    static constexpr int kDotWidthPx = 16;
+    static constexpr int kDotCellPx = 24;
+
+    // kDots copies of a dot image side by side, each centred in its cell, so a
+    // strip cropped at a cell boundary cuts through transparent gap only.
+    static DisplayOutput::spCImage MakeDotStrip(const DisplayOutput::spCImage& _dot)
+    {
+        if (!_dot || !_dot->GetFormat().is(DisplayOutput::eImage_RGBA8) ||
+            _dot->GetWidth() == 0)
+            return nullptr;
+        const uint32_t w = _dot->GetWidth();
+        const uint32_t h = _dot->GetHeight();
+        const uint32_t cell = w * kDotCellPx / kDotWidthPx;
+        const uint32_t offset = (cell - w) / 2;
+        DisplayOutput::spCImage strip(new DisplayOutput::CImage());
+        strip->Create(cell * kDots, h, DisplayOutput::eImage_RGBA8);
+        uint8_t* dst = strip->GetData(0);
+        const uint8_t* src = _dot->GetData(0);
+        if (!dst || !src)
+            return nullptr;
+        const uint32_t dstPitch = strip->GetPitch(0);
+        const uint32_t srcPitch = _dot->GetPitch(0);
+        std::fill(dst, dst + static_cast<size_t>(dstPitch) * h, uint8_t(0));
+        for (int i = 0; i < kDots; i++)
+            for (uint32_t y = 0; y < h; y++)
+                std::copy(src + y * srcPitch, src + y * srcPitch + w * 4,
+                          dst + y * dstPitch + (i * cell + offset) * 4);
+        return strip;
+    }
     Base::Math::CRect m_BgCRect, m_DotCRect, m_SymbolCRect;
     
     // Textures and coordinates for mini hud (210sq)
-    DisplayOutput::spCTextureFlat m_spBgSqTexture, m_spPlayTexture, m_spPauseTexture, m_spBackTexture, m_spForwardTexture, m_spBack10Texture, m_spForward10Texture, m_spLikeTexture, m_spDislikeTexture, m_spReportTexture, m_spRepeatTexture, m_spShuffleTexture;
+    DisplayOutput::spCTextureFlat m_spBgSqTexture, m_spPlayTexture, m_spPauseTexture, m_spBackTexture, m_spForwardTexture, m_spBack10Texture, m_spForward10Texture, m_spLikeTexture, m_spDislikeTexture, m_spReportTexture, m_spRepeatTexture, m_spShuffleTexture, m_spPlaylistTexture;
 
     Base::Math::CRect m_BgSqCRect, m_LargeSymbolCRect;
 
-    // Buffering indicator
-    DisplayOutput::spCTextureFlat m_spBufferingTexture;
-    Base::Math::CRect m_BufferingCRect;
-    float m_BufferingPulseSpeed = 2.0f; // Speed of pulsing (adjust as needed)
-    float m_BufferingMinAlpha = 0.3f;   // Minimum alpha value
-    float m_BufferingMaxAlpha = 1.0f;   // Maximum alpha value
     
     // Turtle, Snail, Rabbit and Bird icons for speed OSD
     DisplayOutput::spCTextureFlat m_spTurtleTexture, m_spSnailTexture, m_spRabbitTexture, m_spBirdTexture;
@@ -852,10 +843,155 @@ private:
     
     // Precalculations for rendering
     float dotGap;
+
+    float m_Alpha = 0.f;          // current fade level
+    double m_LastFadeTime = -1;   // _time of the last Render, for the fade step
 };
 
 // @TODO : clean those old pointers at some point
 MakeSmartPointers(COSD);
+
+// Lower-right moon shown while playback is stalled waiting for video data
+// (client#732). Draws one frame of osd-buffering.png, a sprite sheet that
+// osd-icons/make_osd_icons.py renders as kFrames phases (new -> full -> new) in a
+// kCols-wide grid; keep the two in step.
+//
+// It stays in the HudManager for the life of the app. The client calls
+// SetStalled() every frame, and Render() owns all the timing. Stalls often come
+// in bursts (buffer, play a few frames, buffer again), so gaps shorter than
+// kClearHold count as part of one stall. Nothing shows until the stall has
+// lasted kShowDelay seconds (so a lone hiccup doesn't flash it; client#823),
+// then it fades in, and fades out once there has been no stall for kClearHold
+// seconds. The phase runs
+// off the clock and never restarts, so the moon keeps going round.
+class CBufferingIndicator : public CHudEntry
+{
+  public:
+    static constexpr int kFrames = 24;
+    static constexpr int kCols = 6;
+    static constexpr int kRows = (kFrames + kCols - 1) / kCols;
+    static constexpr double kCycleSeconds = 2.4;  // one new -> full -> new
+    static constexpr double kShowDelay = 0.5;
+    static constexpr double kClearHold = 1.0;
+    static constexpr double kFadeIn = 0.25;
+    static constexpr double kFadeOut = 0.4;
+
+    // _fontHeight is the HUD console font size: the moon is sized and inset to
+    // sit on the bottom text row of the lower-right indicators.
+    explicit CBufferingIndicator(uint32_t _fontHeight)
+        : CHudEntry(Base::Math::CRect(1, 1)), m_FontHeight(_fontHeight)
+    {
+#ifndef LINUX_GNU
+        std::string defaultDir = PlatformUtils::GetWorkingDir();
+#else
+        std::string defaultDir = std::string("");
+#endif
+        DisplayOutput::spCImage img(new DisplayOutput::CImage());
+        if (img->Load(g_Settings()->Get("settings.app.InstallDir", defaultDir) +
+                          "osd-buffering.png",
+                      false))
+        {
+            m_spTexture = g_Player().Renderer()->NewTextureFlat();
+            m_spTexture->Upload(img);
+        }
+    }
+
+    // Call every frame. _stalled: playback is stuck waiting for video.
+    // _awaiting: a command asked for new content that hasn't started to
+    // appear yet (client#474); unlike a stall it has no clear hold, so the moon
+    // fades out as the new dream fades in. Also re-shows the entry, since
+    // HudManager::Toggle() hides every entry when an overlay is toggled.
+    void SetStalled(bool _stalled, bool _awaiting = false)
+    {
+        m_Stalled = _stalled;
+        m_Awaiting = _awaiting;
+        Visible(true);
+    }
+
+    bool Render(const double _time, DisplayOutput::spCRenderer _spRenderer) override
+    {
+        if (!CHudEntry::Render(_time, _spRenderer))
+            return false;
+
+        const bool holding = m_LastStalledTime >= 0 && _time - m_LastStalledTime < kClearHold;
+        if (m_Stalled)
+            m_LastStalledTime = _time;
+        const bool waiting = m_Stalled || m_Awaiting;
+        const bool active = waiting || holding;
+        if (active && !m_WasActive)
+            m_ActiveStart = _time;
+        m_WasActive = active;
+        if (waiting)
+            m_LastWaitingTime = _time;
+
+        // The hold bridges gaps between bursts and keeps the moon up while it
+        // fades, but it doesn't count toward kShowDelay. Only time spent
+        // actually waiting does, so a one-frame stall can't show the moon.
+        const bool wasShowing = m_Showing;
+        if (!active)
+            m_Showing = false;
+        else if (m_LastWaitingTime - m_ActiveStart >= kShowDelay)
+            m_Showing = true;
+        // The mock server's throttle_test.py checks for these.
+        if (m_Showing != wasShowing)
+            g_Log->Info("Buffering moon %s", m_Showing ? "shown" : "hidden");
+
+        const double dt = m_LastTime < 0 ? 0 : std::max(0.0, _time - m_LastTime);
+        m_LastTime = _time;
+        if (m_Showing)
+        {
+            m_Alpha = std::min(1.f, m_Alpha + static_cast<float>(dt / kFadeIn));
+        }
+        else
+        {
+            m_Alpha = std::max(0.f, m_Alpha - static_cast<float>(dt / kFadeOut));
+        }
+
+        if (m_Alpha <= 0.f || !m_spTexture || !_spRenderer)
+            return true;
+        auto spDisplay = _spRenderer->Display();
+        if (!spDisplay || spDisplay->Width() == 0 || spDisplay->Height() == 0)
+            return true;
+
+        // Same metrics as CStatsConsole, so the moon lines up with the right
+        // edge and bottom row of the indicator text above it.
+        const float screenW = static_cast<float>(spDisplay->Width());
+        const float screenH = static_cast<float>(spDisplay->Height());
+        const float px = m_FontHeight * screenH / 1080.f * 1.2f;
+        const float edge = m_FontHeight * screenH / 1080.f / screenW;
+        Base::Math::CRect rect(1.f - edge - px / screenW, 1.f - edge - px / screenH,
+                               1.f - edge, 1.f - edge);
+
+        const int frame =
+            static_cast<int>(std::fmod(_time, kCycleSeconds) / kCycleSeconds * kFrames) % kFrames;
+        const float u = static_cast<float>(frame % kCols) / kCols;
+        const float v = static_cast<float>(frame / kCols) / kRows;
+        Base::Math::CRect uv(u, v, u + 1.f / kCols, v + 1.f / kRows);
+
+        _spRenderer->Reset(DisplayOutput::eTexture | DisplayOutput::eShader);
+        _spRenderer->SetTexture(m_spTexture, 0);
+        _spRenderer->SetBlend("alphablend");
+        _spRenderer->SetShader(NULL);
+        _spRenderer->Apply();
+        _spRenderer->DrawQuad(rect, Base::Math::CVector4(1, 1, 1, m_Alpha), uv);
+        return true;
+    }
+
+  private:
+    DisplayOutput::spCTextureFlat m_spTexture;
+    uint32_t m_FontHeight;
+    bool m_Stalled = false;
+    bool m_Awaiting = false;
+    bool m_WasActive = false;
+    bool m_Showing = false;
+    double m_ActiveStart = 0;
+    double m_LastStalledTime = -1;
+    double m_LastWaitingTime = 0;
+    double m_LastTime = -1;
+    float m_Alpha = 0.f;
+};
+
+MakeSmartPointers(CBufferingIndicator);
 
 }
 

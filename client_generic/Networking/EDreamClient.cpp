@@ -2,6 +2,7 @@
 #include <boost/asio.hpp>
 #include <boost/asio/ssl.hpp>
 #include <cstdio>
+#include <cstdlib>
 #include <future>
 #include <iomanip>
 #include <iostream>
@@ -10,6 +11,7 @@
 #include <utility>
 #include <algorithm>
 #include <cctype>
+#include <cmath>
 #include <unordered_set>
 #ifndef WIN32
 #include <unistd.h>
@@ -78,6 +80,19 @@ bool ESHasFirstTimeSetupCallback()
     return gShowFirstTimeSetupCallback != nullptr;
 }
 
+static QuitCallback_t gQuitCallback = nullptr;
+void ESSetQuitCallback(QuitCallback_t _callback)
+{
+    gQuitCallback = _callback;
+}
+bool ESRequestQuit()
+{
+    if (gQuitCallback == nullptr)
+        return false;
+    gQuitCallback();
+    return true;
+}
+
 long long EDreamClient::remainingQuota = 0;
 std::chrono::system_clock::time_point EDreamClient::quotaExpiresAt = std::chrono::system_clock::now();
 
@@ -126,6 +141,21 @@ void EDreamClient::EnsureIOContext()
         io_context = std::make_unique<boost::asio::io_context>();
         ping_timer = std::make_unique<boost::asio::steady_timer>(*io_context);
         quota_timer = std::make_unique<boost::asio::steady_timer>(*io_context);
+
+        // Never destroy these at process exit. Detached threads may still be
+        // running io_context->run() then, and ~io_context waits for operations
+        // that will never complete, so the exit hung forever. Registered after
+        // the statics were constructed, this runs before their destructors and
+        // leaves them nothing to destroy. The OS frees the memory.
+        static bool s_leakAtExitRegistered = false;
+        if (!s_leakAtExitRegistered) {
+            s_leakAtExitRegistered = true;
+            std::atexit([]() {
+                (void)ping_timer.release();
+                (void)quota_timer.release();
+                (void)io_context.release();
+            });
+        }
     }
 }
 
@@ -2021,6 +2051,7 @@ std::future<bool> EDreamClient::EnqueuePlaylistAsync(const std::string& uuid) {
         
         if (!fetchSuccess) {
             g_Log->Error("Failed to fetch playlist. UUID: %s", uuid.c_str());
+            g_Player().NoteContentSettled();  // ends the wait the play_playlist command started
             return false;
         }
 
@@ -2031,6 +2062,7 @@ std::future<bool> EDreamClient::EnqueuePlaylistAsync(const std::string& uuid) {
         auto entries = ParsePlaylist(uuid);
         if (entries.empty()) {
             g_Log->Error("Failed to prepare playlist. UUID: %s", uuid.c_str());
+            g_Player().NoteContentSettled();
             return false;
         }
 
@@ -2744,44 +2776,85 @@ namespace WsEvent {
     constexpr std::string_view kSetSpeed8        = "set_speed_8";
     constexpr std::string_view kSetSpeed9        = "set_speed_9";
     constexpr std::string_view kPlaying          = "playing";
+    // Test-only: honored only when INFINIDREAM_DATA_DIR is set, so a server can never quit
+    // a real user's app (client#733).
+    constexpr std::string_view kQuit             = "quit";
 } // namespace WsEvent
+
+// The string field `key` of a remote-control message, or nullptr if it's missing or not a
+// string. The server is trusted to send well-formed messages, but a malformed one must not
+// crash the client (#733 crash_test.py).
+static const std::string* GetStringField(const std::map<std::string, sio::message::ptr>& fields,
+                                         const char* key)
+{
+    auto found = fields.find(key);
+    if (found == fields.end())
+        return nullptr;
+    auto stringMessage = std::dynamic_pointer_cast<sio::string_message>(found->second);
+    return stringMessage ? &stringMessage->get_string() : nullptr;
+}
 
 static void OnWebSocketMessage(sio::event& _wsEvent)
 {
-
-    std::shared_ptr<sio::object_message> objectMessage =
+    auto objectMessage =
         std::dynamic_pointer_cast<sio::object_message>(_wsEvent.get_message());
-    std::map<std::string, sio::message::ptr> response =
-        objectMessage->get_map();
-    std::shared_ptr<sio::string_message> eventObj =
-        std::dynamic_pointer_cast<sio::string_message>(response["event"]);
-    std::string_view event = eventObj->get_string();
+    if (!objectMessage)
+    {
+        g_Log->Warning("Ignoring remote-control message that isn't an object");
+        return;
+    }
+    // The map's values are shared_ptrs, so this copy keeps them alive for the whole handler.
+    const std::map<std::string, sio::message::ptr> response = objectMessage->get_map();
+    const std::string* eventField = GetStringField(response, "event");
+    if (!eventField)
+    {
+        g_Log->Warning("Ignoring remote-control message with no string 'event' field");
+        return;
+    }
+    std::string_view event = *eventField;
 
-    g_Log->Info("Received WebSocket message: %s", event.data());
+    g_Log->Info("Received WebSocket message: %s", eventField->c_str());
 
     if (event == WsEvent::kPlayDream)
     {
-        std::shared_ptr<sio::string_message> uuidObj =
-            std::dynamic_pointer_cast<sio::string_message>(response["uuid"]);
-        std::string_view uuid = uuidObj->get_string();
-
-        int64_t frameNumber = -1;
-        if (response.find("frameNumber") != response.end()) {
-            std::shared_ptr<sio::int_message> frameNumberObj =
-                        std::dynamic_pointer_cast<sio::int_message>(response["frameNumber"]);
-            frameNumber = frameNumberObj->get_int();
+        const std::string* uuid = GetStringField(response, "uuid");
+        if (!uuid || uuid->empty())
+        {
+            g_Log->Warning("Ignoring play_dream with no uuid");
+            return;
         }
 
-        g_Log->Info("should play : %s", uuid.data());
-        g_Player().EnqueuePlayDream(std::string(uuid), frameNumber);
+        int64_t frameNumber = -1;
+        auto frameField = response.find("frameNumber");
+        if (frameField != response.end() && frameField->second)
+        {
+            if (auto asInt = std::dynamic_pointer_cast<sio::int_message>(frameField->second))
+                frameNumber = asInt->get_int();
+            else if (auto asDouble = std::dynamic_pointer_cast<sio::double_message>(frameField->second))
+                frameNumber = std::isfinite(asDouble->get_double())
+                                  ? static_cast<int64_t>(asDouble->get_double())
+                                  : -1;
+            else
+                g_Log->Warning("play_dream frameNumber isn't a number; playing from the start");
+        }
+
+        g_Log->Info("should play : %s", uuid->c_str());
+        g_Client()->EnqueueCommand(
+            CElectricSheep::eClientCommand::CLIENT_COMMAND_PLAY_DREAM_RECEIVED);
+        g_Player().EnqueuePlayDream(*uuid, frameNumber);
     }
     else if (event == WsEvent::kPlayPlaylist)
     {
-        std::shared_ptr<sio::string_message> uuidObj =
-            std::dynamic_pointer_cast<sio::string_message>(response["uuid"]);
-        std::string_view uuid = uuidObj->get_string();
-        g_Log->Info("should play : %s", uuid.data());
-        EDreamClient::EnqueuePlaylistAsync(uuid.data());
+        const std::string* uuid = GetStringField(response, "uuid");
+        if (!uuid || uuid->empty())
+        {
+            g_Log->Warning("Ignoring play_playlist with no uuid");
+            return;
+        }
+        g_Log->Info("should play : %s", uuid->c_str());
+        g_Client()->EnqueueCommand(
+            CElectricSheep::eClientCommand::CLIENT_COMMAND_PLAY_PLAYLIST_RECEIVED);
+        EDreamClient::EnqueuePlaylistAsync(uuid->c_str());
     }
     else if (event == WsEvent::kLike)
     {
@@ -2926,6 +2999,15 @@ static void OnWebSocketMessage(sio::event& _wsEvent)
     else if (event == WsEvent::kPlaying)
     {
         // Server acknowledgement of our state_sync — no action needed.
+    }
+    else if (event == WsEvent::kQuit)
+    {
+        if (PlatformUtils::GetDataDirOverride().empty())
+            g_Log->Warning("Ignoring quit: only honored when INFINIDREAM_DATA_DIR is set");
+        else if (ESRequestQuit())
+            g_Log->Info("Quitting at the server's request (test run)");
+        else
+            g_Log->Warning("Ignoring quit: not supported on this platform yet");
     }
     else
     {

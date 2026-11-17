@@ -101,8 +101,31 @@ private:
     /// Discard frames from the queue without processing them (for catching up)
     void DiscardFrames(int count);
     spCVideoFrame m_LastValidFrame;  // Store the last successfully decoded frame
+    uint32_t m_FramesDiscarded = 0;
+    uint32_t m_FramesShort = 0;
+    uint32_t m_RebufferCount = 0;
+
+    // Adaptive playback speed for streaming clips (client#770): when the link
+    // can't keep up, play slower instead of stopping to rebuffer. 1.0 = the
+    // requested speed; it never goes above that. Internal only: the requested
+    // speed is what the server and the overlays see.
+    struct AdaptiveSpeed
+    {
+        double lastSampleTime = -1;   // timeline time of the last sample
+        int64_t lastBytes = -1;       // bytes downloaded at that sample
+        double rateFast = 0;          // smoothed link rate, bytes/s, short half-life
+        double rateSlow = 0;          // same, long half-life
+        bool haveRate = false;
+        double lastLoggedSpeed = 1.0;
+    };
+    AdaptiveSpeed m_Adapt;
+    double m_PlaybackSpeed = 1.0;
+    void UpdatePlaybackSpeed(double _timelineTime);
+    uint32_t RebufferResumeFrames() const;
 
 public:
+    double GetPlaybackSpeed() const { return m_PlaybackSpeed; }
+
     CClip(const sClipMetadata& _metadata, spCRenderer _spRenderer,
           int32_t _displayMode, uint32_t _displayWidth,
           uint32_t _displayHeight);
@@ -180,6 +203,11 @@ public:
 
     bool IsBuffering() const { return m_BufferingState != BufferingState::NotBuffering; }
     bool IsRebuffering() const { return m_BufferingState == BufferingState::Rebuffering; }
+    /// Frames thrown away to catch up with the timeline.
+    uint32_t GetFramesDiscarded() const { return m_FramesDiscarded; }
+    /// Frames the timeline had passed that weren't in the queue to discard.
+    uint32_t GetFramesShort() const { return m_FramesShort; }
+    uint32_t GetRebufferCount() const { return m_RebufferCount; }
     double GetActualStartTime() const { return m_ActualStartTime; }
     double GetTotalBufferingTime() const { return m_TotalBufferingTime; }
     bool HasStartedPlaying() const { return m_HasStartedPlaying; }

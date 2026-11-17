@@ -102,9 +102,10 @@ def find_generate_appcast_tool(script_dir: Path) -> Optional[str]:
     return None
 
 
-def generate_appcast(version: str, zip_path: Path, output_dir: Path, script_dir: Path) -> Optional[Path]:
+def generate_appcast(version: str, package_path: Path, output_dir: Path, script_dir: Path) -> Optional[Path]:
     """Generate appcast.xml using Sparkle's generate_appcast tool.
 
+    package_path should be the distribution DMG (or other Sparkle-supported archive).
     Returns path to generated appcast.xml or None on failure.
     """
     print_yellow("Generating appcast.xml...")
@@ -129,14 +130,14 @@ def generate_appcast(version: str, zip_path: Path, output_dir: Path, script_dir:
 
     # Create a temporary directory for appcast generation
     with tempfile.TemporaryDirectory() as appcast_dir:
-        # Copy zip to temp directory
-        zip_filename = zip_path.name
-        temp_zip = Path(appcast_dir) / zip_filename
-        shutil.copy2(zip_path, temp_zip)
+        # Copy package (DMG) to temp directory
+        package_filename = package_path.name
+        temp_package = Path(appcast_dir) / package_filename
+        shutil.copy2(package_path, temp_package)
 
         # Construct download URL
         download_url_prefix = "https://github.com/e-dream-ai/client/releases/download"
-        download_url = f"{download_url_prefix}/{version}/{zip_filename}"
+        download_url = f"{download_url_prefix}/{version}/{package_filename}"
         print(f"Download URL: {download_url}")
 
         # Run generate_appcast with download URL prefix
@@ -391,11 +392,11 @@ def main() -> None:
     build_dir = script_dir / "build" / build_config
     local_appcast = build_dir / "appcast.xml"
 
-    # Determine zip file path
+    # Determine DMG path
     if stage:
-        zip_path = build_dir / f"infinidream-{version}-stage.zip"
+        dmg_path = build_dir / f"infinidream-{version}-stage.dmg"
     else:
-        zip_path = build_dir / f"infinidream-{version}.zip"
+        dmg_path = build_dir / f"infinidream-{version}.dmg"
 
     target_repo = "e-dream-ai/landing-page"
     frontend_repo = "e-dream-ai/frontend"
@@ -413,16 +414,16 @@ def main() -> None:
         print("infinidream Release")
     print("========================================")
     print(f"Version: {version}")
-    print(f"Zip file: {zip_path}")
+    print(f"DMG file: {dmg_path}")
     print(f"Target: {target_repo}/{target_path}")
     print(f"Frontend version target: {frontend_repo}/{frontend_version_path} (branch: {frontend_branch})")
     if dry_run:
         print_yellow("DRY RUN - no changes will be made")
     print()
 
-    # Verify zip file exists
-    if not zip_path.exists():
-        print_red(f"Error: Zip file not found: {zip_path}")
+    # Verify DMG file exists
+    if not dmg_path.exists():
+        print_red(f"Error: DMG file not found: {dmg_path}")
         print()
         print("Run build.py first to create the distribution package:")
         print(f"  ./build.py -r -n -g -v {version}" + (" -s" if stage else ""))
@@ -433,7 +434,7 @@ def main() -> None:
     print("========================================")
     print("Step 1: Generating Appcast")
     print("========================================")
-    appcast_path = generate_appcast(version, zip_path, build_dir, script_dir)
+    appcast_path = generate_appcast(version, dmg_path, build_dir, script_dir)
     if not appcast_path:
         print_red("Failed to generate appcast.xml")
         sys.exit(1)

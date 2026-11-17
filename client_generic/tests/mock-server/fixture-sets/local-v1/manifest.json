@@ -1,0 +1,49 @@
+{
+  "name": "local-v1",
+  "source": "/Users/Shared/infinidream.ai/content/mp4",
+  "created": "2026-11-11",
+  "dreams": [
+    {
+      "uuid": "089eda56-ab49-45cc-81c8-e287532a04d0",
+      "md5": "2d949d6c4ff1781457930cd4cd3a6e0f",
+      "size": 4563394,
+      "frames": 900,
+      "fps": 30
+    },
+    {
+      "uuid": "1a40df62-bf8a-40f0-a2e1-2c4e68896440",
+      "md5": "45c7a9288b18d3f5ed581a253f1eb0d3",
+      "size": 8919607,
+      "frames": 900,
+      "fps": 30
+    },
+    {
+      "uuid": "186a7245-3e41-4483-a0f9-49cdf09a0043",
+      "md5": "196468f224552853e2ec3b9864c2ef93",
+      "size": 18806490,
+      "frames": 900,
+      "fps": 30
+    },
+    {
+      "uuid": "03c9e902-94f3-48eb-b48f-ee700adb665f",
+      "md5": "46de61fbaec81299b407f9357bd6afb8",
+      "size": 29441653,
+      "frames": 900,
+      "fps": 30
+    },
+    {
+      "uuid": "db110dba-b183-4116-ac03-5cc7567ce7a1",
+      "md5": "ab1a533ec506d50ef5d8b1ad9e69472f",
+      "size": 59123138,
+      "frames": 900,
+      "fps": 30
+    },
+    {
+      "uuid": "75f89bce-7752-4280-8ef1-39db0b6ddebe",
+      "md5": "3687e1b17fa75a643e0a8bd294412395",
+      "size": 113070292,
+      "frames": 900,
+      "fps": 30
+    }
+  ]
+}

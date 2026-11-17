@@ -177,13 +177,13 @@
     <ClCompile Include="..\ContentDownloader\ServerConfig.cpp">
       <Filter>ContentDownloader\Code</Filter>
     </ClCompile>
-    <ClCompile Include="..\ContentDownloader\MessageQueue.cpp">
-      <Filter>ContentDownloader\Code</Filter>
-    </ClCompile>
     <ClCompile Include="..\DisplayOutput\D3D11\RendererDX11.cpp">
       <Filter>DisplayOutput\D3D11</Filter>
     </ClCompile>
     <ClCompile Include="..\DisplayOutput\D3D11\ShaderDX11.cpp">
+      <Filter>DisplayOutput\D3D11</Filter>
+    </ClCompile>
+    <ClCompile Include="..\DisplayOutput\D3D11\SpoutOutput.cpp">
       <Filter>DisplayOutput\D3D11</Filter>
     </ClCompile>
     <ClCompile Include="..\DisplayOutput\D3D11\TextureFlatDX11.cpp">
@@ -350,12 +350,6 @@
     <ClInclude Include="..\Client\Player.h">
       <Filter>Client\Headers</Filter>
     </ClInclude>
-    <ClInclude Include="..\Client\ServerMessage.h">
-      <Filter>Client\Headers</Filter>
-    </ClInclude>
-    <ClInclude Include="..\Client\Splash.h">
-      <Filter>Client\Headers</Filter>
-    </ClInclude>
     <ClInclude Include="..\Client\StartupScreen.h">
       <Filter>Client\Headers</Filter>
     </ClInclude>
@@ -446,13 +440,13 @@
     <ClInclude Include="..\ContentDownloader\PlaylistManager.h">
       <Filter>ContentDownloader\Headers</Filter>
     </ClInclude>
-    <ClInclude Include="..\ContentDownloader\MessageQueue.h">
-      <Filter>ContentDownloader\Headers</Filter>
-    </ClInclude>
     <ClInclude Include="..\DisplayOutput\D3D11\RendererDX11.h">
       <Filter>DisplayOutput\D3D11</Filter>
     </ClInclude>
     <ClInclude Include="..\DisplayOutput\D3D11\ShaderDX11.h">
+      <Filter>DisplayOutput\D3D11</Filter>
+    </ClInclude>
+    <ClInclude Include="..\DisplayOutput\D3D11\SpoutOutput.h">
       <Filter>DisplayOutput\D3D11</Filter>
     </ClInclude>
     <ClInclude Include="..\DisplayOutput\D3D11\TextureFlatDX11.h">

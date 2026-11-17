@@ -195,6 +195,7 @@ struct AuthDialogContent
 {
     const char* title;
     std::string message;
+    bool offerCreateAccount = false; // ask to open the signup page (kUrlCreateAccount)
 };
 
 #include "AuthFailureDialogsWin32.inl"
@@ -226,7 +227,16 @@ static void ShowAuthWarningDialog(const AuthDialogContent& content)
     HWND owner = nullptr;
     if (auto* dx = TryGetDx11Display())
         owner = dx->GetWindowHandle();
-    MessageBoxA(owner, content.message.c_str(), content.title, MB_OK | MB_ICONWARNING);
+    if (!content.offerCreateAccount)
+    {
+        MessageBoxA(owner, content.message.c_str(), content.title, MB_OK | MB_ICONWARNING);
+        return;
+    }
+    // MessageBox can't relabel its buttons (TaskDialog would need a Common Controls v6
+    // manifest), so offer the signup page as a Yes/No question.
+    const std::string message = content.message + "\n\nOpen the signup page now?";
+    if (MessageBoxA(owner, message.c_str(), content.title, MB_YESNO | MB_ICONWARNING) == IDYES)
+        PlatformUtils::OpenURLExternally(kUrlCreateAccount);
 }
 
 static int FilterDigitsOnly(ImGuiInputTextCallbackData* data)

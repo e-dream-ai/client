@@ -64,6 +64,11 @@ public:
     virtual void Defaults() override;
     virtual bool BeginFrame(void) override;
     virtual bool EndFrame(bool drawn = true) override;
+    void CaptureExternalOutputBeforeOverlay() override;
+    void EnableExternalOutputThisFrame(bool enable) override
+    {
+        m_externalOutputThisFrame = enable;
+    }
     virtual void Apply() override;
     virtual void Reset(const uint32_t _flags) override;
 
@@ -166,6 +171,16 @@ private:
     bool EnsureTitlebarLogoTexture(HWND hwnd, int sizePx);
     bool EnsureMdl2GlyphTextures(int sizePx);
     bool EnsureMdl2ChromeGlyphTextures(int sizePx);
+
+    // Spout (Syphon parity): primary-display video is rendered offscreen, published
+    // pre-HUD, then copied to the swapchain backbuffer for local overlays.
+    bool m_externalOutputThisFrame = false;
+    bool m_spoutCaptureThisFrame = false;
+    bool m_renderedToSpoutOffscreen = false;
+    ComPtr<ID3D11Texture2D> m_spoutOffscreenTexture;
+    ComPtr<ID3D11RenderTargetView> m_spoutOffscreenRtv;
+    bool EnsureSpoutOffscreenTarget(UINT width, UINT height, DXGI_FORMAT format);
+    void ReleaseSpoutOffscreenTarget();
 
 };
 

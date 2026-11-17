@@ -6,7 +6,9 @@
 #include "Image.h"
 #include "Log.h"
 #include "PlatformUtils.h"
+#include "PlatformUtils_Internal.h"
 #include "Rect.h"
+#include "Settings.h"
 
 #include <imgui.h>
 #include <backends/imgui_impl_vulkan.h>
@@ -21,6 +23,7 @@
 #include <fstream>
 #include <limits>
 #include <stdexcept>
+#include <utility>
 #include <vector>
 
 namespace DisplayOutput
@@ -300,17 +303,29 @@ bool CRendererVulkan::createSwapchain(VkSurfaceKHR surface,
     VkSurfaceCapabilitiesKHR caps;
     vkGetPhysicalDeviceSurfaceCapabilitiesKHR(m_physicalDevice, surface, &caps);
 
-    // Choose format: prefer B8G8R8A8_SRGB / SRGB_NONLINEAR
+    // Choose format: an 8-bit _UNORM format in the sRGB color space. Like Mac
+    // (Metal BGRA8Unorm) and Windows (DX11 R8G8B8A8_UNORM), pixel values are
+    // stored and blended as they are, already sRGB-encoded. An _SRGB format
+    // would blend in linear light instead, which brightens fades and
+    // crossfades and changes antialiased text compared with the other
+    // platforms; the dreams and UI colors are tuned for this way.
     uint32_t fmtCount = 0;
     vkGetPhysicalDeviceSurfaceFormatsKHR(m_physicalDevice, surface, &fmtCount, nullptr);
     std::vector<VkSurfaceFormatKHR> formats(fmtCount);
     vkGetPhysicalDeviceSurfaceFormatsKHR(m_physicalDevice, surface, &fmtCount, formats.data());
 
     VkSurfaceFormatKHR chosenFmt = formats[0];
-    for (auto& f : formats)
-        if (f.format == VK_FORMAT_B8G8R8A8_SRGB &&
-            f.colorSpace == VK_COLOR_SPACE_SRGB_NONLINEAR_KHR)
-        { chosenFmt = f; break; }
+    bool foundUnorm = false;
+    for (VkFormat want : {VK_FORMAT_B8G8R8A8_UNORM, VK_FORMAT_R8G8B8A8_UNORM})
+    {
+        for (auto& f : formats)
+            if (f.format == want && f.colorSpace == VK_COLOR_SPACE_SRGB_NONLINEAR_KHR)
+            { chosenFmt = f; foundUnorm = true; break; }
+        if (foundUnorm) break;
+    }
+    if (!foundUnorm)
+        g_Log->Warning("CRendererVulkan: no 8-bit UNORM swapchain format; using format %d",
+                       static_cast<int>(chosenFmt.format));
 
     // FIFO (vsync) — guaranteed supported, blocks on present to throttle the render loop.
     // Mailbox would spin the CPU freely between presents, burning cycles for no benefit.
@@ -781,7 +796,7 @@ bool CRendererVulkan::createYUVConversionPipeline()
     // The pass overwrites the whole image, so its previous contents are
     // discarded, and it ends in the layout the blend pipelines sample from.
     VkAttachmentDescription colorAtt{};
-    colorAtt.format         = VK_FORMAT_R8G8B8A8_SRGB;
+    colorAtt.format         = VK_FORMAT_R8G8B8A8_UNORM;
     colorAtt.samples        = VK_SAMPLE_COUNT_1_BIT;
     colorAtt.loadOp         = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
     colorAtt.storeOp        = VK_ATTACHMENT_STORE_OP_STORE;
@@ -1034,7 +1049,7 @@ bool CRendererVulkan::createWhiteTexture()
     VkImageCreateInfo ici{};
     ici.sType         = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
     ici.imageType     = VK_IMAGE_TYPE_2D;
-    ici.format        = VK_FORMAT_R8G8B8A8_SRGB;
+    ici.format        = VK_FORMAT_R8G8B8A8_UNORM;
     ici.extent        = {1, 1, 1};
     ici.mipLevels     = 1;
     ici.arrayLayers   = 1;
@@ -1105,7 +1120,7 @@ bool CRendererVulkan::createWhiteTexture()
     VkImageViewCreateInfo ivci{VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO};
     ivci.image            = m_whiteImage;
     ivci.viewType         = VK_IMAGE_VIEW_TYPE_2D;
-    ivci.format           = VK_FORMAT_R8G8B8A8_SRGB;
+    ivci.format           = VK_FORMAT_R8G8B8A8_UNORM;
     ivci.subresourceRange = {VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1};
     vkCreateImageView(m_device, &ivci, nullptr, &m_whiteView);
 
@@ -1527,20 +1542,70 @@ bool CRendererVulkan::EndFrame(bool /*drawn*/)
 // ---------------------------------------------------------------------------
 // DrawQuad helpers
 // ---------------------------------------------------------------------------
+// With rotate90, the texture is turned 90 degrees clockwise: a corner at quad
+// position (s, t) samples (t, 1 - s), as rotatedUV() does in the Metal and DX11
+// shaders (#623).
 static void writeQuad(void* dest, uint32_t& count,
                       float x0, float y0, float x1, float y1,
-                      float u0, float v0, float u1, float v1)
+                      float u0, float v0, float u1, float v1,
+                      bool rotate90 = false)
 {
+    auto uv = [&](float s, float t) {
+        if (rotate90)
+        {
+            const float rs = t, rt = 1.f - s;
+            s = rs;
+            t = rt;
+        }
+        return std::pair<float, float>{u0 + s * (u1 - u0), v0 + t * (v1 - v0)};
+    };
+    const auto [tlU, tlV] = uv(0.f, 0.f);
+    const auto [trU, trV] = uv(1.f, 0.f);
+    const auto [brU, brV] = uv(1.f, 1.f);
+    const auto [blU, blV] = uv(0.f, 1.f);
+
     QuadVertex* v = reinterpret_cast<QuadVertex*>(dest) + count;
     // Triangle 1
-    v[0] = {x0, y0, u0, v0};
-    v[1] = {x1, y0, u1, v0};
-    v[2] = {x1, y1, u1, v1};
+    v[0] = {x0, y0, tlU, tlV};
+    v[1] = {x1, y0, trU, trV};
+    v[2] = {x1, y1, brU, brV};
     // Triangle 2
-    v[3] = {x0, y0, u0, v0};
-    v[4] = {x1, y1, u1, v1};
-    v[5] = {x0, y1, u0, v1};
+    v[3] = {x0, y0, tlU, tlV};
+    v[4] = {x1, y1, brU, brV};
+    v[5] = {x0, y1, blU, blV};
     count += 6;
+}
+
+// "Rotate On Portrait Displays" (#623): on a display taller than it is wide,
+// video is turned 90 degrees. With Preserve Aspect Ratio it fits a centered 9:16
+// box instead of FrameDisplay's 16:9 one; without, it fills the display. Returns
+// false, leaving _rect alone, when the video isn't rotated.
+static bool RotateForPortrait(uint32_t width, uint32_t height, Base::Math::CRect& _rect)
+{
+    if (!g_Settings() || !g_Settings()->Get("settings.player.rotate_portrait", false))
+        return false;
+    if (width == 0 || height <= width)
+        return false;
+
+    _rect = Base::Math::CRect(0.f, 0.f, 1.f, 1.f);
+    if (g_Settings()->Get("settings.player.preserve_AR", false))
+    {
+        const float targetAspect  = 9.f / 16.f;
+        const float displayAspect = static_cast<float>(width) / static_cast<float>(height);
+        if (displayAspect > targetAspect)
+        {
+            const float pad = (1.f - targetAspect / displayAspect) * 0.5f;
+            _rect.m_X0 = pad;
+            _rect.m_X1 = 1.f - pad;
+        }
+        else
+        {
+            const float pad = (1.f - displayAspect / targetAspect) * 0.5f;
+            _rect.m_Y0 = pad;
+            _rect.m_Y1 = 1.f - pad;
+        }
+    }
+    return true;
 }
 
 void CRendererVulkan::DrawQuad(const Base::Math::CRect& _rect,
@@ -1559,12 +1624,15 @@ void CRendererVulkan::DrawQuad(const Base::Math::CRect& _rect,
 
     VkCommandBuffer cmd = m_commandBuffers[m_currentFrame];
 
-    writeQuad(m_mappedVertex[m_currentFrame], m_vertexCount,
-              _rect.m_X0, _rect.m_Y0, _rect.m_X1, _rect.m_Y1,
-              _uvRect.m_X0, _uvRect.m_Y0, _uvRect.m_X1, _uvRect.m_Y1);
-
     // Determine blend mode from the currently active shader.
     CShaderVulkan* vkShader = dynamic_cast<CShaderVulkan*>(m_spActiveShader.get());
+
+    Base::Math::CRect rect = _rect;
+    const bool rotate90 = vkShader && vkShader->IsDecodedFrame() &&
+                          RotateForPortrait(m_swapExtent.width, m_swapExtent.height, rect);
+    writeQuad(m_mappedVertex[m_currentFrame], m_vertexCount,
+              rect.m_X0, rect.m_Y0, rect.m_X1, rect.m_Y1,
+              _uvRect.m_X0, _uvRect.m_Y0, _uvRect.m_X1, _uvRect.m_Y1, rotate90);
     CShaderVulkan::BlendMode blendMode =
         vkShader ? vkShader->GetBlendMode() : CShaderVulkan::kNone;
 
@@ -1883,24 +1951,12 @@ void CRendererVulkan::DrawText(spCBaseText _text,
             dl->AddText(normalFont, fontSizePx, cur, color, segBegin, p);
     };
 
-    // Soft drop shadow, as on Windows: a core copy of the text offset down-right, plus a
-    // faint 1px halo around it. The offset grows with the text. The swapchain is sRGB, so
-    // these alphas blend in linear light; they appear as about 0.6 and 0.3.
-    struct ShadowTap
-    {
-        float dx, dy, alpha;
-    };
-    const float offset = (std::max)(1.0f, std::round(fontSizePx / 16.0f));
-    const ShadowTap shadowTaps[] = {
-        {offset, offset, 0.87f},
-        {offset - 1.0f, offset, 0.54f},
-        {offset + 1.0f, offset, 0.54f},
-        {offset, offset - 1.0f, 0.54f},
-        {offset, offset + 1.0f, 0.54f},
-    };
-    for (const ShadowTap& tap : shadowTaps)
-        renderAt({cursor.x + tap.dx, cursor.y + tap.dy},
-                 IM_COL32(0, 0, 0, static_cast<ImU32>(_color.m_W * tap.alpha * 255.f)));
+    // Drop shadow as on Mac (TextMetal.mm: offset 1pt down-right, radius 0, opacity 1):
+    // one hard black copy, 1px per unit of UI scale. No halo, and the offset doesn't grow
+    // with font size, which made large HUD text smeared and heavy (#816).
+    const float offset = (std::max)(1.0f, std::round(PlatformUtils_GetUIScale()));
+    renderAt({cursor.x + offset, cursor.y + offset},
+             IM_COL32(0, 0, 0, static_cast<ImU32>(_color.m_W * 255.f)));
     renderAt(cursor, col);
 }
 
@@ -1922,6 +1978,7 @@ spCShader CRendererVulkan::NewShader(
     if (_pFrag)
     {
         std::string frag(_pFrag);
+        shader->SetDecodedFrame(frag.rfind("drawDecodedFrame", 0) == 0);
         if (frag == "drawDecodedFrameLinearFrameBlendFragment")
         {
             shader->SetBlendMode(CShaderVulkan::kLinear);

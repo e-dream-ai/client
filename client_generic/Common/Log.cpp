@@ -23,6 +23,14 @@ typedef SSIZE_T ssize_t;
 #include <filesystem>
 #include <system_error>
 #include <iostream>
+#include <regex>
+#include <chrono>
+#include <vector>
+#include <algorithm>
+
+#include <boost/log/utility/setup/formatter_parser.hpp>
+#include <boost/log/utility/exception_handler.hpp>
+#include <boost/date_time/posix_time/posix_time.hpp>
 
 #include "Log.h"
 #include "base.h"
@@ -32,6 +40,93 @@ typedef SSIZE_T ssize_t;
 
 namespace Base
 {
+
+/*
+        PruneOldLogs().
+        Deletes the client's own logs (YYYY_MM_DD.log and YYYY_MM_DD_pidNNN.log)
+        that are older than kLogRetention, then, if the rest still add up to more
+        than kLogDirSizeCap, the oldest ones until they don't (issue #740).
+
+        Another process may be writing to one of these files: the app and
+        legacyScreenSaver share the day's log, and a second instance writes a
+        _pid log. On Windows deleting an open file just fails, which we ignore.
+        Elsewhere it would succeed and the writer would carry on into an
+        unlinked file, so files written to within kRecentlyWritten are never
+        deleted, and neither is keepName, the file this process is about to use.
+
+        Never throws: a full or unwritable disk must not stop logging (#664).
+*/
+static const auto kLogRetention = std::chrono::hours(24 * 14);
+static const std::uintmax_t kLogDirSizeCap = 256ull * 1024 * 1024;
+static const auto kRecentlyWritten = std::chrono::hours(1);
+
+LogPruneResult PruneOldLogs(const std::filesystem::path& dir,
+                            const std::string& keepName) noexcept
+{
+    namespace fs = std::filesystem;
+    LogPruneResult result;
+    try
+    {
+        static const std::regex logName(R"(\d{4}_\d{2}_\d{2}(_pid\d+)?\.log)");
+
+        struct Entry
+        {
+            fs::path path;
+            fs::file_time_type mtime;
+            std::uintmax_t size;
+        };
+        std::vector<Entry> candidates;
+        std::uintmax_t total = 0;
+
+        const auto now = fs::file_time_type::clock::now();
+        std::error_code ec;
+        for (fs::directory_iterator it(dir, ec), end; !ec && it != end;
+             it.increment(ec))
+        {
+            const fs::path& p = it->path();
+            const std::string name = p.filename().string();
+            if (!std::regex_match(name, logName))
+                continue;
+            std::error_code fec;
+            if (!it->is_regular_file(fec) || fec)
+                continue;
+            const std::uintmax_t size = it->file_size(fec);
+            if (fec)
+                continue;
+            const fs::file_time_type mtime = it->last_write_time(fec);
+            if (fec)
+                continue;
+
+            total += size;
+            if (name == keepName || now - mtime < kRecentlyWritten)
+                continue;
+            candidates.push_back({p, mtime, size});
+        }
+
+        // Oldest first.
+        std::sort(candidates.begin(), candidates.end(),
+                  [](const Entry& a, const Entry& b)
+                  { return a.mtime < b.mtime; });
+
+        for (const Entry& e : candidates)
+        {
+            if (now - e.mtime < kLogRetention && total <= kLogDirSizeCap)
+                break;
+            std::error_code rec;
+            if (fs::remove(e.path, rec) && !rec)
+            {
+                total -= e.size;
+                ++result.removedFiles;
+                result.removedBytes += e.size;
+            }
+        }
+    }
+    catch (...)
+    {
+        // Best effort only.
+    }
+    return result;
+}
 
 /*
         CLog().
@@ -125,15 +220,12 @@ void CLog::Attach(const std::string& _location, bool multipleInstance)
 
     boost::log::core::get()->add_sink(m_ConsoleSink);
 
-    // Create filename with timestamp
-    time_t curTime;
-    time(&curTime);
-
-    char timeStamp[32] = {0};
-    strftime(timeStamp, sizeof(timeStamp), "%Y_%m_%d", localtime(&curTime));
-
+    // File name pattern: <location>YYYY_MM_DD[_pidNNN].log. Boost fills in the
+    // date each time it opens a file, so with the midnight rotation below a
+    // long-running process starts a new dated file every day (issue #740).
+    // Placeholders are only expanded in the file name, not the directory.
     std::stringstream s;
-    s << _location << timeStamp;
+    s << _location << "%Y_%m_%d";
 
     if (multipleInstance)
     {
@@ -158,16 +250,55 @@ void CLog::Attach(const std::string& _location, bool multipleInstance)
     {
         try
         {
-            m_Sink = boost::log::add_file_log(
-                f,
-                // Append: each legacyScreenSaver launch is a new process, and the
-                // default (trunc) wiped earlier sessions from the day's log.
-                boost::log::keywords::open_mode = std::ios_base::app,
-                boost::log::keywords::format =
-                    "[%TimeStamp% - %Severity%]: %Message%");
+            auto backend =
+                boost::make_shared<boost::log::sinks::text_file_backend>(
+                    boost::log::keywords::file_name = f,
+                    // Append: each legacyScreenSaver launch is a new process,
+                    // and the default (trunc) wiped earlier sessions from the
+                    // day's log. Rotation reopens with the new day's name, so
+                    // this also appends if another process already made it.
+                    boost::log::keywords::open_mode = std::ios_base::app,
+                    boost::log::keywords::time_based_rotation =
+                        boost::log::sinks::file::rotation_at_time_point(0, 0,
+                                                                        0));
+
+            // Called whenever a file is opened: on the first write after
+            // launch, and after every midnight rotation. The sink is locked
+            // here, so report through the stream, never through the logger.
+            // The handler is owned by the backend, so the raw pointer is safe.
+            boost::log::sinks::text_file_backend* rawBackend = backend.get();
+            const std::filesystem::path logDir(_location);
+            backend->set_open_handler(
+                [rawBackend, logDir](std::ostream& stream)
+                {
+                    const LogPruneResult r =
+                        PruneOldLogs(logDir, rawBackend->get_current_file_name()
+                                                 .filename()
+                                                 .string());
+                    if (r.removedFiles > 0)
+                    {
+                        // Same timestamp format as the formatter's.
+                        std::string when =
+                            boost::posix_time::to_iso_extended_string(
+                                boost::posix_time::microsec_clock::local_time());
+                        std::replace(when.begin(), when.end(), 'T', ' ');
+                        stream << "[" << when
+                               << " - info]: Removed " << r.removedFiles
+                               << " old log file(s), " << r.removedBytes
+                               << " bytes\n";
+                    }
+                });
+
+            m_Sink = boost::make_shared<boost::log::sinks::synchronous_sink<
+                boost::log::sinks::text_file_backend>>(backend);
+            m_Sink->set_formatter(boost::log::parse_formatter(
+                "[%TimeStamp% - %Severity%]: %Message%"));
+            boost::log::core::get()->add_sink(m_Sink);
         }
         catch (const std::exception& e)
         {
+            if (m_Sink)
+                boost::log::core::get()->remove_sink(m_Sink);
             m_Sink.reset();
             std::cerr << "Failed to attach file log at " << f << " ("
                       << e.what() << "); using console logging only."
@@ -183,6 +314,12 @@ void CLog::Attach(const std::string& _location, bool multipleInstance)
 
     boost::log::core::get()->set_filter(boost::log::trivial::severity >=
                                         boost::log::trivial::info);
+
+    // A sink that fails to write, or to open the next day's file at midnight
+    // rotation (full or unwritable disk), throws out of whatever code was
+    // logging. Drop that record instead (issues #664, #740).
+    boost::log::core::get()->set_exception_handler(
+        boost::log::make_exception_suppressor());
 
     boost::log::sources::severity_logger<boost::log::trivial::severity_level>
         lg;

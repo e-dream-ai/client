@@ -16,7 +16,6 @@
                 <outlet property="debugLog" destination="921" id="923"/>
                 <outlet property="digitCodeLabel" destination="712" id="pEF-OY-jg9"/>
                 <outlet property="digitCodeTextField" destination="4IA-ih-tPf" id="03L-gJ-tFt"/>
-                <outlet property="displayFPS" destination="1041" id="1051"/>
                 <outlet property="emailLabel" destination="697" id="VZf-MQ-2QT"/>
                 <outlet property="emailTextField" destination="696" id="759"/>
                 <outlet property="flockSizeText" destination="B6q-XX-CjP" id="Nhm-yF-ewS"/>
@@ -27,15 +26,15 @@
                 <outlet property="okButton" destination="331" id="Qns-8w-LN7"/>
                 <outlet property="preserveAR" destination="1191" id="1193"/>
                 <outlet property="rotatePortrait" destination="Rp1-bt-n01" id="Rp3-ol-n03"/>
+                <outlet property="syphonOutput" destination="Sy1-bt-n01" id="Sy3-ol-n03"/>
+                <outlet property="syphonLink" destination="Sy6-lk-n06" id="Sy9-ol-n09"/>
                 <outlet property="proxyHost" destination="Q3k-U6-7Ad" id="ALD-hu-lzP"/>
                 <outlet property="proxyLogin" destination="gY4-Mj-Ffb" id="vlU-Ky-EMd"/>
                 <outlet property="proxyPassword" destination="q9Y-KC-fux" id="7Jk-w6-4dx"/>
                 <outlet property="retryLoginButton" destination="I6t-NM-EPC" id="grm-S3-awK"/>
                 <outlet property="serverField" destination="0CM-8A-V8W" id="eul-NB-CGl"/>
                 <outlet property="serverLabel" destination="zTr-up-fzK" id="LnO-4t-81z"/>
-                <outlet property="showAttribution" destination="936" id="947"/>
                 <outlet property="signInButton" destination="1097" id="1181"/>
-                <outlet property="silentMode" destination="12F-7x-0pF" id="OQL-Wu-clg"/>
                 <outlet property="synchronizeVBL" destination="933" id="935"/>
                 <outlet property="useProxy" destination="ZxS-NK-7el" id="dh4-1X-saB"/>
                 <outlet property="version" destination="764" id="766"/>
@@ -531,33 +530,6 @@ room for new ones</string>
                                     <rect key="frame" x="10" y="33" width="495" height="298"/>
                                     <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
                                     <subviews>
-                                        <textField hidden="YES" focusRingType="none" verticalHuggingPriority="750" horizontalCompressionResistancePriority="250" translatesAutoresizingMaskIntoConstraints="NO" id="1040">
-                                            <rect key="frame" x="99" y="260" width="95" height="16"/>
-                                            <textFieldCell key="cell" sendsActionOnEndEditing="YES" alignment="right" title="Display Speed:" id="1045">
-                                                <font key="font" metaFont="system"/>
-                                                <color key="textColor" name="controlTextColor" catalog="System" colorSpace="catalog"/>
-                                                <color key="backgroundColor" name="controlColor" catalog="System" colorSpace="catalog"/>
-                                            </textFieldCell>
-                                        </textField>
-                                        <textField hidden="YES" focusRingType="none" verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="1041">
-                                            <rect key="frame" x="200" y="257" width="40" height="21"/>
-                                            <constraints>
-                                                <constraint firstAttribute="width" constant="40" id="0uF-zA-7yQ"/>
-                                            </constraints>
-                                            <textFieldCell key="cell" scrollable="YES" lineBreakMode="clipping" selectable="YES" editable="YES" sendsActionOnEndEditing="YES" state="on" borderStyle="bezel" drawsBackground="YES" id="1044">
-                                                <font key="font" metaFont="system"/>
-                                                <color key="textColor" name="controlTextColor" catalog="System" colorSpace="catalog"/>
-                                                <color key="backgroundColor" name="textBackgroundColor" catalog="System" colorSpace="catalog"/>
-                                            </textFieldCell>
-                                        </textField>
-                                        <textField hidden="YES" focusRingType="none" verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="1042">
-                                            <rect key="frame" x="246" y="260" width="28" height="16"/>
-                                            <textFieldCell key="cell" scrollable="YES" lineBreakMode="clipping" sendsActionOnEndEditing="YES" title="FPS" id="1043">
-                                                <font key="font" metaFont="system"/>
-                                                <color key="textColor" name="controlTextColor" catalog="System" colorSpace="catalog"/>
-                                                <color key="backgroundColor" name="controlColor" catalog="System" colorSpace="catalog"/>
-                                            </textFieldCell>
-                                        </textField>
                                         <button hidden="YES" translatesAutoresizingMaskIntoConstraints="NO" id="933">
                                             <rect key="frame" x="198" y="168" width="173" height="18"/>
                                             <string key="toolTip">When selected each frame will be rendered in sync with Vertical Blank Line (display refresh rate). This option can cause significant drop of FPS when using multiple display.</string>
@@ -587,22 +559,37 @@ room for new ones</string>
                                                 <font key="font" metaFont="system"/>
                                             </buttonCell>
                                         </button>
+                                        <button translatesAutoresizingMaskIntoConstraints="NO" id="Sy1-bt-n01">
+                                            <rect key="frame" x="158" y="140" width="120" height="18"/>
+                                            <buttonCell key="cell" type="check" title="Share video with" bezelStyle="regularSquare" imagePosition="left" alignment="left" inset="2" id="Sy2-cl-n02">
+                                                <behavior key="behavior" changeContents="YES" doesNotDimImage="YES" lightByContents="YES"/>
+                                                <font key="font" metaFont="system"/>
+                                            </buttonCell>
+                                        </button>
+                                        <button translatesAutoresizingMaskIntoConstraints="NO" id="Sy6-lk-n06">
+                                            <rect key="frame" x="280" y="140" width="48" height="18"/>
+                                            <buttonCell key="cell" type="square" title="Syphon" bezelStyle="shadowlessSquare" alignment="left" imageScaling="proportionallyDown" inset="2" id="Sy7-lc-n07">
+                                                <behavior key="behavior" pushIn="YES" lightByBackground="YES" lightByGray="YES"/>
+                                                <font key="font" metaFont="system"/>
+                                            </buttonCell>
+                                            <connections>
+                                                <action selector="openSyphonSite:" target="-2" id="Sy8-ac-n08"/>
+                                            </connections>
+                                        </button>
                                     </subviews>
                                     <constraints>
-                                        <constraint firstItem="1041" firstAttribute="leading" secondItem="1040" secondAttribute="trailing" constant="8" symbolic="YES" id="EFn-CA-1Gv"/>
                                         <constraint firstItem="933" firstAttribute="leading" secondItem="1185" secondAttribute="leading" id="Mn2-NU-Vah"/>
-                                        <constraint firstItem="1042" firstAttribute="firstBaseline" secondItem="1040" secondAttribute="firstBaseline" id="Nlx-ot-duM"/>
-                                        <constraint firstItem="1041" firstAttribute="leading" secondItem="324" secondAttribute="leading" constant="200" id="VGU-mb-A73"/>
-                                        <constraint firstItem="1041" firstAttribute="firstBaseline" secondItem="1040" secondAttribute="firstBaseline" id="ctL-e2-R5i"/>
                                         <constraint firstItem="1191" firstAttribute="leading" secondItem="324" secondAttribute="leading" constant="160" id="m1n-dn-ySm"/>
-                                        <constraint firstItem="1185" firstAttribute="top" secondItem="1041" secondAttribute="bottom" constant="24" id="m7d-8w-pdm"/>
-                                        <constraint firstItem="933" firstAttribute="top" secondItem="Rp1-bt-n01" secondAttribute="bottom" constant="8" id="mYm-6P-5kG"/>
+                                        <constraint firstItem="1185" firstAttribute="top" secondItem="324" secondAttribute="top" constant="65" id="m7d-8w-pdm"/>
+                                        <constraint firstItem="933" firstAttribute="top" secondItem="Sy1-bt-n01" secondAttribute="bottom" constant="8" id="mYm-6P-5kG"/>
                                         <constraint firstItem="Rp1-bt-n01" firstAttribute="top" secondItem="1191" secondAttribute="bottom" constant="8" id="Rp4-tp-n04"/>
                                         <constraint firstItem="Rp1-bt-n01" firstAttribute="leading" secondItem="324" secondAttribute="leading" constant="160" id="Rp5-ld-n05"/>
+                                        <constraint firstItem="Sy1-bt-n01" firstAttribute="top" secondItem="Rp1-bt-n01" secondAttribute="bottom" constant="8" id="Sy4-tp-n04"/>
+                                        <constraint firstItem="Sy1-bt-n01" firstAttribute="leading" secondItem="324" secondAttribute="leading" constant="160" id="Sy5-ld-n05"/>
+                                        <constraint firstItem="Sy6-lk-n06" firstAttribute="leading" secondItem="Sy1-bt-n01" secondAttribute="trailing" constant="2" id="Sy10-ld-n10"/>
+                                        <constraint firstItem="Sy6-lk-n06" firstAttribute="firstBaseline" secondItem="Sy1-bt-n01" secondAttribute="firstBaseline" id="Sy11-bl-n11"/>
                                         <constraint firstItem="1191" firstAttribute="top" secondItem="1185" secondAttribute="bottom" constant="8" id="pGU-aw-jVg"/>
                                         <constraint firstItem="1185" firstAttribute="leading" secondItem="324" secondAttribute="leading" constant="200" id="pOq-Gj-AEO"/>
-                                        <constraint firstItem="1041" firstAttribute="top" secondItem="324" secondAttribute="top" constant="20" symbolic="YES" id="s1g-o7-r9g"/>
-                                        <constraint firstItem="1042" firstAttribute="leading" secondItem="1041" secondAttribute="trailing" constant="8" symbolic="YES" id="w17-ko-z5a"/>
                                     </constraints>
                                 </view>
                             </tabViewItem>
@@ -712,20 +699,6 @@ room for new ones</string>
                                                 <font key="font" metaFont="system"/>
                                             </buttonCell>
                                         </button>
-                                        <button hidden="YES" toolTip="When selected a watermark for attribution will be shown every 10 minutes" translatesAutoresizingMaskIntoConstraints="NO" id="936">
-                                            <rect key="frame" x="178" y="237" width="127" height="18"/>
-                                            <buttonCell key="cell" type="check" title="Show Attribution" bezelStyle="regularSquare" imagePosition="left" alignment="left" inset="2" id="937">
-                                                <behavior key="behavior" changeContents="YES" doesNotDimImage="YES" lightByContents="YES"/>
-                                                <font key="font" metaFont="system"/>
-                                            </buttonCell>
-                                        </button>
-                                        <button hidden="YES" toolTip="When selected a watermark for attribution will be shown every 10 minutes" translatesAutoresizingMaskIntoConstraints="NO" id="12F-7x-0pF">
-                                            <rect key="frame" x="178" y="213" width="97" height="18"/>
-                                            <buttonCell key="cell" type="check" title="Quiet Mode" bezelStyle="regularSquare" imagePosition="left" alignment="left" inset="2" id="FAS-nz-8sM">
-                                                <behavior key="behavior" changeContents="YES" doesNotDimImage="YES" lightByContents="YES"/>
-                                                <font key="font" metaFont="system"/>
-                                            </buttonCell>
-                                        </button>
                                         <textField hidden="YES" focusRingType="none" verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="0CM-8A-V8W">
                                             <rect key="frame" x="180" y="181" width="250" height="21"/>
                                             <constraints>
@@ -770,18 +743,14 @@ room for new ones</string>
                                         </button>
                                     </subviews>
                                     <constraints>
-                                        <constraint firstItem="936" firstAttribute="top" secondItem="921" secondAttribute="bottom" constant="8" id="38p-NM-lEF"/>
-                                        <constraint firstItem="936" firstAttribute="leading" secondItem="921" secondAttribute="leading" id="7XA-QF-afn"/>
                                         <constraint firstItem="EBg-xh-hZV" firstAttribute="leading" secondItem="330" secondAttribute="leading" constant="8" id="8fE-Il-Xep"/>
                                         <constraint firstItem="EBg-xh-hZV" firstAttribute="top" secondItem="0CM-8A-V8W" secondAttribute="bottom" constant="8" symbolic="YES" id="Fy6-z6-SmL"/>
                                         <constraint firstAttribute="trailing" secondItem="EBg-xh-hZV" secondAttribute="trailing" constant="8" id="SUv-Ox-BDd"/>
                                         <constraint firstItem="0CM-8A-V8W" firstAttribute="firstBaseline" secondItem="zTr-up-fzK" secondAttribute="firstBaseline" id="UvD-qT-Bmr"/>
                                         <constraint firstItem="921" firstAttribute="top" secondItem="330" secondAttribute="top" constant="20" id="Ytg-A7-04a"/>
                                         <constraint firstItem="0CM-8A-V8W" firstAttribute="leading" secondItem="921" secondAttribute="leading" id="bDx-Hv-9WP"/>
-                                        <constraint firstItem="0CM-8A-V8W" firstAttribute="top" secondItem="12F-7x-0pF" secondAttribute="bottom" constant="12" id="doK-XZ-s89"/>
-                                        <constraint firstItem="12F-7x-0pF" firstAttribute="leading" secondItem="921" secondAttribute="leading" id="ewt-4z-QQL"/>
+                                        <constraint firstItem="0CM-8A-V8W" firstAttribute="top" secondItem="921" secondAttribute="bottom" constant="64" id="doK-XZ-s89"/>
                                         <constraint firstItem="0CM-8A-V8W" firstAttribute="leading" secondItem="zTr-up-fzK" secondAttribute="trailing" constant="8" symbolic="YES" id="lBp-MY-a7F"/>
-                                        <constraint firstItem="12F-7x-0pF" firstAttribute="top" secondItem="936" secondAttribute="bottom" constant="8" id="wm6-iE-zPC"/>
                                         <constraint firstItem="921" firstAttribute="leading" secondItem="330" secondAttribute="leading" constant="180" id="yz1-Ue-i3u"/>
                                     </constraints>
                                 </view>

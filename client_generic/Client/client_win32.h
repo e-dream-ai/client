@@ -251,6 +251,22 @@ class CElectricSheep_Win32 : public CElectricSheep
         while (*c == ' ')
             c++;
 
+        // --fullscreen (also -fullscreen, /fullscreen): open the standalone app
+        // fullscreen, same as Linux. Consumed here so the screensaver switches
+        // below still see the rest of the command line (normally empty).
+        for (const char* flag : {"--fullscreen", "-fullscreen", "/fullscreen"})
+        {
+            const size_t n = strlen(flag);
+            if (_strnicmp(c, flag, n) == 0 && (c[n] == 0 || c[n] == ' '))
+            {
+                m_StartFullscreen = true;
+                c += n;
+                while (*c == ' ')
+                    c++;
+                break;
+            }
+        }
+
         HWND hwnd = NULL;
 
         if (*c == 0)
@@ -646,6 +662,25 @@ class CElectricSheep_Win32 : public CElectricSheep
         //
         if (CElectricSheep::Startup() == false)
             return false;
+
+        // --fullscreen: create the window normally, then go fullscreen through the
+        // same path as F11, so ESC / F11 restore a properly sized window.
+        if (m_StartFullscreen &&
+            (m_ScrMode == eWindowed || m_ScrMode == eWindowed_AllowMultipleInstances))
+        {
+            if (auto spDisplay = g_Player().Display())
+            {
+                spDisplay->ToggleFullscreen();
+                if (spDisplay->IsFullscreen())
+                {
+                    SetIsFullScreen(true);
+                    m_ScrMode = eFullScreenStandalone;
+                    g_Log->Info("Started fullscreen (--fullscreen)");
+                }
+                else
+                    g_Log->Warning("--fullscreen: fullscreen toggle failed");
+            }
+        }
 
         // Keep the dream rendering while a menu bar popup is open.
         // Windows enters a modal menu-tracking loop on the main thread when the

@@ -21,6 +21,17 @@ static bool IsMagicLinkRateLimitedHttp(const EDreamClient::ValidateCodeResult& r
     return r.httpCode == 429 || r.errorCode == "RATE_LIMITED";
 }
 
+// Signup happens on the web; the magic-link endpoint only signs in existing accounts.
+// The server's own message ("User not found.") is redundant, so it isn't appended.
+static AuthDialogContent BuildAccountNotFoundDialog()
+{
+    AuthDialogContent d{"Account Not Found",
+                        "There is no infinidream account for this email. "
+                        "Check the address, or create a free account on the web."};
+    d.offerCreateAccount = true;
+    return d;
+}
+
 static AuthDialogContent BuildSendCodeFailureDialog(const EDreamClient::SendCodeResult& result)
 {
     if (result.httpCode == 0)
@@ -40,13 +51,7 @@ static AuthDialogContent BuildSendCodeFailureDialog(const EDreamClient::SendCode
     }
 
     if (result.errorCode == "USER_NOT_FOUND")
-    {
-        std::string message =
-            "We could not find an account for this email. Confirm the address or ask for an invite.";
-        if (!result.message.empty())
-            message += "\n\n" + result.message;
-        return {"Account Not Found", std::move(message)};
-    }
+        return BuildAccountNotFoundDialog();
 
     const bool isClientErrorHttp = (result.httpCode >= 400 && result.httpCode < 500);
     const bool isServerErrorHttp = (result.httpCode >= 500);
@@ -97,13 +102,7 @@ static AuthDialogContent BuildValidateFailureDialog(const EDreamClient::Validate
     }
 
     if (result.errorCode == "USER_NOT_FOUND")
-    {
-        std::string message =
-            "We could not find an account for this email. Confirm the address or ask for an invite.";
-        if (!result.message.empty())
-            message += "\n\n" + result.message;
-        return {"Account Not Found", std::move(message)};
-    }
+        return BuildAccountNotFoundDialog();
 
     if (result.httpCode >= 500)
     {

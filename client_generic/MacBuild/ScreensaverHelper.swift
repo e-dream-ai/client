@@ -17,18 +17,20 @@ import PaperSaverKit
         super.init()
     }
     
-    /// Check if infinidream is the currently active screensaver
-    @objc public func isInfinidreamActive() -> Bool {
+    /// Check if `module` (the .saver name without extension, e.g. "infinidream"
+    /// or "infinidream-stage") is the only active screensaver
+    @objc(isScreensaverActive:)
+    public func isScreensaverActive(module: String) -> Bool {
         let activeScreensavers = paperSaver.getActiveScreensavers()
-        return activeScreensavers.count == 1 && activeScreensavers[0] == "infinidream"
+        return activeScreensavers.count == 1 && activeScreensavers[0] == module
     }
     
-    /// Set infinidream as the active screensaver
-    @objc public func setInfinidreamAsActive(completion: @escaping (Bool, Error?) -> Void) {
+    /// Set `module` as the active screensaver on every display and space
+    @objc(setScreensaverAsActive:completion:)
+    public func setScreensaverAsActive(module: String, completion: @escaping (Bool, Error?) -> Void) {
         Task {
             do {
-                // Use "infinidream" as the module name
-                try await paperSaver.setScreensaverEverywhere(module: "infinidream")
+                try await paperSaver.setScreensaverEverywhere(module: module)
                 await MainActor.run {
                     completion(true, nil)
                 }
