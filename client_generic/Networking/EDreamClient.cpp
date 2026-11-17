@@ -886,9 +886,7 @@ bool EDreamClient::Authenticate()
             }
         }
 
-        g_Log->Warning("No sealed session or API key found. "
-                       "Set settings.generator.nickname in ~/.config/infinidream/settings.json "
-                       "and run interactively, or run with --cached to play cached videos.");
+        g_Log->Warning("No sealed session or API key found.");
         fIsLoggedIn.exchange(false);
         fInitialAuthComplete.store(true);
         fAuthCV.notify_one();
