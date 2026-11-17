@@ -127,8 +127,20 @@ def cache_valid(marker: Path, toolchain_marker: Path, expected_tag: str) -> bool
 ARCH = platform.machine()          # e.g. "x86_64"
 SCRIPT_DIR = Path(__file__).resolve().parent
 
-# glibc ABI ceiling (see long comment in build_appimage.sh). Every file
-# in the AppImage must stay at or below it: see verify_abi_ceiling().
+# glibc ABI ceiling. Every file in the AppImage must stay at or below it:
+# see verify_abi_ceiling().
+#
+# OpenSSL, libcurl and FFmpeg are compiled as shared libraries with zig cc
+# targeting this glibc version, so the bundled .so files don't reference any
+# symbol newer than GLIBC_2.35.
+#
+# The main infinidream binary is compiled with system g++, with libstdc++ and
+# libgcc linked statically. The glibc_compat.c shim intercepts the ~11 symbols
+# that g++ would otherwise bind to newer glibc versions (GLIBC_2.38 /
+# GLIBC_2.43) and redirects them to GLIBC_2.2.5 via .symver directives.
+#
+# Net result: the AppImage runs on glibc >= 2.35, which covers Ubuntu 22.04
+# LTS, Debian 12, Fedora 36+ and Linux Mint 21+.
 GLIBC_CEILING = (2, 35)
 GLIBC_TARGET = f"{ARCH}-linux-gnu.{GLIBC_CEILING[0]}.{GLIBC_CEILING[1]}"
 
