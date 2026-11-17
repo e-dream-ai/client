@@ -418,7 +418,10 @@ class CPlayer : public Base::CSingleton<CPlayer>
     void prepareCrossfadeTransition();
 
     bool PreloadClip(const std::shared_ptr<const Cache::Dream>& dream);
-    
+
+    // Sets a clip's decode rate from the current perceptual fps and its dream's activity level.
+    void SyncClipRate(const ContentDecoder::spCClip& clip);
+
     // Handle buffering states
     void SetPausedForBuffering(bool paused) {
         m_PausedForBuffering = paused;

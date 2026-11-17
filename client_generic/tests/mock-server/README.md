@@ -72,6 +72,11 @@ malformed ones, but no other faults or chaos yet. Written for the Mac; `slow_lin
   25% floor; a `play_dream` into the middle of the other dream holds its crossfade while the
   new dream buffers, and no crossfade goes back (the client logs both); and full speed
   returns when the rate goes back up. About three minutes.
+- `speed_preload_test.py` serves the `alpha-v1` set's Wankel Rotary Engine playlist (193-frame
+  dreams) at 80 fps, and changes the speed right after the next dream has been preloaded: down to
+  speed 7, then up to speed 9. It checks that the preloaded dream, and the one after it, take as
+  long as their frames at the new speed (#833): the preloaded clip used to keep the old speed for
+  its whole length. About a minute and a half.
 - `run_all.py` runs every test above in turn and prints a summary (see "Running the tests").
 - `fixtures.py` makes and checks fixture sets (see "Videos").
 - `screens.py` takes about one screenshot of the client's window a second, to catch a black
@@ -85,7 +90,7 @@ venv/bin/pip install -r requirements.txt
 brew install ffmpeg   # for ffprobe
 
 APP="/path/to/infinidream.app/Contents/MacOS/infinidream"
-venv/bin/python run_all.py --app "$APP"              # all 13, about 20 minutes
+venv/bin/python run_all.py --app "$APP"              # all 14, about 20 minutes
 venv/bin/python run_all.py --app "$APP" --only moon resume
 venv/bin/python moon_test.py --app "$APP"            # or any one test by itself
 ```

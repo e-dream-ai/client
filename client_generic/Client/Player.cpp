@@ -1543,19 +1543,20 @@ void CPlayer::PlayNextDream(bool quickFade) {
 }
 
 
-void CPlayer::MultiplyPerceptualFPS(const double _multiplier){
-    m_PerceptualFPS = ClampPerceptualFPS(m_PerceptualFPS * _multiplier);
+void CPlayer::SyncClipRate(const ContentDecoder::spCClip& clip)
+{
+    if (!clip)
+        return;
+    // UpdatePlaybackRate also re-anchors m_EndTime to the new rate, otherwise the
+    // wallclock deadline baked in at clip start would fire on the original schedule
+    // while frames crawl at the new rate — stranding the fade-out trigger ahead of the
+    // preflight trigger and producing a black screen.
+    clip->UpdatePlaybackRate(m_PerceptualFPS / clip->GetClipMetadata().dreamData.activityLevel,
+                             m_TimelineTime);
+}
 
-    reader_lock l(m_UpdateMutex);
-    if (m_currentClip) {
-        float dreamActivityLevel = m_currentClip->GetClipMetadata().dreamData.activityLevel;
-        // Update decoder speed and re-anchor m_EndTime to the new rate, otherwise
-        // the wallclock deadline baked in at clip start would fire on the original
-        // schedule while frames crawl at the new rate — stranding the fade-out
-        // trigger ahead of the preflight trigger and producing a black screen.
-        m_DecoderFps = m_PerceptualFPS / dreamActivityLevel;
-        m_currentClip->UpdatePlaybackRate(m_DecoderFps, m_TimelineTime);
-    }
+void CPlayer::MultiplyPerceptualFPS(const double _multiplier){
+    SetPerceptualFPS(m_PerceptualFPS * _multiplier);
 }
 
 void CPlayer::SetPerceptualFPS(const double _fps){
@@ -1565,12 +1566,14 @@ void CPlayer::SetPerceptualFPS(const double _fps){
     reader_lock l(m_UpdateMutex);
 
     if (m_currentClip) {
-        // Grab the activity level of the dream
-        float dreamActivityLevel = m_currentClip->GetClipMetadata().dreamData.activityLevel;
-        // Update decoder speed and re-anchor m_EndTime (see MultiplyPerceptualFPS).
-        m_DecoderFps = m_PerceptualFPS / dreamActivityLevel;
-        m_currentClip->UpdatePlaybackRate(m_DecoderFps, m_TimelineTime);
+        SyncClipRate(m_currentClip);
+        m_DecoderFps = m_currentClip->GetClipMetadata().decodeFps;
     }
+    // The next clip took its rate when it was preloaded, usually just after the current
+    // one started, and may already be playing in a crossfade. Without this it plays at
+    // the old speed all the way through (#833).
+    if (m_nextClip && m_nextClip != m_currentClip)
+        SyncClipRate(m_nextClip);
 }
 
 // Getters for both perceptual FPS and true decoder FPS
