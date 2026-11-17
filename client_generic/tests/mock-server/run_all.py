@@ -39,6 +39,9 @@ TESTS = [
     ("repro", []),
     ("speed_preload", []),  # serves alpha-v1's Wankel playlist by default
     ("uncached_playlist", []),  # serves alpha-v1 by default
+    ("resume_past_end", []),
+    ("bad_setting", []),
+    ("zero_quota", []),
 ]
 
 

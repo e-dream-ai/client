@@ -14,6 +14,9 @@ server over HTTP:
 - POST /control/media-rate?bytes_per_second=N limits media downloads to N bytes a second in
   total, like one shared link. 0 means no limit.
 
+--quota sets the download quota the client is told it has (default 50 GB); 0 stops its
+background downloader, as for a user who has used up their quota.
+
 It serves a few playlists of the same dreams, for play_playlist: the default one with every
 dream, the same reversed, one with a single dream, and one without the first dream. A snapshot
 fixture set (fixtures.py snapshot) also brings its real dream records and real playlists, cut
@@ -186,7 +189,8 @@ def ok(data):
 
 class MockServer:
     def __init__(self, media_dir, dreams, event_log, port, media_rate=0, default_playlist=PLAYLIST_UUID,
-                 transition_time=2):
+                 transition_time=2, quota=QUOTA_BYTES):
+        self.quota_bytes = quota  # What the hello and quota calls report, in bytes.
         self.media_dir = Path(media_dir)
         self.transition_time = transition_time  # Every playlist's end-of-dream fade, in seconds.
         self.dreams = dreams
@@ -212,7 +216,7 @@ class MockServer:
                  cookie=request.headers.get("Cookie"))
 
     async def hello(self, request):
-        return ok({"quota": QUOTA_BYTES, "dislikesCount": 0, "currentPlaylistUUID": self.start_playlist})
+        return ok({"quota": self.quota_bytes, "dislikesCount": 0, "currentPlaylistUUID": self.start_playlist})
 
     def contents(self, playlist=None):
         return self.playlists[playlist or self.start_playlist][1]
@@ -293,7 +297,7 @@ class MockServer:
             await asyncio.sleep(start - now)
 
     async def quota(self, request):
-        return ok({"quota": QUOTA_BYTES})
+        return ok({"quota": self.quota_bytes})
 
     async def dislikes(self, request):
         return ok({"dislikes": []})
@@ -409,6 +413,8 @@ def main():
                         "wins over --playlist's (default: --playlist, else the mock playlist)")
     parser.add_argument("--transition-time", type=float, default=2,
                         help="every playlist's end-of-dream fade, in seconds")
+    parser.add_argument("--quota", type=int, default=QUOTA_BYTES,
+                        help="download quota to report, in bytes; 0 stops background downloads")
     parser.add_argument("--event-log", default="events.jsonl")
     args = parser.parse_args()
 
@@ -416,7 +422,7 @@ def main():
     with open(args.event_log, "w", buffering=1) as event_log:
         server = MockServer(args.media_dir, dreams, event_log, args.port, args.media_rate,
                             args.default_playlist or args.playlist or PLAYLIST_UUID,
-                            args.transition_time)
+                            args.transition_time, args.quota)
         web.run_app(server.app(), host="127.0.0.1", port=args.port, print=None)
 
 
