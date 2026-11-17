@@ -491,6 +491,13 @@ static NSScreen* ESScreenForWindow(NSWindow* window)
 {
 #ifdef SCREEN_SAVER
     [self _stopScreenConnectionMonitor];
+    // This view stops drawing. Hand the overlay to another shown view, or back
+    // to display 0 (the Settings thumbnail, when a full-screen Preview ends).
+    if (m_bStarted && m_displayIdx != 0 && ESScreensaver_OverlayDisplay() == m_displayIdx) {
+        [ESScreensaverView _updateOverlayDisplay];
+        if (ESScreensaver_OverlayDisplay() == m_displayIdx)
+            ESScreensaver_SetOverlayDisplay(0);
+    }
     [NSCursor unhide];
     [self _stopRedrawTimer];
 #else
@@ -837,6 +844,7 @@ static void ESLogExitTiming(void)
     }
     if (settingsRunning)
         [state appendString:@" settings=1"];
+    [ESScreensaverView _updateOverlayDisplay];
     // Log only on change: a hotplug or an orphan shows up as one line.
     NSString *summary = [NSString stringWithFormat:@"%lu of %lu view(s) live:%@",
                                                    (unsigned long)live,
@@ -855,6 +863,30 @@ static void ESLogExitTiming(void)
                     s_orphanFor);
         [views.firstObject _forceExitScreensaverWithReason:"orphan-not-hosted" delaySeconds:0];
     }
+}
+#endif
+
+#ifdef SCREEN_SAVER
+// The engine draws the startup screen and HUD on one display. A hotplug can
+// leave that display on a view the host has dropped, with the overlay drawn
+// where nobody sees it, so keep it on a view the host is showing.
++ (void)_updateOverlayDisplay
+{
+    const int current = ESScreensaver_OverlayDisplay();
+    int best = -1;
+    for (ESScreensaverView *v in s_watchedViews.allObjects) {
+        NSWindow *w = v.window;
+        if (!w || w.level == NSNormalWindowLevel)
+            continue;
+        if (v->m_displayIdx == current)
+            return;
+        if (best < 0 || v->m_displayIdx < best)
+            best = v->m_displayIdx;
+    }
+    if (best < 0)
+        return;
+    g_Log->Info("Overlay moves from display %d to %d", current, best);
+    ESScreensaver_SetOverlayDisplay(best);
 }
 #endif
 

@@ -133,6 +133,7 @@ class CPlayer : public Base::CSingleton<CPlayer>
     typedef DisplayUnitList::iterator DisplayUnitIterator;
 
     std::mutex m_displayListMutex;
+    std::atomic<uint32_t> m_OverlayDisplayUnit{0};
 
     friend class Base::CSingleton<CPlayer>;
 
@@ -311,12 +312,23 @@ class CPlayer : public Base::CSingleton<CPlayer>
         return m_displayUnits[du]->spDisplay;
     }
 
+    // Renderer of the overlay display: the one the startup screen and HUD
+    // are drawn and created with.
     inline DisplayOutput::spCRenderer Renderer()
     {
         std::scoped_lock lockthis(m_displayListMutex);
 
-        return m_displayUnits.empty() ? nullptr : m_displayUnits[0]->spRenderer;
+        if (m_displayUnits.empty())
+            return nullptr;
+        const uint32_t du = m_OverlayDisplayUnit.load();
+        return m_displayUnits[du < m_displayUnits.size() ? du : 0]->spRenderer;
     }
+
+    // Display unit that draws the startup screen and HUD. Unit 0 unless the
+    // platform moves it, as the Mac screensaver does when a display hotplug
+    // leaves unit 0 on a view the system no longer shows.
+    inline uint32_t OverlayDisplayUnit() const { return m_OverlayDisplayUnit.load(); }
+    void SetOverlayDisplayUnit(uint32_t du);
 
     const ContentDecoder::sClipMetadata* GetCurrentPlayingClipMetadata() const;
     const ContentDecoder::sFrameMetadata* GetCurrentFrameMetadata() const;

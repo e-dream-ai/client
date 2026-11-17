@@ -1471,7 +1471,9 @@ class CElectricSheep
             bool showStartup = !drawn || drawNoSheepIntro ||
                                (m_StartupScreen && !m_StartupScreen->IsFullyFaded());
 
-            if ((showStartup || drawn) && displayUnit == 0)
+            // One display draws the startup screen and HUD.
+            const bool isOverlayDisplay = displayUnit == g_Player().OverlayDisplayUnit();
+            if ((showStartup || drawn) && isOverlayDisplay)
             {
                 
                 if (showStartup)
@@ -2200,7 +2202,7 @@ class CElectricSheep
             }
 
             bool frameDrawn = drawn;
-            if (displayUnit == 0 && (showStartup || drawn))
+            if (isOverlayDisplay && (showStartup || drawn))
                 frameDrawn = true;
 
             Base::CStepTimer endFrameTimer("frame EndDisplayFrame", frameWaitMinMs);

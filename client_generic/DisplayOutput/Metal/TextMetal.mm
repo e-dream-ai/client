@@ -1,6 +1,8 @@
 #import "TextMetal.h"
 
 #include <cstdio>
+#include <mutex>
+#include <set>
 #include <string>
 
 #include "Player.h"
@@ -8,6 +10,9 @@
 
 namespace DisplayOutput
 {
+
+static std::mutex s_allTextsMutex;
+static std::set<CTextMetal*> s_allTexts;
 
 CTextMetal::CTextMetal(spCFontMetal _font, MTKView* _view)
     : m_spFont(_font), m_View(_view)
@@ -38,16 +43,43 @@ CTextMetal::CTextMetal(spCFontMetal _font, MTKView* _view)
     textLayer.actions = noAnimActions;
     textLayer.hidden = YES;
     UpdateContentsScale();
+    AttachToView();
 
+    std::scoped_lock lock(s_allTextsMutex);
+    s_allTexts.insert(this);
+}
+
+void CTextMetal::AttachToView()
+{
 #ifdef SCREEN_SAVER
-    [[_view.layer.sublayers objectAtIndex:0] addSublayer:textLayer];
+    [[m_View.layer.sublayers objectAtIndex:0] addSublayer:m_TextLayer];
 #else
-    [_view.layer addSublayer:textLayer];
+    [m_View.layer addSublayer:m_TextLayer];
 #endif
+}
+
+void CTextMetal::MoveAllToView(MTKView* _view)
+{
+    std::scoped_lock lock(s_allTextsMutex);
+    for (CTextMetal* text : s_allTexts)
+    {
+        if (text->m_View == _view)
+            continue;
+        [text->m_TextLayer removeFromSuperlayer];
+        text->m_View = _view;
+        text->AttachToView();
+        // The new view can differ in size and backing scale.
+        text->UpdateContentsScale();
+        text->UpdateExtents();
+    }
 }
 
 CTextMetal::~CTextMetal()
 {
+    {
+        std::scoped_lock lock(s_allTextsMutex);
+        s_allTexts.erase(this);
+    }
     [m_TextLayer removeFromSuperlayer];
 }
 

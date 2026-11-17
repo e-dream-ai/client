@@ -769,6 +769,7 @@ bool CPlayer::Shutdown(void)
     {
         std::scoped_lock lock(m_displayListMutex);
         m_displayUnits.clear();
+        m_OverlayDisplayUnit.store(0);
     }
 
     m_bStarted = false;
@@ -915,6 +916,26 @@ bool CPlayer::EndFrameUpdate()
 #endif
 
     return true;
+}
+
+void CPlayer::SetOverlayDisplayUnit(uint32_t du)
+{
+    DisplayOutput::spCRenderer from, to;
+    {
+        std::scoped_lock lockthis(m_displayListMutex);
+
+        const uint32_t old = m_OverlayDisplayUnit.load();
+        if (du == old || du >= m_displayUnits.size())
+            return;
+        if (old < m_displayUnits.size())
+            from = m_displayUnits[old]->spRenderer;
+        to = m_displayUnits[du]->spRenderer;
+        m_OverlayDisplayUnit.store(du);
+    }
+    // The brightness keys act on the overlay display's renderer.
+    if (from)
+        to->SetBrightness(from->GetBrightness());
+    to->AdoptOverlayText();
 }
 
 bool CPlayer::BeginDisplayFrame(uint32_t displayUnit)
