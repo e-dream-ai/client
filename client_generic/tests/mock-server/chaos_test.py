@@ -259,6 +259,8 @@ def main(description=__doc__, commands=COMMANDS, rate_seconds=RATE_SECONDS, pref
         h.check("Scenario", False, str(failure))
     finally:
         run.stop()
+        if actions:
+            actions.file.close()  # Windows can't delete the run folder with it open
     if run.client:
         h.verify_process(run)
         h.verify_server(run, before)

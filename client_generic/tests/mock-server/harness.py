@@ -38,6 +38,8 @@ BEAT_LINE = re.compile(
     r"^\[(?P<time>\d{4}-\d\d-\d\d \d\d:\d\d:\d\d\.\d+) - info\]: Heartbeat (?P<fields>.*)$",
     re.MULTILINE)
 FIELD = re.compile(r"(\w+)=(\S+)")
+# Each clip's state (playing, buffering or rebuffering) is a bare word after its queue= field.
+CLIP_STATE = re.compile(r"\b(current|next)=\S+ frame=\S+ queue=\S+ (\w+)")
 
 
 class Failed(Exception):
@@ -96,6 +98,8 @@ def parse_beats(text):
             beat[prefix + key] = value
             if key == "next" and not prefix:
                 prefix = "next_"
+        for clip, state in CLIP_STATE.findall(match["fields"]):
+            beat["state" if clip == "current" else "next_state"] = state
         beat["time"] = datetime.strptime(match["time"], "%Y-%m-%d %H:%M:%S.%f").timestamp()
         beats.append(beat)
     return beats
@@ -106,6 +110,8 @@ class Watchdog(threading.Thread):
 
     A hang is no heartbeat for MAX_HEARTBEAT_GAP seconds, or the current clip's frame not
     moving for MAX_STUCK_SECONDS while the client says it is neither paused nor buffering.
+    Holding a seek crossfade while the incoming clip buffers counts as buffering: the outgoing
+    clip waits on its last frame, under the buffering moon, without setting buffering_pause.
     A locked screen stops rendering too, so it's reported as that, not as a hang. On a hang,
     the client's stacks are sampled once into the run folder."""
 
@@ -137,8 +143,10 @@ class Watchdog(threading.Thread):
             for beat in reversed(beats):
                 same = (beat.get("current") == last.get("current")
                         and beat.get("frame") == last.get("frame"))
+                held = (beat.get("pending_seek_crossfade") == "1"
+                        and beat.get("next_state") in ("buffering", "rebuffering"))
                 moving = (beat.get("paused") == "0" and beat.get("buffering_pause") == "0"
-                          and beat.get("current", "-") != "-")
+                          and not held and beat.get("current", "-") != "-")
                 if not (same and moving):
                     break
                 stuck_since = beat["time"]
