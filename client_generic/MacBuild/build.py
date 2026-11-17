@@ -1174,6 +1174,19 @@ def get_file_size(path: Path) -> str:
     return result.split()[0] if result else "?"
 
 
+def tag_release(config: BuildConfig) -> None:
+    """Create the local release tag at HEAD before building, so the build's
+    `git describe` (BuildData.json revision: log banner, OSD, settings) names
+    this release rather than the previous one. Step 7 pushes it."""
+    tag = config.version
+    if run_command_with_output(['git', 'tag', '-l', tag]):
+        print_yellow(f"Deleting existing local tag {tag}...")
+        run_command(['git', 'tag', '-d', tag], check=False, capture_output=True)
+    print_yellow(f"Creating git tag {tag}...")
+    run_command(['git', 'tag', tag], capture_output=True)
+    print_green(f"Tag {tag} created")
+
+
 def step7_github_release(config: BuildConfig, final_dmg: Path) -> Optional[str]:
     """Create GitHub release with tag and upload DMG. Returns release URL or None."""
     if not config.github_release:
@@ -1187,14 +1200,7 @@ def step7_github_release(config: BuildConfig, final_dmg: Path) -> Optional[str]:
     tag = config.version
     release_name = f"v{config.version}"
 
-    # Check if tag already exists locally
-    result = run_command(
-        ['git', 'tag', '-l', tag],
-        capture_output=True,
-        check=False
-    )
-    tag_exists_locally = bool(result.stdout.strip())
-
+    # The local tag was created before the build (tag_release); push it here.
     # Check if tag exists on remote
     result = run_command(
         ['git', 'ls-remote', '--tags', 'origin', f'refs/tags/{tag}'],
@@ -1203,27 +1209,10 @@ def step7_github_release(config: BuildConfig, final_dmg: Path) -> Optional[str]:
     )
     tag_exists_remote = bool(result.stdout.strip())
 
-    # Delete existing tags so we can recreate at current commit
-    if tag_exists_locally:
-        print_yellow(f"Deleting existing local tag {tag}...")
-        run_command(['git', 'tag', '-d', tag], check=False, capture_output=True)
-
+    # Delete an existing remote tag so we can push the one at the current commit
     if tag_exists_remote:
         print_yellow(f"Deleting existing remote tag {tag}...")
         run_command(['git', 'push', 'origin', f':refs/tags/{tag}'], check=False, capture_output=True)
-
-    # Create and push tag
-    print_yellow(f"Creating git tag {tag}...")
-    result = run_command(
-        ['git', 'tag', tag],
-        check=False,
-        capture_output=True
-    )
-    if result.returncode != 0:
-        print_red(f"Failed to create tag {tag}")
-        print(result.stderr or result.stdout)
-        return None
-    print_green(f"Tag {tag} created")
 
     print_yellow(f"Pushing tag {tag} to origin...")
     result = run_command(
@@ -1418,36 +1407,48 @@ Environment variables (optional overrides):
     check_submodules()
     check_python_requirements()
 
-    # Step 0: Re-sign Sparkle.framework
-    step0_resign_sparkle(config)
-
-    # Step 1: Build screensaver
-    screensaver_path = step1_build_screensaver(config)
-
-    # Copy screensaver to various locations
-    output_saver, project_saver, screensaver_zip = copy_screensaver(config, screensaver_path)
-
-    # Step 2: Notarize screensaver
-    step2_notarize_screensaver(config, project_saver, screensaver_zip)
-
-    # Step 3: Archive app
-    archive_path = step3_archive_app(config)
-
-    # Upload dSYMs to Bugsnag (only for GitHub releases)
+    # Tag before building so the embedded git revision names this release.
+    # If the build fails, drop the tag so a rerun doesn't trip the
+    # "tag already exists" check.
     if config.github_release:
-        upload_dsyms_to_bugsnag(config, archive_path)
+        tag_release(config)
+    try:
+        # Step 0: Re-sign Sparkle.framework
+        step0_resign_sparkle(config)
 
-    # Step 4: Export app
-    exported_app = step4_export_app(config, archive_path)
+        # Step 1: Build screensaver
+        screensaver_path = step1_build_screensaver(config)
 
-    # Step 5: Notarize app
-    step5_notarize_app(config, exported_app)
+        # Copy screensaver to various locations
+        output_saver, project_saver, screensaver_zip = copy_screensaver(config, screensaver_path)
 
-    # Step 6: Create distribution package
-    final_dmg = step6_create_distribution(config, exported_app, output_saver)
+        # Step 2: Notarize screensaver
+        step2_notarize_screensaver(config, project_saver, screensaver_zip)
 
-    # Step 7: GitHub release
-    release_url = step7_github_release(config, final_dmg)
+        # Step 3: Archive app
+        archive_path = step3_archive_app(config)
+
+        # Upload dSYMs to Bugsnag (only for GitHub releases)
+        if config.github_release:
+            upload_dsyms_to_bugsnag(config, archive_path)
+
+        # Step 4: Export app
+        exported_app = step4_export_app(config, archive_path)
+
+        # Step 5: Notarize app
+        step5_notarize_app(config, exported_app)
+
+        # Step 6: Create distribution package
+        final_dmg = step6_create_distribution(config, exported_app, output_saver)
+
+        # Step 7: GitHub release
+        release_url = step7_github_release(config, final_dmg)
+
+    except BaseException:
+        if config.github_release:
+            print_yellow(f"Build failed; deleting local tag {config.version}")
+            run_command(['git', 'tag', '-d', config.version], check=False, capture_output=True)
+        raise
 
     # Print summary
     print_summary(
