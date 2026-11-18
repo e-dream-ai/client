@@ -17,7 +17,7 @@ SetFont "Segoe UI" 9
   !define SOURCE_DIR "..\MSVC\Release"
 !endif
 !ifndef OUT_FILE
-  !define OUT_FILE "infinidream-windows-${PRODUCT_VERSION}-setup.exe"
+  !define OUT_FILE "infinidream-${PRODUCT_VERSION}.exe"
 !endif
 
 !define PRODUCT_NAME      "Infinidream"

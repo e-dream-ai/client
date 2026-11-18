@@ -80,7 +80,7 @@ cmake -B build-stage -DCMAKE_BUILD_TYPE=Release -DINFINIDREAM_STAGE=ON
 cmake --build build-stage -j$(nproc)
 ```
 
-`build_appimage.py` packages a release AppImage (static OpenSSL/FFmpeg/Boost, glibc shim); `--stage` builds `infinidream-stage-<arch>.AppImage`; `-v X.Y.Z` sets the version (default: latest git tag) and `-g` uploads to GitHub release `X.Y.Z`.
+`build_appimage.py` packages a release AppImage (static OpenSSL/FFmpeg/Boost, glibc shim); it writes `infinidream-<version>-<arch>.AppImage` (`--stage`: `infinidream-<version>-stage-<arch>.AppImage`); `-v X.Y.Z` sets the version (default: latest git tag) and `-g` uploads to GitHub release `X.Y.Z`.
 
 ## Key Patterns
 

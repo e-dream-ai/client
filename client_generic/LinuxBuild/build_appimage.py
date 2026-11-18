@@ -10,7 +10,7 @@ Usage:
     ./build_appimage.py --stage          # stage (api-stage.infinidream.ai)
     ./build_appimage.py -v 0.16.2 -g     # release build, uploaded to GitHub release 0.16.2
 
-Output: infinidream-<arch>.AppImage (or infinidream-stage-<arch>.AppImage)
+Output: infinidream-<version>-<arch>.AppImage (or infinidream-<version>-stage-<arch>.AppImage)
 in this directory.
 
 Requirements:
@@ -199,7 +199,9 @@ LINUXDEPLOY_URL  = (f"https://github.com/linuxdeploy/linuxdeploy/releases/"
 APPIMAGETOOL_URL = (f"https://github.com/AppImage/appimagetool/releases/"
                     f"download/continuous/{APPIMAGETOOL_BIN}")
 
-OUTPUT_APPIMAGE  = SCRIPT_DIR / f"infinidream-{ARCH}.AppImage"
+# Set in main() once the version is known: infinidream-<version>[-stage]-<arch>.AppImage,
+# matching the Mac infinidream-<version>[-stage].dmg and Windows infinidream-<version>.exe.
+OUTPUT_APPIMAGE: Path
 
 
 # ---------------------------------------------------------------------------
@@ -816,8 +818,8 @@ def main() -> None:
             log("No -v given and no git tag found: the AppImage will report 0.0.0.")
     if args.github_release:
         check_github_release(version)
-    if args.stage:
-        OUTPUT_APPIMAGE = SCRIPT_DIR / f"infinidream-stage-{ARCH}.AppImage"
+    stage_suffix = "-stage" if args.stage else ""
+    OUTPUT_APPIMAGE = SCRIPT_DIR / f"infinidream-{version or '0.0.0'}{stage_suffix}-{ARCH}.AppImage"
 
     # Clean AppDir and cmake build tree unconditionally at startup
     if APPDIR.exists():

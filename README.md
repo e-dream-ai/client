@@ -434,7 +434,7 @@ python client_generic\WinBuild\release.py
 
 The installer packages straight from `client_generic\MSVC\Release\`: the exe and scr plus every `*.dll`, `*.png` and `*.ttf` there. `build.py` empties that folder before every build (like the Mac build), so nothing left over from an older build ships; object files are kept, so builds stay incremental (`--clean` removes those too). After a Visual Studio build, which doesn't empty the folder, run `build.py` before packaging a release. License content is embedded from `client_generic\RuntimeMSVC\License.rtf`.
 
-Output: `client_generic\WinBuild\dist\infinidream-windows-{version}-setup.exe`
+Output: `client_generic\WinBuild\dist\infinidream-{version}.exe`
 
 Options:
 
@@ -608,7 +608,7 @@ There is **no** Sparkle appcast on Windows in this repo. Typical flow:
    python release.py -g
    ```
 
-   Produces **`client_generic/WinBuild/dist/infinidream-windows-X.Y.Z-setup.exe`** (NSIS) and uploads it to the GitHub release tagged `X.Y.Z`.
+   Produces **`client_generic/WinBuild/dist/infinidream-X.Y.Z.exe`** (NSIS) and uploads it to the GitHub release tagged `X.Y.Z`.
 
 See [Build on Windows](#build-on-windows) above for the full flag list, installer behavior, and signing notes.
 

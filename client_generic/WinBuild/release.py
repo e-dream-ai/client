@@ -369,7 +369,7 @@ def run_makensis(
     makensis = str(makensis_path)
 
     ensure_dir(output_dir)
-    out_file = output_dir / f"infinidream-windows-{version}-setup.exe"
+    out_file = output_dir / f"infinidream-{version}.exe"
     source_dir = msvc_out_dir(repo, configuration)
 
     cmd = [
