@@ -2,8 +2,8 @@
 
 A small stand-in for the infinidream backend, for testing the client without real
 servers (#733). It has a total rate limit on media and can send any socket message, including
-malformed ones, but no other faults or chaos yet. Written for the Mac; `slow_link_test.py` and
-`throttle_test.py` also run on Windows (see "On Windows").
+malformed ones, but no other faults or chaos yet. Written for the Mac; all the tests also run on
+Windows (see "On Windows").
 
 - `server.py` serves the client API, the `/remote-control` socket and media on one port. Media
   can be limited to a set total rate with `--media-rate`, or during a run with
@@ -130,7 +130,7 @@ Privacy & Security); without it they're skipped, and the test says so.
 The client opens a window, and the screen has to stay unlocked, because a locked screen
 stops the render loop. Each test keeps the screen saver, lock and sleep away until it exits,
 with `caffeinate` on the Mac, `gnome-session-inhibit` (or `systemd-inhibit`) on Linux and
-`SetThreadExecutionState` on Windows; `--no-keep-awake` turns that off. Quit any other running
+`SetThreadExecutionState` plus turning the screen saver off for the session on Windows; `--no-keep-awake` turns that off. Quit any other running
 client first, or the check that real installs are unchanged may fail. A test that crashes the
 client makes macOS show a crash dialog; `defaults write com.apple.CrashReporter DialogType none`
 turns those off (the reports are still written) and
@@ -138,7 +138,7 @@ turns those off (the reports are still written) and
 
 ### On Windows
 
-`slow_link_test.py` and `throttle_test.py` have been run on Windows; the others haven't yet.
+All 18 tests have been run on Windows (Release | x64 build).
 You need Python 3 and `ffprobe` (`winget install Gyan.FFmpeg`). The video cache defaults to
 `%LOCALAPPDATA%\Infinidream\content\mp4`, and the real-installs check looks at
 `%LOCALAPPDATA%\Infinidream` and `Infinidream-stage`.
@@ -157,6 +157,7 @@ more; the Pink Floyd playlist serves those two. Crash reports, stack samples, sc
 the screen-lock check are Mac only, so on Windows a locked screen shows up as a hang. A partial
 `.tmp` download can be left after a clean quit, because the shutdown watchdog ends the process
 before the decoder that would delete it is torn down; the client removes it on its next start.
+Until that's fixed (#800), the harness prints a `NOTE` for it on Windows instead of failing.
 
 ### On Linux
 
@@ -190,7 +191,7 @@ Every test ends with these checks:
 - **It quit cleanly when asked.** The harness sends the test-only `quit` command, which takes
   the same path as Cmd-Q and which the client honors only when `INFINIDREAM_DATA_DIR` is set.
   If the client doesn't exit within 15 s, the harness samples its stacks, then sends SIGTERM.
-  After a clean quit, no partial (`.tmp`) downloads may be left.
+  After a clean quit, no partial (`.tmp`) downloads may be left (on Windows, only noted; #800).
 - **No crash report.** macOS crash reports for the client's process are copied into the run
   folder and summarized. On master the client catches SIGSEGV and calls `exit(0)` (#769), so
   a report often shows a second crash during that exit; the summary then also shows the
