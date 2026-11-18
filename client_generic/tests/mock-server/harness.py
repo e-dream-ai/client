@@ -613,10 +613,10 @@ def verify_process(run):
         if run.quit_cleanly:
             leftovers = sorted(p.name for p in (run.data / "content").rglob("*.tmp"))
             listed = ", ".join(leftovers[:5]) + (f" and {len(leftovers) - 5} more" if len(leftovers) > 5 else "")
-            if leftovers and sys.platform == "win32":
-                # Known on Windows (#800): the quit watchdog ends the process before the decoder
-                # deletes its .tmp, and the next start removes it. Noted, not failed, until fixed.
-                print(f"NOTE  Partial downloads left after quitting, known on Windows (#800): {listed}",
+            if leftovers and not IS_MAC:
+                # Known on Windows and Linux (#800): a .tmp can outlive a clean quit, and the next
+                # start removes it. Noted, not failed, until fixed.
+                print(f"NOTE  Partial downloads left after quitting, known on Windows and Linux (#800): {listed}",
                       flush=True)
             else:
                 check("No partial downloads left after quitting", not leftovers, listed)

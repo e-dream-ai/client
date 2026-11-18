@@ -180,6 +180,9 @@ is a RAM disk of half the memory, and a few kept runs fill it past the client's 
 low-disk limit, which turns on the red Disk light. Set `TMPDIR` to a folder on disk.
 
 Crash reports, stack samples, screenshots and the screen-lock check are Mac only.
+A `.tmp` can be left after a clean quit here too (#800), and the harness only notes it, as on
+Windows. On Linux it has been seen with a streamed download that had finished well before the
+quit, mostly in `bad_setting_test.py`.
 `repro_test.py`'s `previous-*` cases need exactly 2 or 3 dreams, so they skip with
 `--playlist`; run them on the default media folder instead.
 
@@ -191,7 +194,7 @@ Every test ends with these checks:
 - **It quit cleanly when asked.** The harness sends the test-only `quit` command, which takes
   the same path as Cmd-Q and which the client honors only when `INFINIDREAM_DATA_DIR` is set.
   If the client doesn't exit within 15 s, the harness samples its stacks, then sends SIGTERM.
-  After a clean quit, no partial (`.tmp`) downloads may be left (on Windows, only noted; #800).
+  After a clean quit, no partial (`.tmp`) downloads may be left (on Windows and Linux, only noted; #800).
 - **No crash report.** macOS crash reports for the client's process are copied into the run
   folder and summarized. On master the client catches SIGSEGV and calls `exit(0)` (#769), so
   a report often shows a second crash during that exit; the summary then also shows the
