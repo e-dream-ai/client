@@ -3,6 +3,7 @@ server, driving it over the socket, and the checks every test makes, including c
 hang detection. Runs on Mac and Windows; crash reports, stack samples and screenshots are Mac
 only.
 """
+import atexit
 import hashlib
 import json
 import os
@@ -207,7 +208,10 @@ class Run:
         return [e for e in events if kind is None or e["kind"] == kind]
 
     def log_text(self):
-        return "".join(p.read_text(errors="replace") for p in sorted((self.data / "Logs").glob("*.log"))) \
+        # The client logs UTF-8; without the encoding Windows reads it as cp1252, and lines with
+        # non-ASCII text, like the downloader's "already cached — nothing to download", don't match.
+        return "".join(p.read_text(encoding="utf-8", errors="replace")
+                       for p in sorted((self.data / "Logs").glob("*.log"))) \
             if (self.data / "Logs").exists() else ""
 
     def heartbeats(self):
@@ -434,6 +438,20 @@ def keep_awake():
     pid = str(os.getpid())
     if sys.platform == "win32":
         import ctypes
+        # SetThreadExecutionState keeps the display and system awake but doesn't stop the screen
+        # saver, which would start the installed client (writing to the real install) and lock
+        # the screen. So the screen saver is also turned off for this session, without
+        # SPIF_UPDATEINIFILE so the registry is untouched, and turned back on at exit.
+        user32 = ctypes.windll.user32
+        SPI_GETSCREENSAVEACTIVE, SPI_SETSCREENSAVEACTIVE = 0x0010, 0x0011
+        active = ctypes.c_int(0)
+        if (user32.SystemParametersInfoW(SPI_GETSCREENSAVEACTIVE, 0, ctypes.byref(active), 0)
+                and active.value):
+            if user32.SystemParametersInfoW(SPI_SETSCREENSAVEACTIVE, 0, None, 0):
+                atexit.register(user32.SystemParametersInfoW, SPI_SETSCREENSAVEACTIVE, 1, None, 0)
+                print("Turned the screen saver off during the run", flush=True)
+            else:
+                print("Couldn't turn the screen saver off; it may stop the run", flush=True)
         # ES_CONTINUOUS | ES_SYSTEM_REQUIRED | ES_DISPLAY_REQUIRED, held until the process exits.
         if ctypes.windll.kernel32.SetThreadExecutionState(0x80000000 | 0x1 | 0x2):
             print("Keeping the screen awake during the run", flush=True)
