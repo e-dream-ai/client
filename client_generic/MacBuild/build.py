@@ -1069,7 +1069,6 @@ def step6_create_distribution(config: BuildConfig, exported_app: Path, output_sa
         'show_status_bar': False,
         'show_pathbar': False,
         'show_tab_view': False,
-        'hide_extensions': [exported_app.name],
     }
     dmgbuild.build_dmg(str(final_dmg), volume_name, settings=settings)
     print_green(f"DMG created: {final_dmg}")
