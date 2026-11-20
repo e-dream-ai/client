@@ -185,8 +185,10 @@ void ESScreensaver_ForceWidthAndHeight(uint32 _width, uint32 _height)
 
 void ESScreensaver_SetDisplaySize(int _displayIdx, uint32 _width, uint32 _height)
 {
-    if (_displayIdx >= 0)
-        g_Player().ForceWidthAndHeight((uint32_t)_displayIdx, _width, _height);
+    if (_displayIdx < 0)
+        return;
+    g_Log->Info("Saver display %d: player size set to %ux%u (#235)", _displayIdx, _width, _height);
+    g_Player().ForceWidthAndHeight((uint32_t)_displayIdx, _width, _height);
 }
 
 void ESScreensaver_SetVideoRotation(uint32 _degrees)

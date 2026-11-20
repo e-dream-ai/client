@@ -464,8 +464,8 @@ static NSScreen* ESScreenForWindow(NSWindow* window)
                selector:@selector(_windowDidResize:)
                    name:NSWindowDidResizeNotification
                  object:self.window];
-        // The log may not be attached yet; startAnimation logs the geometry,
-        // and the init size shows whether this resized the view.
+        // The log is already attached here (gClient's constructor does it when the
+        // bundle loads), so a resize now is logged with its geometry.
         [self _matchWindowSize:"moved to window"];
 #endif
         [self _updateDisplayRefreshRate];
