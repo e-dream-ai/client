@@ -4,7 +4,8 @@ infinidream Release Script
 
 Generates appcast.xml, fetches release notes from GitHub, adds them to appcast.xml,
 and publishes to the landing-page repository. Production releases also update the
-Homebrew cask in e-dream-ai/homebrew-tap.
+Homebrew cask in e-dream-ai/homebrew-tap and open a winget-pkgs PR for the
+Windows installer.
 
 Usage:
     ./release.py -v 0.14.0           # Publish to alpha/appcast.xml
@@ -436,6 +437,51 @@ def update_homebrew_cask(version: str, dmg_path: Path) -> bool:
     return True
 
 
+WINGET_PACKAGE_ID = "infinidream.Infinidream"
+
+
+def windows_installer_name(version: str) -> str:
+    """Name WinBuild/release.py gives the NSIS setup exe it uploads."""
+    return f"infinidream-{version}.exe"
+
+
+def windows_installer_url(version: str) -> str:
+    return (f"https://github.com/e-dream-ai/client/releases/download/"
+            f"{version}/{windows_installer_name(version)}")
+
+
+def winget_update_command(version: str) -> list[str]:
+    return ['komac', 'update', WINGET_PACKAGE_ID, '--version', version,
+            '--urls', windows_installer_url(version), '--submit']
+
+
+def update_winget(version: str) -> bool:
+    """Open a winget-pkgs PR for this release's Windows installer (#575). Returns success.
+
+    komac downloads the installer, hashes it and opens the PR from a fork of
+    microsoft/winget-pkgs under the account that owns GITHUB_TOKEN. Microsoft's bots
+    then validate it; the PR merges on its own if validation passes.
+    """
+    print_yellow(f"Submitting {WINGET_PACKAGE_ID} {version} to winget...")
+
+    # winget pins the installer's sha256, so it has to be the final upload. Never
+    # re-upload this exe once the PR is open: ship a new version instead.
+    if not get_release_asset_sha256(version, windows_installer_name(version)):
+        print_red(f"Release {version} has no {windows_installer_name(version)}; "
+                  f"run WinBuild/release.py -g first")
+        return False
+    if not shutil.which('komac'):
+        print_red("komac not found (brew install komac)")
+        return False
+
+    result = run_command(winget_update_command(version), check=False)
+    if result.returncode != 0:
+        print_red("komac failed")
+        return False
+    print_green(f"winget PR opened for {WINGET_PACKAGE_ID} {version}")
+    return True
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(
         description='Generate and publish appcast.xml with release notes to landing-page repo',
@@ -574,6 +620,7 @@ def main() -> None:
             print(f"  2. Update frontend version file on {frontend_repo} ({frontend_branch})")
             print(f"  3. Mark release {version} as latest (remove prerelease)")
             print(f"  4. Update Homebrew cask in {HOMEBREW_TAP_REPO} to {version}")
+            print(f"  5. Open a winget-pkgs PR: {' '.join(winget_update_command(version))}")
         else:
             print("  2. (Stage: skip frontend version update)")
             print("  3. (Stage: skip marking as latest)")
@@ -662,6 +709,16 @@ def main() -> None:
     else:
         print("Stage release: skipping Homebrew cask")
 
+    # Step 8: Submit the Windows installer to winget (only when not stage). Also
+    # warns instead of aborting.
+    winget_ok = True
+    if not stage:
+        winget_ok = update_winget(version)
+        if not winget_ok:
+            print_yellow(f"Warning: submit to winget by hand: {' '.join(winget_update_command(version))}")
+    else:
+        print("Stage release: skipping winget")
+
     print()
     print_green("========================================")
     print_green("Release Complete!")
@@ -673,6 +730,8 @@ def main() -> None:
     print(f"GitHub Release: https://github.com/e-dream-ai/client/releases/tag/{version}")
     if not stage and cask_ok:
         print("Homebrew: brew install --cask e-dream-ai/tap/infinidream")
+    if not stage and winget_ok:
+        print(f"winget: winget install {WINGET_PACKAGE_ID} (once the winget-pkgs PR merges)")
     print()
     print("Users will receive the update notification on next app launch.")
 
