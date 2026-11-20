@@ -10,6 +10,7 @@ is no Sparkle appcast on Windows.
 from __future__ import annotations
 
 import argparse
+import json
 import os
 import re
 import shutil
@@ -399,6 +400,22 @@ def github_upload(asset: Path, tag: str) -> None:
         sys.exit(1)
     if not os.environ.get("GITHUB_TOKEN"):
         print_yellow("GITHUB_TOKEN is not set; gh may still use existing auth.")
+    # winget pins the installer's sha256 (#575), so once a release is final its exe
+    # must never change. Prereleases can be re-uploaded freely.
+    view = subprocess.run(
+        [gh, "release", "view", tag, "--json", "isPrerelease,isDraft,assets"],
+        capture_output=True,
+        text=True,
+    )
+    if view.returncode == 0:
+        info = json.loads(view.stdout)
+        final = not info["isPrerelease"] and not info["isDraft"]
+        if final and any(a["name"] == asset.name for a in info["assets"]):
+            print_red(
+                f"Release {tag} is final and already has {asset.name}; refusing to replace it, "
+                "since winget and users have its sha256. Ship a new version instead."
+            )
+            sys.exit(1)
     print_blue(f"Uploading {asset.name} to GitHub release {tag}")
     run_command(
         [gh, "release", "upload", tag, str(asset), "--clobber"],

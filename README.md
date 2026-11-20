@@ -343,6 +343,9 @@ The app bundle contains the embedded screensaver at `infinidream.app/Contents/Re
 ### Homebrew
 Mac users can install with `brew install --cask e-dream-ai/tap/infinidream`. The cask lives in [e-dream-ai/homebrew-tap](https://github.com/e-dream-ai/homebrew-tap). A production `release.py` run (no `-s`) points it at the new release, taking the sha256 GitHub reports for the uploaded DMG and refusing if it differs from the local build. If that step fails, the rest of the release is already published: update `version` and `sha256` in `Casks/infinidream.rb` by hand.
 
+### winget
+Windows users can install with `winget install infinidream.Infinidream`. A production `release.py` run also opens a PR on [microsoft/winget-pkgs](https://github.com/microsoft/winget-pkgs) with [komac](https://github.com/russellbanks/Komac) (`brew install komac`), from a fork under the account that owns `GITHUB_TOKEN`. It merges on its own once Microsoft's validation passes. Upload the Windows installer (`WinBuild/release.py -g`) before running the Mac `release.py`, since komac hashes the uploaded exe. winget pins that hash, so never replace a final release's exe; `WinBuild/release.py` refuses to. If the step fails, run the `komac update` command it prints.
+
 ## Build on Windows
 
 Covers the native **MSVC** client ([`e-dream.sln`](client_generic/MSVC/e-dream.sln)), **vcpkg** manifest dependencies, and the **NSIS installer** via [`client_generic/WinBuild/`](client_generic/WinBuild/) (same style as [`MacBuild/build.py`](client_generic/MacBuild/build.py) and [`release.py`](client_generic/MacBuild/release.py)).

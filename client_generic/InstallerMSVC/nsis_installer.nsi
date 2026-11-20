@@ -98,6 +98,31 @@ VIAddVersionKey "LegalCopyright"  "${PRODUCT_PUBLISHER}"
 
 !insertmacro MUI_LANGUAGE "English"
 
+; Stop running copies of the app and screensaver, whose locked files would otherwise
+; fail the File/Delete below. That matters most for silent upgrades (winget, #575),
+; where nobody is there to answer the retry box. Ask politely first (taskkill without /F
+; sends WM_CLOSE), then force whatever is still running. taskkill returns 0 if it found
+; a matching process, 128 if none; one image per call, so one that isn't running can't
+; mask one that is. Covers every user's session, since we run elevated.
+!macro CloseRunningImage IMAGE
+  nsExec::Exec 'taskkill /IM "${IMAGE}"'
+  Pop $0
+  ${If} $0 == 0
+    Sleep 2000
+    nsExec::Exec 'taskkill /F /IM "${IMAGE}"'
+    Pop $0
+    ${If} $0 == 0
+      Sleep 1000 ; let Windows release the files
+    ${EndIf}
+  ${EndIf}
+!macroend
+
+!macro CloseRunningInstances
+  DetailPrint "Closing running copies of ${PRODUCT_NAME}..."
+  !insertmacro CloseRunningImage "${PRODUCT_EXE}"
+  !insertmacro CloseRunningImage "${PRODUCT_SCR}"
+!macroend
+
 Function .onInit
   ${IfNot} ${RunningX64}
     MessageBox MB_ICONSTOP "${PRODUCT_NAME} requires 64-bit Windows."
@@ -182,6 +207,7 @@ FunctionEnd
 
 Section "MainSection" SEC01
   SetOverwrite on
+  !insertmacro CloseRunningInstances
   SetOutPath "$INSTDIR"
   SetShellVarContext all
 
@@ -210,7 +236,9 @@ Section -Post
   WriteRegStr HKLM "${PRODUCT_DIR_REGKEY}" "" "$INSTDIR\${PRODUCT_EXE}"
   WriteRegStr HKLM "Software\${PRODUCT_NAME}" "InstallDir" "$INSTDIR"
 
-  WriteRegStr HKLM "${PRODUCT_UNINST_KEY}" "DisplayName"     "$(^Name)"
+  ; No version in DisplayName: winget matches the installed app to its manifest by
+  ; this name, and DisplayVersion already carries the version (#575).
+  WriteRegStr HKLM "${PRODUCT_UNINST_KEY}" "DisplayName"     "${PRODUCT_NAME}"
   WriteRegStr HKLM "${PRODUCT_UNINST_KEY}" "DisplayVersion"  "${PRODUCT_VERSION}"
   WriteRegStr HKLM "${PRODUCT_UNINST_KEY}" "DisplayIcon"     "$INSTDIR\${PRODUCT_EXE}"
   WriteRegStr HKLM "${PRODUCT_UNINST_KEY}" "Publisher"       "${PRODUCT_PUBLISHER}"
@@ -257,6 +285,7 @@ FunctionEnd
 
 Section Uninstall
   SetShellVarContext all
+  !insertmacro CloseRunningInstances
 
   ; Reset the screensaver of every signed-in user whose screensaver is still ours, while
   ; the .scr still exists (see un.ClearOurScreensaver). Not just HKCU: the uninstaller runs
