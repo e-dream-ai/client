@@ -9,7 +9,7 @@ Cross-platform native desktop application and screensaver for infinidream.ai (ma
 - **Language:** C++
 - **Build Systems:** Xcode (macOS), MSVC / Visual Studio 2022 (Windows), CMake (Linux)
 - **Rendering:** Metal (macOS), DirectX (Windows), Vulkan (Linux)
-- **Auto-update:** Sparkle framework (EdDSA signatures) — macOS only
+- **Auto-update:** Sparkle framework (EdDSA signatures) — macOS only; Windows users upgrade through winget
 - **Dependencies:** vcpkg (manifest at `vcpkg.json`, submodule at `vcpkg/`); Linux uses system packages
 - **Scripting:** Python (build/release scripts), Bash
 
@@ -20,7 +20,7 @@ client_generic/
   MacBuild/
     e-dream.xcodeproj   # Xcode project
     build.py             # Build script (-r release, -s stage, -n notarize, -v version)
-    release.py           # Publish release with Sparkle appcast generation
+    release.py           # Promote a release: appcast, frontend version, Latest, Homebrew, winget
   MSVC/
     e-dream.sln          # Visual Studio solution (build Release | x64)
   WinBuild/
@@ -107,6 +107,23 @@ The screensaver pointer at `HKCU\Control Panel\Desktop\SCRNSAVE.EXE` (Windows) i
 
 ## Deployment
 
-GitHub releases as `infinidream-X.Y.Z.dmg`. Appcast URLs:
+Releases are run by hand from the build machines with the scripts below, never in CI. Full
+steps in README "to prerelease" and "to release".
+
+1. **Mac** `build.py -r -n -g -v X.Y.Z`: creates tag `X.Y.Z` (no `v`) and a GitHub prerelease,
+   uploads `infinidream-X.Y.Z.dmg`.
+2. **Windows** `release.py --sign -g` uploads `infinidream-X.Y.Z.exe`; **Linux**
+   `build_appimage.py -v X.Y.Z -g` uploads `infinidream-X.Y.Z-x86_64.AppImage`. Both need the
+   release from step 1.
+3. **Mac** `release.py -v X.Y.Z` promotes it: appcast to landing-page `public/alpha/appcast.xml`
+   (`-s`: `public/stage/appcast.xml` and nothing else), `APP_VERSION` in frontend
+   `src/version.ts`, marks the release Latest, updates the Homebrew cask in
+   `e-dream-ai/homebrew-tap`, and opens a winget PR (`komac update infinidream.Infinidream`,
+   from the org fork `e-dream-ai/winget-pkgs`). The Windows exe must be uploaded first.
+
+Prereleases (steps 1–2 only) reach testers without Sparkle. Once a version is promoted, never
+replace its files: Homebrew and winget pin their sha256. Ship a new version instead.
+
+Appcast URLs:
 - Production: `https://infinidream.ai/appcast.xml`
 - Stage: `https://infinidream.ai/stage/appcast.xml`
