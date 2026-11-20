@@ -21,8 +21,12 @@ dropped (#762) stored `cache/univ-osx/**/libavcodec.a` in LFS, so checking
 one of those out still needs `git lfs install` first.
 
 If you are doing releases you will need:
-    brew install gh
+    brew install gh                      # GitHub releases, appcast, Homebrew cask; then `gh auth login`
     brew install bugsnag/tap/bugsnag-cli
+    brew install komac                   # winget PRs from Mac release.py (see "winget" below)
+
+Optional: `brew install makensis` compiles the Windows installer script on a Mac, to check an
+`.nsi` change before building it on Windows.
 
 The general C++ dependencies are handled by vcpkg. The Microsoft vcpkg repo is included as a **git submodule** at `vcpkg/`. After cloning this repo, fetch it and build dependencies.
 
@@ -623,8 +627,8 @@ opens a PR to microsoft/winget-pkgs. The PR's author is whoever owns the token: 
 if set, else your `gh` login (it needs `public_repo`; a fine-grained token won't work, since it
 writes to the fork and opens the PR on Microsoft's repo). Microsoft's bots validate the PR by
 installing silently in a sandbox. Version updates usually merge automatically once that
-passes; a new package's first version also needs a moderator's review. Moderators can't push fixes to a branch on an org fork, so if they ask for a change, make it
-on the branch yourself.
+passes; a new package's first version also needs a moderator's review. Moderators can't push
+fixes to a branch on an org fork, so if they ask for a change, make it on the branch yourself.
 
 If step 5 fails, run the command it prints:
 ```bash
