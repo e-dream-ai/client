@@ -15,6 +15,9 @@
 //using namespace ContentDownloader;
 
 @interface ESConfiguration () <NSTextFieldDelegate>
+{
+    id m_escapeMonitor;
+}
 @end
 
 @implementation ESConfiguration
@@ -61,6 +64,29 @@
 
 - (void)awakeFromNib // was - (NSWindow *)window
 {
+    // Escape closes the window, like standard macOS settings windows (#850).
+    // The Close button's key equivalent is Return once signed in, and
+    // cancelOperation: alone isn't enough: a focused text field's editor
+    // swallows Escape, and with the tab view focused nothing sends it.
+    // So catch Escape before it is dispatched, but only for our own window,
+    // which leaves alerts shown on top of it alone.
+    if (!m_escapeMonitor)
+    {
+        __weak ESConfiguration* weakSelf = self;
+        m_escapeMonitor = [NSEvent
+            addLocalMonitorForEventsMatchingMask:NSEventMaskKeyDown
+                                         handler:^NSEvent*(NSEvent* event) {
+                ESConfiguration* strongSelf = weakSelf;
+                if (strongSelf && event.window == strongSelf.window &&
+                    event.keyCode == 53 /* kVK_Escape */)
+                {
+                    [strongSelf ok:nil];
+                    return nil;
+                }
+                return event;
+            }];
+    }
+
     CFBundleRef bndl = CopyDLBundle_ex();
 
     // We preload system images, this gives us flat design in modern macOS
@@ -191,7 +217,7 @@
     }
 
     // Return goes to the default (blue) button: Close once signed in,
-    // otherwise Send code / Validate. Escape still closes via cancelOperation:.
+    // otherwise Send code / Validate. Escape closes via the monitor in awakeFromNib.
     BOOL signedIn = EDreamClient::IsLoggedIn();
     okButton.keyEquivalent = signedIn ? @"\r" : @"";
     signInButton.keyEquivalent = signedIn ? @"" : @"\r";
@@ -655,6 +681,8 @@
 
 - (void)dealloc
 {
+    if (m_escapeMonitor)
+        [NSEvent removeMonitor:m_escapeMonitor];
     [emailTextField setDelegate:nil];
     [digitCodeTextField setDelegate:nil];
 }
