@@ -28,9 +28,7 @@
 
 #include <imgui.h>
 
-#ifdef HAVE_WAYLAND
-#include <xkbcommon/xkbcommon.h>
-#endif
+#include "ImGuiKeyFeedLinux.h"
 
 namespace {
 
@@ -564,82 +562,13 @@ void SettingsDialogVulkan_DrawIfNeeded()
         ImGui::PopFont();
 }
 
-#ifdef HAVE_WAYLAND
-bool SettingsDialogVulkan_FeedKey(uint32_t evdev_key, xkb_keysym_t keysym, bool pressed,
-                                  struct xkb_state* state)
+bool SettingsDialogVulkan_FeedKey(uint32_t keysym, bool pressed, bool ctrl, bool shift,
+                                   const char* utf8)
 {
     if (!g_visible.load(std::memory_order_acquire)) return false;
-
-    ImGuiIO& io = ImGui::GetIO();
-
-    ImGuiKey imkey = ImGuiKey_None;
-    switch (keysym)
-    {
-    case XKB_KEY_BackSpace: imkey = ImGuiKey_Backspace;  break;
-    case XKB_KEY_Delete:    imkey = ImGuiKey_Delete;     break;
-    case XKB_KEY_Return:
-    case XKB_KEY_KP_Enter:  imkey = ImGuiKey_Enter;      break;
-    case XKB_KEY_Tab:       imkey = ImGuiKey_Tab;        break;
-    case XKB_KEY_Left:      imkey = ImGuiKey_LeftArrow;  break;
-    case XKB_KEY_Right:     imkey = ImGuiKey_RightArrow; break;
-    case XKB_KEY_Home:      imkey = ImGuiKey_Home;       break;
-    case XKB_KEY_End:       imkey = ImGuiKey_End;        break;
-    case XKB_KEY_Insert:    imkey = ImGuiKey_Insert;     break;
-    case XKB_KEY_Escape:    imkey = ImGuiKey_Escape;     break;
-    default: break;
-    }
-
-    bool ctrl  = false;
-    bool shift = false;
-    if (state)
-    {
-        ctrl  = xkb_state_mod_name_is_active(state, XKB_MOD_NAME_CTRL,  XKB_STATE_MODS_EFFECTIVE) > 0;
-        shift = xkb_state_mod_name_is_active(state, XKB_MOD_NAME_SHIFT, XKB_STATE_MODS_EFFECTIVE) > 0;
-    }
-
-    if (ctrl)
-    {
-        switch (keysym)
-        {
-        case XKB_KEY_a: imkey = ImGuiKey_A; break;
-        case XKB_KEY_c: imkey = ImGuiKey_C; break;
-        case XKB_KEY_v: imkey = ImGuiKey_V; break;
-        case XKB_KEY_x: imkey = ImGuiKey_X; break;
-        case XKB_KEY_z: imkey = ImGuiKey_Z; break;
-        default: break;
-        }
-    }
-
-    if (shift && keysym == XKB_KEY_Insert)
-    {
-        io.AddKeyEvent(ImGuiMod_Ctrl, true);
-        io.AddKeyEvent(ImGuiKey_V, pressed);
-        io.AddKeyEvent(ImGuiMod_Ctrl, false);
-        io.AddKeyEvent(ImGuiMod_Shift, false);
-        return true;
-    }
-
-    if (imkey != ImGuiKey_None)
-        io.AddKeyEvent(imkey, pressed);
-
-    io.AddKeyEvent(ImGuiMod_Ctrl, ctrl);
-
-    if (pressed && state && !ctrl && !(shift && keysym == XKB_KEY_Insert))
-    {
-        const xkb_keycode_t xkb_keycode = evdev_key + 8;
-        char utf8charbuf[8] = {};
-        int len = xkb_state_key_get_utf8(state, xkb_keycode, utf8charbuf, sizeof utf8charbuf);
-        if (len > 0 &&
-            static_cast<unsigned char>(utf8charbuf[0]) >= 0x20 &&
-            static_cast<unsigned char>(utf8charbuf[0]) != 0x7f)
-        {
-            io.AddInputCharactersUTF8(utf8charbuf);
-        }
-    }
-
-    return true;
+    ImGuiFeedLinuxKey(keysym, pressed, ctrl, shift, utf8);
+    return true; // always consume while the dialog is visible
 }
-#endif // HAVE_WAYLAND
 
 void SettingsDialogVulkan_FeedMousePos(int x, int y)
 {

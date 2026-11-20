@@ -4,10 +4,6 @@
 
 #include <cstdint>
 
-#ifdef HAVE_WAYLAND
-#include <xkbcommon/xkbcommon.h>
-#endif
-
 /// Register the ESSetShowFirstTimeSetupCallback so the auth layer can trigger the wizard.
 void FirstTimeSetupVulkan_Register();
 
@@ -18,13 +14,11 @@ bool FirstTimeSetupVulkan_IsWizardVisible();
 /// calls into the current frame if the wizard is visible.
 void FirstTimeSetupVulkan_DrawIfNeeded();
 
-/// Feed a Wayland keyboard event into ImGui. `evdev_key` is the raw Wayland key code (before
-/// the +8 xkb offset). Returns true if the wizard consumed the event (caller should skip
-/// pushing it onto the normal event queue).
-#ifdef HAVE_WAYLAND
-bool FirstTimeSetupVulkan_FeedKey(uint32_t evdev_key, xkb_keysym_t keysym, bool pressed,
-                                  struct xkb_state* state);
-#endif
+/// Feed a key event (Wayland or X11) into ImGui while the wizard is visible. `keysym` is
+/// layout-aware, `utf8` the text the key types (null or empty for none). Returns true if
+/// the wizard consumed the event (caller should skip pushing it onto the normal event queue).
+bool FirstTimeSetupVulkan_FeedKey(uint32_t keysym, bool pressed, bool ctrl, bool shift,
+                                   const char* utf8);
 
 /// Feed pointer (mouse) position from Wayland callbacks.
 void FirstTimeSetupVulkan_FeedMousePos(int x, int y);
