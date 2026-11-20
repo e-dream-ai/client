@@ -3,7 +3,8 @@
 infinidream Release Script
 
 Generates appcast.xml, fetches release notes from GitHub, adds them to appcast.xml,
-and publishes to the landing-page repository.
+and publishes to the landing-page repository. Production releases also update the
+Homebrew cask in e-dream-ai/homebrew-tap.
 
 Usage:
     ./release.py -v 0.14.0           # Publish to alpha/appcast.xml
@@ -12,6 +13,7 @@ Usage:
 
 import argparse
 import base64
+import hashlib
 import json
 import os
 import re
@@ -297,26 +299,23 @@ def get_file_from_github(
     ref: Optional[str] = None,
 ) -> tuple[Optional[str], Optional[str]]:
     """Get file content and SHA from GitHub. Returns (content, sha) or (None, None)."""
+    sha = get_sha_from_github(repo, path, ref=ref)
+    if not sha:
+        return None, None
+    # The base64 content is wrapped across lines, so decode all of it.
     ref_arg = f"?ref={ref}" if ref else ""
     result = run_command(
-        ['gh', 'api', f'/repos/{repo}/contents/{path}{ref_arg}',
-         '--jq', '.content, .sha'],
+        ['gh', 'api', f'/repos/{repo}/contents/{path}{ref_arg}', '--jq', '.content'],
         check=False,
         capture_output=True
     )
     if result.returncode != 0:
         return None, None
-
-    lines = result.stdout.strip().split('\n')
-    if len(lines) >= 2:
-        content_b64 = lines[0]
-        sha = lines[1]
-        try:
-            content = base64.b64decode(content_b64).decode('utf-8')
-            return content, sha
-        except Exception:
-            return None, None
-    return None, None
+    try:
+        content = base64.b64decode(''.join(result.stdout.split())).decode('utf-8')
+    except Exception:
+        return None, None
+    return content, sha
 
 
 def get_sha_from_github(repo: str, path: str, ref: Optional[str] = None) -> Optional[str]:
@@ -365,6 +364,76 @@ def update_file_on_github(
         return True, ""
     err = (result.stderr or result.stdout or "").strip()
     return False, err
+
+
+HOMEBREW_TAP_REPO = "e-dream-ai/homebrew-tap"
+HOMEBREW_CASK_PATH = "Casks/infinidream.rb"
+
+
+def get_release_asset_sha256(version: str, asset_name: str) -> Optional[str]:
+    """sha256 of an uploaded release asset, as reported by GitHub, or None."""
+    result = run_command(
+        ['gh', 'api', f'/repos/e-dream-ai/client/releases/tags/{version}',
+         '--jq', f'.assets[] | select(.name == "{asset_name}") | .digest'],
+        check=False,
+        capture_output=True
+    )
+    digest = (result.stdout or '').strip() if result.returncode == 0 else ''
+    if not digest.startswith('sha256:'):
+        return None
+    return digest[len('sha256:'):]
+
+
+def update_cask_text(cask: str, version: str, sha256: str) -> Optional[str]:
+    """Set version and sha256 in the cask. None if either line isn't found."""
+    cask, n_version = re.subn(r'^(\s*version\s+)"[^"]*"', rf'\g<1>"{version}"', cask, count=1, flags=re.M)
+    cask, n_sha = re.subn(r'^(\s*sha256\s+)"[^"]*"', rf'\g<1>"{sha256}"', cask, count=1, flags=re.M)
+    if n_version != 1 or n_sha != 1:
+        return None
+    return cask
+
+
+def update_homebrew_cask(version: str, dmg_path: Path) -> bool:
+    """Point the Homebrew cask at this release's DMG (#853). Returns success."""
+    print_yellow(f"Updating Homebrew cask in {HOMEBREW_TAP_REPO}...")
+
+    # The cask must match what users download, so take the hash GitHub reports
+    # for the uploaded asset, and refuse if it differs from the local build.
+    remote_sha = get_release_asset_sha256(version, dmg_path.name)
+    if not remote_sha:
+        print_red(f"Release {version} has no uploaded asset named {dmg_path.name}")
+        return False
+    local_sha = hashlib.sha256(dmg_path.read_bytes()).hexdigest()
+    if local_sha != remote_sha:
+        print_red(f"{dmg_path.name} on GitHub differs from the local build:")
+        print(f"  GitHub: {remote_sha}")
+        print(f"  local:  {local_sha}")
+        return False
+
+    branch = get_default_branch(HOMEBREW_TAP_REPO)
+    cask, sha = get_file_from_github(HOMEBREW_TAP_REPO, HOMEBREW_CASK_PATH, ref=branch)
+    if cask is None:
+        print_red(f"Could not read {HOMEBREW_TAP_REPO}/{HOMEBREW_CASK_PATH}")
+        return False
+    updated = update_cask_text(cask, version, remote_sha)
+    if updated is None:
+        print_red("Could not find the version/sha256 lines in the cask")
+        return False
+    if updated == cask:
+        print_green(f"Homebrew cask already at {version}")
+        return True
+
+    ok, err_msg = update_file_on_github(
+        HOMEBREW_TAP_REPO, HOMEBREW_CASK_PATH, updated, sha,
+        f"infinidream {version}", branch=branch
+    )
+    if not ok:
+        print_red("Failed to update the Homebrew cask")
+        if err_msg:
+            print(err_msg)
+        return False
+    print_green(f"Homebrew cask updated to {version}")
+    return True
 
 
 def main() -> None:
@@ -504,9 +573,11 @@ def main() -> None:
         if not stage:
             print(f"  2. Update frontend version file on {frontend_repo} ({frontend_branch})")
             print(f"  3. Mark release {version} as latest (remove prerelease)")
+            print(f"  4. Update Homebrew cask in {HOMEBREW_TAP_REPO} to {version}")
         else:
             print("  2. (Stage: skip frontend version update)")
             print("  3. (Stage: skip marking as latest)")
+            print("  4. (Stage: skip Homebrew cask)")
         print()
         print("Run without --dry-run to execute for real.")
         return
@@ -581,6 +652,16 @@ def main() -> None:
     else:
         print("Stage release: skipping marking as latest")
 
+    # Step 7: Update the Homebrew cask (only when not stage). Everything else
+    # is published by now, so a failure here warns instead of aborting.
+    cask_ok = True
+    if not stage:
+        cask_ok = update_homebrew_cask(version, dmg_path)
+        if not cask_ok:
+            print_yellow(f"Warning: update version and sha256 in {HOMEBREW_TAP_REPO}/{HOMEBREW_CASK_PATH} by hand")
+    else:
+        print("Stage release: skipping Homebrew cask")
+
     print()
     print_green("========================================")
     print_green("Release Complete!")
@@ -590,6 +671,8 @@ def main() -> None:
     else:
         print(f"Appcast URL: https://infinidream.ai/alpha/appcast.xml")
     print(f"GitHub Release: https://github.com/e-dream-ai/client/releases/tag/{version}")
+    if not stage and cask_ok:
+        print("Homebrew: brew install --cask e-dream-ai/tap/infinidream")
     print()
     print("Users will receive the update notification on next app launch.")
 

@@ -340,6 +340,9 @@ Default keychain profile: `infinidream-notarization`
 
 The app bundle contains the embedded screensaver at `infinidream.app/Contents/Resources/infinidream.saver`. The DMG contains the app plus an Applications symlink for drag-to-install, in a window with a background picture (`client_generic/MacBuild/dmg/`; regenerate it with `make_background.py`, after `python3 -m pip install -r dmg/requirements.txt`).
 
+### Homebrew
+Mac users can install with `brew install --cask e-dream-ai/tap/infinidream`. The cask lives in [e-dream-ai/homebrew-tap](https://github.com/e-dream-ai/homebrew-tap). A production `release.py` run (no `-s`) points it at the new release, taking the sha256 GitHub reports for the uploaded DMG and refusing if it differs from the local build. If that step fails, the rest of the release is already published: update `version` and `sha256` in `Casks/infinidream.rb` by hand.
+
 ## Build on Windows
 
 Covers the native **MSVC** client ([`e-dream.sln`](client_generic/MSVC/e-dream.sln)), **vcpkg** manifest dependencies, and the **NSIS installer** via [`client_generic/WinBuild/`](client_generic/WinBuild/) (same style as [`MacBuild/build.py`](client_generic/MacBuild/build.py) and [`release.py`](client_generic/MacBuild/release.py)).
