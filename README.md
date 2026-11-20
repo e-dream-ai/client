@@ -29,9 +29,6 @@ brew install bugsnag/tap/bugsnag-cli
 brew install komac                   # winget PRs from Mac release.py (see "winget" below)
 ```
 
-Optional: `brew install makensis` compiles the Windows installer script on a Mac, to check an
-`.nsi` change before building it on Windows.
-
 The general C++ dependencies are handled by vcpkg. The Microsoft vcpkg repo is included as a **git submodule** at `vcpkg/`. After cloning this repo, fetch it and build dependencies.
 
 **macOS**
