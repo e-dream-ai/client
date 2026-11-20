@@ -161,6 +161,30 @@ def verify_signature(path: str) -> bool:
     return result.returncode == 0
 
 
+def distribution_signing_problems(path: Path, team_id: str, require_runtime: bool = True) -> list[str]:
+    """What keeps a signed bundle from being notarized, per `codesign -dvv`; empty if none.
+
+    Notarization needs a Developer ID Application signature from our team, and for
+    code that runs as its own process, the hardened runtime. A plug-in such as the
+    .saver runs inside its host's process, so it doesn't need one (released
+    screensavers are signed without it and notarize fine).
+    """
+    result = run_command(['codesign', '-dvv', str(path)], check=False, capture_output=True)
+    if result.returncode != 0:
+        return ["not signed"]
+    info = (result.stderr or '') + (result.stdout or '')
+    problems = []
+    if 'Authority=Developer ID Application' not in info:
+        problems.append("not Developer ID signed")
+    if f'TeamIdentifier={team_id}' not in info:
+        problems.append(f"team is not {team_id}")
+    if require_runtime:
+        flags = re.search(r'flags=\S*\(([^)]*)\)', info)
+        if not flags or 'runtime' not in flags.group(1).split(','):
+            problems.append("no hardened runtime")
+    return problems
+
+
 def has_xcpretty() -> bool:
     """Check if xcpretty is available."""
     return shutil.which('xcpretty') is not None
@@ -450,22 +474,7 @@ def verify_sparkle_signing(config: BuildConfig, exported_app: Path) -> None:
     ]
     failed = False
     for component in components:
-        result = run_command(
-            ['codesign', '-dvv', str(component)],
-            check=False, capture_output=True
-        )
-        info = (result.stderr or '') + (result.stdout or '')
-        problems = []
-        if result.returncode != 0:
-            problems.append("not signed")
-        else:
-            if 'Authority=Developer ID Application' not in info:
-                problems.append("not Developer ID signed")
-            if f'TeamIdentifier={config.team_id}' not in info:
-                problems.append(f"team is not {config.team_id}")
-            flags = re.search(r'flags=\S*\(([^)]*)\)', info)
-            if not flags or 'runtime' not in flags.group(1).split(','):
-                problems.append("no hardened runtime")
+        problems = distribution_signing_problems(component, config.team_id)
         if problems:
             failed = True
             print_red(f"  {component.name}: {', '.join(problems)}")
@@ -531,23 +540,18 @@ def step1_build_screensaver(config: BuildConfig) -> Path:
         if verify_signature(str(screensaver_path)):
             print_green("Code signature verified")
 
-            # Check with spctl for more detailed info
-            print_yellow("Checking signature details with spctl...")
-            result = run_command(
-                ['spctl', '-vvv', '--assess', '--type', 'exec', str(screensaver_path)],
-                check=False,
-                capture_output=True
-            )
-            spctl_output = result.stderr if result.stderr else result.stdout
-
-            if spctl_output:
-                print(f"Signature status: {spctl_output}")
-                if 'Developer ID Application' in spctl_output:
-                    print_green("Signed with Developer ID Application certificate")
-                else:
-                    print_yellow("Warning: Not signed with Developer ID Application certificate")
+            # Catch what would make Apple reject it now, not after a notarization
+            # round trip. (Gatekeeper's spctl can't tell us: before notarization it
+            # rejects every Developer ID build; step 2 asks it after stapling.)
+            problems = distribution_signing_problems(
+                screensaver_path, config.team_id, require_runtime=False)
+            if not problems:
+                print_green(f"Signed with Developer ID (team {config.team_id})")
+            elif config.notarize:
+                print_red(f"Screensaver can't be notarized: {', '.join(problems)}")
+                sys.exit(1)
             else:
-                print_yellow("Warning: Could not get detailed signature information")
+                print_yellow(f"Warning: not signed for distribution: {', '.join(problems)}")
         else:
             print_red("Code signature verification failed")
             print("This may cause notarization to fail.")
