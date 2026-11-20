@@ -6,6 +6,7 @@
 #include "FirstTimeSetupVulkan.h"
 #include "SettingsDialogVulkan.h"
 
+#include <X11/Xresource.h>
 #include <X11/Xutil.h>
 #include <X11/extensions/randr.h>
 #include <algorithm>
@@ -31,6 +32,57 @@ namespace DisplayOutput
 namespace
 {
 constexpr uint32_t kWaylandButtonLeft = 0x110;
+
+// The text an X11 keysym types, as NUL-terminated UTF-8 ("" for none). X11 and
+// xkb keysyms are the same values, so xkbcommon does it when the build has it;
+// otherwise Latin-1 and Unicode keysyms (0x01xxxxxx) cover typing an email,
+// a login code and most Latin text.
+void keysymToUtf8(KeySym ks, char (&out)[8])
+{
+    out[0] = '\0';
+#ifdef HAVE_WAYLAND
+    if (xkb_keysym_to_utf8(static_cast<xkb_keysym_t>(ks), out, sizeof out) <= 0)
+        out[0] = '\0';
+#else
+    uint32_t cp = 0;
+    if ((ks >= 0x20 && ks <= 0x7e) || (ks >= 0xa0 && ks <= 0xff))
+        cp = static_cast<uint32_t>(ks);
+    else if ((ks & 0xff000000UL) == 0x01000000UL)
+        cp = static_cast<uint32_t>(ks & 0x00ffffffUL);
+    if (cp == 0 || cp > 0x10ffff)
+        return;
+    int n = 0;
+    if (cp < 0x80)        { out[n++] = static_cast<char>(cp); }
+    else if (cp < 0x800)  { out[n++] = static_cast<char>(0xc0 | (cp >> 6)); }
+    else if (cp < 0x10000){ out[n++] = static_cast<char>(0xe0 | (cp >> 12)); }
+    else                  { out[n++] = static_cast<char>(0xf0 | (cp >> 18)); }
+    if (cp >= 0x10000) out[n++] = static_cast<char>(0x80 | ((cp >> 12) & 0x3f));
+    if (cp >= 0x800)   out[n++] = static_cast<char>(0x80 | ((cp >> 6) & 0x3f));
+    if (cp >= 0x80)    out[n++] = static_cast<char>(0x80 | (cp & 0x3f));
+    out[n] = '\0';
+#endif
+}
+
+// Xft.dpi from the X resource database (0 if unset). Desktops set it to their
+// scale x 96: GNOME at 200% on X11, and GNOME's xwayland-native-scaling on
+// Wayland, where XWayland reports a fake 96 DPI screen size (issue #851).
+float readXftDpi(Display* dpy)
+{
+    const char* rms = XResourceManagerString(dpy);
+    if (!rms)
+        return 0.f;
+    XrmInitialize();
+    XrmDatabase db = XrmGetStringDatabase(rms);
+    if (!db)
+        return 0.f;
+    float dpi = 0.f;
+    char* type = nullptr;
+    XrmValue value{};
+    if (XrmGetResource(db, "Xft.dpi", "Xft.Dpi", &type, &value) && value.addr)
+        dpi = static_cast<float>(std::atof(value.addr));
+    XrmDestroyDatabase(db);
+    return dpi;
+}
 }
 
 // ---------------------------------------------------------------------------
@@ -836,9 +888,15 @@ void CDisplayVulkan::onKeyboardKey(void* data, wl_keyboard*, uint32_t,
     }
 
     // Feed into ImGui overlays while they're visible; consume the event if accepted.
-    if (FirstTimeSetupVulkan_FeedKey(key, keysym, spEvent->m_bPressed, self->m_pXkbState))
+    // xkb_state_key_get_utf8 gives the typed text for the active layout.
+    const bool shift = xkb_state_mod_name_is_active(self->m_pXkbState, XKB_MOD_NAME_SHIFT,
+                                                    XKB_STATE_MODS_EFFECTIVE) > 0;
+    char utf8[8] = {};
+    if (spEvent->m_bPressed)
+        xkb_state_key_get_utf8(self->m_pXkbState, keycode, utf8, sizeof utf8);
+    if (FirstTimeSetupVulkan_FeedKey(keysym, spEvent->m_bPressed, spEvent->m_bCtrl, shift, utf8))
         return;
-    if (SettingsDialogVulkan_FeedKey(key, keysym, spEvent->m_bPressed, self->m_pXkbState))
+    if (SettingsDialogVulkan_FeedKey(keysym, spEvent->m_bPressed, spEvent->m_bCtrl, shift, utf8))
         return;
 
     self->m_EventQueue.push(std::static_pointer_cast<CEvent>(spEvent));
@@ -1422,14 +1480,30 @@ bool CDisplayVulkan::Initialize(const uint32_t _width, const uint32_t _height,
     m_WidthFS  = static_cast<uint32_t>(DisplayWidth (m_pDisplay, screen));
     m_HeightFS = static_cast<uint32_t>(DisplayHeight(m_pDisplay, screen));
 
-    // Derive UI scale from physical display DPI (DisplayWidthMM is the physical
-    // width in millimetres reported by the X server / XRandR).
+    // UI scale: the desktop's Xft.dpi if set, else the physical display DPI
+    // (DisplayWidthMM is the physical width in millimetres reported by the
+    // X server / XRandR).
+    const float xftDpi = readXftDpi(m_pDisplay);
     int physWidthMM = DisplayWidthMM(m_pDisplay, screen);
-    if (physWidthMM > 0)
+    if (xftDpi > 0.f)
+    {
+        PlatformUtils_SetUIScale(xftDpi / 96.0f);
+    }
+    else if (physWidthMM > 0)
     {
         float dpi = static_cast<float>(DisplayWidth(m_pDisplay, screen)) * 25.4f
                     / static_cast<float>(physWidthMM);
         PlatformUtils_SetUIScale(dpi / 96.0f);
+    }
+    g_Log->Info("CDisplayVulkan: X11 Xft.dpi=%.0f, uiScale %.3f",
+                xftDpi, PlatformUtils_GetUIScale());
+
+    // The requested size is in logical pixels, as on Wayland; X11 windows are
+    // sized in device pixels. Also the size the WM restores on leaving fullscreen.
+    if (!xssId || !*xssId)
+    {
+        m_Width  = static_cast<uint32_t>(std::lround(_width  * PlatformUtils_GetUIScale()));
+        m_Height = static_cast<uint32_t>(std::lround(_height * PlatformUtils_GetUIScale()));
     }
 
     m_wmDeleteWindow  = XInternAtom(m_pDisplay, "WM_DELETE_WINDOW",         False);
@@ -1727,22 +1801,28 @@ void CDisplayVulkan::checkEvents()
                 XFree(syms);
             }
 
-            // Feed into ImGui overlays on X11. XKB and X11 keysym values match for
-            // all keys used by the overlay input handlers. Pass nullptr for xkb_state
-            // (FeedKey handles this gracefully; text entry via XLookupString is a
-            // follow-up task).
-#ifdef HAVE_WAYLAND
-            if (x11keysym != XK_VoidSymbol)
+            // Feed into ImGui overlays on X11. The bindings above use the base
+            // keysym (syms[0]); the overlays need the layout-aware one, with Shift
+            // and NumLock applied, which XLookupString gives (issue #851).
+            KeySym typedSym = NoSymbol;
+            char latin1[8];
+            XLookupString(&xEvent.xkey, latin1, sizeof latin1, &typedSym, nullptr);
+            if (typedSym == NoSymbol)
+                typedSym = x11keysym;
+            if (typedSym != NoSymbol && typedSym != XK_VoidSymbol)
             {
-                const uint32_t evdevKey = static_cast<uint32_t>(xEvent.xkey.keycode) - 8;
-                if (FirstTimeSetupVulkan_FeedKey(evdevKey,
-                        static_cast<xkb_keysym_t>(x11keysym), spEvent->m_bPressed, nullptr))
+                char utf8[8] = {};
+                if (spEvent->m_bPressed)
+                    keysymToUtf8(typedSym, utf8);
+                const bool shift = (xEvent.xkey.state & ShiftMask) != 0;
+                const uint32_t sym = static_cast<uint32_t>(typedSym);
+                if (FirstTimeSetupVulkan_FeedKey(sym, spEvent->m_bPressed, spEvent->m_bCtrl,
+                                                 shift, utf8))
                     continue;
-                if (SettingsDialogVulkan_FeedKey(evdevKey,
-                        static_cast<xkb_keysym_t>(x11keysym), spEvent->m_bPressed, nullptr))
+                if (SettingsDialogVulkan_FeedKey(sym, spEvent->m_bPressed, spEvent->m_bCtrl,
+                                                 shift, utf8))
                     continue;
             }
-#endif
             m_EventQueue.push(std::static_pointer_cast<CEvent>(spEvent));
         }
 
