@@ -340,12 +340,6 @@ Default keychain profile: `infinidream-notarization`
 
 The app bundle contains the embedded screensaver at `infinidream.app/Contents/Resources/infinidream.saver`. The DMG contains the app plus an Applications symlink for drag-to-install, in a window with a background picture (`client_generic/MacBuild/dmg/`; regenerate it with `make_background.py`, after `python3 -m pip install -r dmg/requirements.txt`).
 
-### Homebrew
-Mac users can install with `brew install --cask e-dream-ai/tap/infinidream`. The cask lives in [e-dream-ai/homebrew-tap](https://github.com/e-dream-ai/homebrew-tap). A production `release.py` run (no `-s`) points it at the new release, taking the sha256 GitHub reports for the uploaded DMG and refusing if it differs from the local build. If that step fails, the rest of the release is already published: update `version` and `sha256` in `Casks/infinidream.rb` by hand.
-
-### winget
-Windows users can install with `winget install infinidream.Infinidream`. A production `release.py` run also opens a PR on [microsoft/winget-pkgs](https://github.com/microsoft/winget-pkgs) with [komac](https://github.com/russellbanks/Komac) (`brew install komac`), from a fork under the account that owns `GITHUB_TOKEN`. It merges on its own once Microsoft's validation passes. Upload the Windows installer (`WinBuild/release.py -g`) before running the Mac `release.py`, since komac hashes the uploaded exe. winget pins that hash, so never replace a final release's exe; `WinBuild/release.py` refuses to. If the step fails, run the `komac update` command it prints.
-
 ## Build on Windows
 
 Covers the native **MSVC** client ([`e-dream.sln`](client_generic/MSVC/e-dream.sln)), **vcpkg** manifest dependencies, and the **NSIS installer** via [`client_generic/WinBuild/`](client_generic/WinBuild/) (same style as [`MacBuild/build.py`](client_generic/MacBuild/build.py) and [`release.py`](client_generic/MacBuild/release.py)).
@@ -502,7 +496,7 @@ like the second half of Mac `build.py`, while Mac `release.py` is the separate "
 | Package and sign | `build.py -r -n` | `release.py --sign` | `build_appimage.py` |
 | Tag and create the GitHub release | `build.py -g` | — (needs the Mac one) | — |
 | Upload to the release | `build.py -g` | `release.py -g` | `build_appimage.py -g` |
-| Push to users (Sparkle, website, Latest) | `release.py` | — | — |
+| Push to users (Sparkle, website, Latest, Homebrew, winget) | `release.py` | — | — |
 
 Commit and push first, then build the same commit on every machine.
 
@@ -549,22 +543,24 @@ cd client_generic/MacBuild
 ./release.py -v 0.16.5
 ```
 
-This publishes the appcast, updates the website version and marks the release Latest. Windows
-and Linux have no auto-update; their users get it from the release page.
+This pushes the release to users on every platform; see [to release](#to-release) for what
+it does.
 
-## to release (with Sparkle auto-update)
+## to release
 
-### 1. Build, notarize, and create GitHub release
-```bash
-cd client_generic/MacBuild
-./build.py -r -n -v X.Y.Z -g
-```
+A release is a prerelease that gets promoted. Build and upload on every platform, test, then
+run Mac `release.py`, which pushes the release to users everywhere. You run all of it by hand
+on the build machines; nothing runs in CI.
 
-This:
-- Builds and notarizes the app
-- Creates git tag `X.Y.Z` (overwrites if exists)
-- Creates GitHub prerelease `vX.Y.Z` with auto-generated notes
-- Uploads `infinidream-X.Y.Z.dmg` to the release
+### 1. Build and upload on every platform
+
+Steps 1–3 of [to prerelease](#to-prerelease-for-testers-without-sparkle): Mac first
+(`build.py -r -n -g -v X.Y.Z` notarizes, creates tag `X.Y.Z` and the GitHub prerelease, and
+uploads `infinidream-X.Y.Z.dmg`), then Windows (`release.py --sign -g` uploads
+`infinidream-X.Y.Z.exe`) and Linux (`build_appimage.py -v X.Y.Z -g` uploads the AppImage).
+
+**Upload the Windows installer before step 4.** The winget step hashes the uploaded exe, and
+skips with a warning if it isn't there.
 
 ### 2. Test the app
 ```bash
@@ -573,50 +569,76 @@ open build/Release/AppExport/infinidream.app
 
 ### 3. Edit release notes (optional)
 
-Edit the release notes on GitHub if needed:
-https://github.com/e-dream-ai/client/releases
+On GitHub (https://github.com/e-dream-ai/client/releases), or
+`gh release edit X.Y.Z --notes-file notes.md`. Step 4 copies them into the appcast, so finish
+them first.
 
-### 4. Publish the release
+### 4. Promote (Mac `release.py`)
 
-Preview what will be published:
+Preview, then publish:
 ```bash
+cd client_generic/MacBuild
 ./release.py -v X.Y.Z --dry-run
+./release.py -v X.Y.Z        # production
+./release.py -v X.Y.Z -s     # stage: stage appcast only
 ```
 
-When ready, publish for real:
+A production run, in order:
+
+1. Generates `appcast.xml` for the DMG, adds the release notes from GitHub (with issue
+   references linked), and commits it to landing-page `public/alpha/appcast.xml`. Installed Mac
+   clients see the update on their next check ([How Sparkle works](#how-sparkle-auto-update-works)).
+2. Sets `APP_VERSION` in frontend `src/version.ts` (`main`), so the install page links to the
+   new downloads. Cloudflare deploys it in a few minutes.
+3. Marks the GitHub release Latest (removes the prerelease label).
+4. Updates the [Homebrew cask](#homebrew).
+5. Opens a [winget](#winget) PR.
+
+Steps 4 and 5 warn instead of aborting, since everything before them is already published; the
+warning says what to run by hand. A stage run (`-s`) only publishes `public/stage/appcast.xml`.
+
+**Once a version is promoted, never replace its files.** Homebrew and winget pin each file's
+sha256, and users may already have it. `WinBuild/release.py` refuses to re-upload the exe of a
+final release. Fix a bad release by shipping a new version.
+
+### Homebrew
+
+Mac users can install with `brew install --cask e-dream-ai/tap/infinidream`. The cask lives in
+[e-dream-ai/homebrew-tap](https://github.com/e-dream-ai/homebrew-tap). Step 4 sets `version`
+and `sha256` in `Casks/infinidream.rb`, taking the sha256 GitHub reports for the uploaded DMG
+and refusing if it differs from the local build. If it fails, edit those two lines by hand.
+
+### winget
+
+Windows users can install with `winget install infinidream.Infinidream` (or
+`winget install infinidream`) and upgrade with `winget upgrade infinidream`. The manifests live
+in [microsoft/winget-pkgs](https://github.com/microsoft/winget-pkgs) under
+`manifests/i/infinidream/Infinidream/`.
+
+Step 5 runs [komac](https://github.com/russellbanks/Komac) (`brew install komac`), which
+downloads the uploaded exe, hashes it, writes the new version's manifests (copying descriptions
+and tags from the previous version), pushes a branch to the org's fork
+[e-dream-ai/winget-pkgs](https://github.com/e-dream-ai/winget-pkgs) (`KOMAC_FORK_OWNER`), and
+opens a PR to microsoft/winget-pkgs. The PR's author is whoever owns the token: `GITHUB_TOKEN`
+if set, else your `gh` login (it needs `public_repo`; a fine-grained token won't work, since it
+writes to the fork and opens the PR on Microsoft's repo). Microsoft's bots validate the PR by
+installing silently in a sandbox. Version updates usually merge automatically once that
+passes; a new package's first version also needs a moderator's review. Moderators can't push fixes to a branch on an org fork, so if they ask for a change, make it
+on the branch yourself.
+
+If step 5 fails, run the command it prints:
 ```bash
-./release.py -v X.Y.Z        # production (alpha)
-./release.py -v X.Y.Z -s     # stage
+KOMAC_FORK_OWNER=e-dream-ai komac update infinidream.Infinidream --version X.Y.Z \
+  --urls https://github.com/e-dream-ai/client/releases/download/X.Y.Z/infinidream-X.Y.Z.exe --submit
 ```
 
-This:
-- Fetches release notes from GitHub
-- Generates appcast.xml (with linked issue references)
-- Publishes appcast.xml to the landing-page repo
-- Marks the GitHub release as latest (removes prerelease label)
+`komac cleanup` deletes fork branches whose PRs have merged or closed. To change the
+description or tags, edit `infinidream.Infinidream.locale.en-US.yaml` in the next version's PR;
+komac carries it forward from then on.
 
-### 5. Update frontend (for new installs)
-
-Update `APP_VERSION` in the frontend repository:
-`src/components/pages/install/install.page.tsx`
-
-Push and Cloudflare will deploy in a few minutes.
-
-### Windows release
-
-There is **no** Sparkle appcast on Windows in this repo. Typical flow:
-
-1. Build **Release \| x64** with the version: `python client_generic\WinBuild\build.py -v X.Y.Z`. (A Visual Studio build is a dev build, which `release.py` won't package, and doesn't empty the output folder.)
-2. Package:
-
-   ```bat
-   cd client_generic\WinBuild
-   python release.py -g
-   ```
-
-   Produces **`client_generic/WinBuild/dist/infinidream-X.Y.Z.exe`** (NSIS) and uploads it to the GitHub release tagged `X.Y.Z`.
-
-See [Build on Windows](#build-on-windows) above for the full flag list, installer behavior, and signing notes.
+The installer is built for silent installs: winget runs it with `/S` (and `/D=` for a custom
+folder), it closes a running app and screensaver before replacing their files, and its Apps &
+Features entry is named `Infinidream`, without the version, which is how winget matches it.
 
 ### How Sparkle Auto-Update Works
 

@@ -438,6 +438,9 @@ def update_homebrew_cask(version: str, dmg_path: Path) -> bool:
 
 
 WINGET_PACKAGE_ID = "infinidream.Infinidream"
+# komac pushes each version's branch to <owner>/winget-pkgs and opens the PR from there.
+# The fork is the org's, not a person's; the PR's author is whoever owns the token.
+WINGET_FORK_OWNER = "e-dream-ai"
 
 
 def windows_installer_name(version: str) -> str:
@@ -455,12 +458,27 @@ def winget_update_command(version: str) -> list[str]:
             '--urls', windows_installer_url(version), '--submit']
 
 
+def winget_manual_command(version: str) -> str:
+    return f"KOMAC_FORK_OWNER={WINGET_FORK_OWNER} {' '.join(winget_update_command(version))}"
+
+
+def komac_env() -> dict[str, str]:
+    """komac's environment: the org fork, and a token (GITHUB_TOKEN, else the gh login)."""
+    env = dict(os.environ, KOMAC_FORK_OWNER=WINGET_FORK_OWNER)
+    if not env.get('GITHUB_TOKEN'):
+        result = run_command(['gh', 'auth', 'token'], check=False, capture_output=True)
+        token = (result.stdout or '').strip()
+        if result.returncode == 0 and token:
+            env['GITHUB_TOKEN'] = token
+    return env
+
+
 def update_winget(version: str) -> bool:
     """Open a winget-pkgs PR for this release's Windows installer (#575). Returns success.
 
-    komac downloads the installer, hashes it and opens the PR from a fork of
-    microsoft/winget-pkgs under the account that owns GITHUB_TOKEN. Microsoft's bots
-    then validate it; the PR merges on its own if validation passes.
+    komac downloads the installer, hashes it, pushes a branch to the e-dream-ai fork of
+    microsoft/winget-pkgs and opens the PR from it, as the user who owns the token.
+    Microsoft's bots then validate it; the PR merges on its own if validation passes.
     """
     print_yellow(f"Submitting {WINGET_PACKAGE_ID} {version} to winget...")
 
@@ -474,7 +492,11 @@ def update_winget(version: str) -> bool:
         print_red("komac not found (brew install komac)")
         return False
 
-    result = run_command(winget_update_command(version), check=False)
+    env = komac_env()
+    if not env.get('GITHUB_TOKEN'):
+        print_red("No GitHub token: set GITHUB_TOKEN or run gh auth login")
+        return False
+    result = subprocess.run(winget_update_command(version), env=env)
     if result.returncode != 0:
         print_red("komac failed")
         return False
@@ -620,7 +642,7 @@ def main() -> None:
             print(f"  2. Update frontend version file on {frontend_repo} ({frontend_branch})")
             print(f"  3. Mark release {version} as latest (remove prerelease)")
             print(f"  4. Update Homebrew cask in {HOMEBREW_TAP_REPO} to {version}")
-            print(f"  5. Open a winget-pkgs PR: {' '.join(winget_update_command(version))}")
+            print(f"  5. Open a winget-pkgs PR: {winget_manual_command(version)}")
         else:
             print("  2. (Stage: skip frontend version update)")
             print("  3. (Stage: skip marking as latest)")
@@ -715,7 +737,7 @@ def main() -> None:
     if not stage:
         winget_ok = update_winget(version)
         if not winget_ok:
-            print_yellow(f"Warning: submit to winget by hand: {' '.join(winget_update_command(version))}")
+            print_yellow(f"Warning: submit to winget by hand: {winget_manual_command(version)}")
     else:
         print("Stage release: skipping winget")
 
