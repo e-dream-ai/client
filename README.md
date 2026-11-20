@@ -21,9 +21,13 @@ dropped (#762) stored `cache/univ-osx/**/libavcodec.a` in LFS, so checking
 one of those out still needs `git lfs install` first.
 
 If you are doing releases you will need:
-    brew install gh                      # GitHub releases, appcast, Homebrew cask; then `gh auth login`
-    brew install bugsnag/tap/bugsnag-cli
-    brew install komac                   # winget PRs from Mac release.py (see "winget" below)
+
+```bash
+brew install gh                      # GitHub releases, appcast, Homebrew cask
+gh auth login
+brew install bugsnag/tap/bugsnag-cli
+brew install komac                   # winget PRs from Mac release.py (see "winget" below)
+```
 
 Optional: `brew install makensis` compiles the Windows installer script on a Mac, to check an
 `.nsi` change before building it on Windows.
