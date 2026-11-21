@@ -27,6 +27,8 @@ void ESScreensaver_ClaimInstance(void);
 /// False when we hold it, or when the app holds it (then we play offline).
 bool ESScreensaver_IsGhostInstance(void);
 void ESScreensaver_ForceWidthAndHeight(uint32_t _width, uint32_t _height);
+/// Set one display's size, in points (ForceWidthAndHeight only sets display 0).
+void ESScreensaver_SetDisplaySize(int _displayIdx, uint32_t _width, uint32_t _height);
 void ESScreensaver_SetVideoRotation(uint32_t _degrees);
 void ESScreensaver_Deinit(void);
 

@@ -31,6 +31,7 @@ static std::atomic<int> s_activeEngineViews{0};
     int m_displayIdx;
     BOOL m_refreshRatePending;  // Screen or display not ready yet; retried each frame (#749)
     BOOL m_loggedNilScreen;     // Logged the window-has-no-screen diagnostic once
+    NSSize m_initSize;          // Frame size the host gave initWithFrame (#235)
 #ifdef SCREEN_SAVER
     BOOL m_graphicsContextAdded;  // AddGraphicsContext once per view (startAnimation may re-enter)
     BOOL m_forceExiting;          // Guard against re-entrant force-exit
@@ -68,6 +69,7 @@ static std::atomic<int> s_activeEngineViews{0};
     m_displayIdx = 0;
     m_refreshRatePending = NO;
     m_loggedNilScreen = NO;
+    m_initSize = frame.size;
 #ifdef SCREEN_SAVER
     m_graphicsContextAdded = NO;
     m_forceExiting = NO;
@@ -152,37 +154,7 @@ static std::atomic<int> s_activeEngineViews{0};
 
     if (self)
     {
-        // So we modify the setup routines just a little bit to get our
-        // new OpenGL screensaver working.
-
-        // Create the new frame
-        NSRect newFrame = frame;
-        // Slam the origin values
-        newFrame.origin.x = 0.0;
-        newFrame.origin.y = 0.0;
-
-        // "Rotate on portrait displays": when enabled and the screen is taller
-        // than it is wide, the dream is turned 90 deg (handled in the shader).
-        // The constrained box then targets 9:16 instead of 16:9.
-        m_shouldRotate =
-            ESScreensaver_GetBoolSetting("settings.player.rotate_portrait", false) &&
-            (frame.size.width < frame.size.height);
-
-        if (ESScreensaver_GetBoolSetting("settings.player.preserve_AR", true)) {
-            float targetAR = m_shouldRotate ? (9.0f / 16.0f) : (16.0f / 9.0f);
-            if (newFrame.size.width / newFrame.size.height > targetAR)
-            {
-                // Wider than the target box: constrain width, center horizontally.
-                newFrame.size = CGSizeMake(newFrame.size.height * targetAR, newFrame.size.height);
-                newFrame.origin.x = (frame.size.width - newFrame.size.width) / 2;
-            } else {
-                // Taller than the target box: constrain height, center vertically.
-                newFrame.size = CGSizeMake(newFrame.size.width, newFrame.size.width / targetAR);
-                newFrame.origin.y = (frame.size.height - newFrame.size.height) / 2;
-            }
-        }
-
-        theRect = newFrame;
+        [self _setVideoRectForSize:frame.size];
         {
             // Make sure we autoresize
             [self setAutoresizesSubviews:YES];
@@ -196,6 +168,36 @@ static std::atomic<int> s_activeEngineViews{0};
     }
     // Finally return our newly-initialized self
     return self;
+}
+
+// Set theRect (the Metal view's frame inside this view) and m_shouldRotate for
+// a view of the given size.
+- (void)_setVideoRectForSize:(NSSize)size
+{
+    NSRect newFrame = NSMakeRect(0, 0, size.width, size.height);
+
+    // "Rotate on portrait displays": when enabled and the screen is taller
+    // than it is wide, the dream is turned 90 deg (handled in the shader).
+    // The constrained box then targets 9:16 instead of 16:9.
+    m_shouldRotate =
+        ESScreensaver_GetBoolSetting("settings.player.rotate_portrait", false) &&
+        (size.width < size.height);
+
+    if (ESScreensaver_GetBoolSetting("settings.player.preserve_AR", true)) {
+        float targetAR = m_shouldRotate ? (9.0f / 16.0f) : (16.0f / 9.0f);
+        if (newFrame.size.width / newFrame.size.height > targetAR)
+        {
+            // Wider than the target box: constrain width, center horizontally.
+            newFrame.size = CGSizeMake(newFrame.size.height * targetAR, newFrame.size.height);
+            newFrame.origin.x = (size.width - newFrame.size.width) / 2;
+        } else {
+            // Taller than the target box: constrain height, center vertically.
+            newFrame.size = CGSizeMake(newFrame.size.width, newFrame.size.width / targetAR);
+            newFrame.origin.y = (size.height - newFrame.size.height) / 2;
+        }
+    }
+
+    theRect = newFrame;
 }
 
 #ifdef SCREEN_SAVER
@@ -351,8 +353,90 @@ static NSScreen* ESScreenForWindow(NSWindow* window)
                     screen.localizedName.UTF8String ?: "?");
 }
 
+// One line describing this view, its window, and the window's screen, for
+// diagnosing per-display size mixups (#235).
+- (void)_logGeometry:(const char*)where
+{
+    NSWindow* win = self.window;
+    const NSRect vf = self.frame;
+    if (win == nil)
+    {
+        g_Log->Info("Saver geometry (%s) display %d: init %.0fx%.0f, view %.0fx%.0f, no window",
+                    where, m_displayIdx, m_initSize.width, m_initSize.height, vf.size.width,
+                    vf.size.height);
+        return;
+    }
+    const NSRect wf = win.frame;
+    NSScreen* screen = ESScreenForWindow(win);
+#ifdef SCREEN_SAVER
+    // ESMetalView keeps its CAMetalLayer as the first sublayer.
+    CALayer* sub = view.layer.sublayers.firstObject;
+    const CGSize drawable = [sub isKindOfClass:[CAMetalLayer class]]
+                                ? ((CAMetalLayer*)sub).drawableSize
+                                : CGSizeZero;
+#else
+    const CGSize drawable = view ? view.drawableSize : CGSizeZero;
+#endif
+    g_Log->Info("Saver geometry (%s) display %d: init %.0fx%.0f, view %.0fx%.0f, metal %.0fx%.0f drawable "
+                "%.0fx%.0f, window %.0f,%.0f %.0fx%.0f scale %.1f, screen %s%s %.0f,%.0f "
+                "%.0fx%.0f scale %.1f",
+                where, m_displayIdx, m_initSize.width, m_initSize.height, vf.size.width,
+                vf.size.height, view.frame.size.width,
+                view.frame.size.height, drawable.width, drawable.height, wf.origin.x,
+                wf.origin.y, wf.size.width, wf.size.height, win.backingScaleFactor,
+                screen ? screen.localizedName.UTF8String : "none",
+                win.screen ? "" : " (guessed)", screen.frame.origin.x, screen.frame.origin.y,
+                screen.frame.size.width, screen.frame.size.height, screen.backingScaleFactor);
+}
+
+#ifdef SCREEN_SAVER
+// macOS bug (#235, also hit by Aerial): with two displays, legacyScreenSaver
+// sometimes inits each display's view with the OTHER display's frame. The window
+// is sized for its screen, but the view (and the Metal view and drawable sized
+// from it) is not: the laptop shows a quarter of an external-sized image and the
+// external screen has a laptop-sized image in one corner. Resize the view to its
+// window when they disagree.
+- (void)_matchWindowSize:(const char*)where
+{
+    NSWindow* win = self.window;
+    if (m_isPreview || win == nil)
+        return;
+    const NSSize want = [win contentRectForFrameRect:win.frame].size;
+    const NSSize have = self.frame.size;
+    if (want.width < 1 || want.height < 1)
+        return;
+    if (fabs(want.width - have.width) < 1 && fabs(want.height - have.height) < 1)
+        return;
+
+    g_Log->Warning("Saver display %d (%s): view %.0fx%.0f doesn't match its window "
+                   "%.0fx%.0f; resizing the view (#235)",
+                   m_displayIdx, where, have.width, have.height, want.width, want.height);
+    [self _logGeometry:"before resize"];
+
+    [self setFrame:NSMakeRect(0, 0, want.width, want.height)];
+    [self _setVideoRectForSize:want];
+    if (view != nil)
+    {
+        view.frame = theRect;
+        [view viewDidEndLiveResize];  // ESMetalView resizes its drawable here
+        if (m_graphicsContextAdded)
+            ESScreensaver_SetDisplaySize(m_displayIdx, (uint32_t)theRect.size.width,
+                                         (uint32_t)theRect.size.height);
+    }
+    [self _logGeometry:"after resize"];
+}
+
+- (void)_windowDidResize:(NSNotification*)notification
+{
+    [self _matchWindowSize:"window resize"];
+}
+#endif
+
 - (void)_screensChanged:(NSNotification*)notification
 {
+#ifdef SCREEN_SAVER
+    [self _matchWindowSize:"screen change"];
+#endif
     [self _updateDisplayRefreshRate];
 }
 
@@ -362,6 +446,9 @@ static NSScreen* ESScreenForWindow(NSWindow* window)
     NSNotificationCenter* nc = NSNotificationCenter.defaultCenter;
     [nc removeObserver:self name:NSWindowDidChangeScreenNotification object:nil];
     [nc removeObserver:self name:NSApplicationDidChangeScreenParametersNotification object:nil];
+#ifdef SCREEN_SAVER
+    [nc removeObserver:self name:NSWindowDidResizeNotification object:nil];
+#endif
     if (self.window != nil)
     {
         [nc addObserver:self
@@ -372,6 +459,15 @@ static NSScreen* ESScreenForWindow(NSWindow* window)
                selector:@selector(_screensChanged:)
                    name:NSApplicationDidChangeScreenParametersNotification
                  object:nil];
+#ifdef SCREEN_SAVER
+        [nc addObserver:self
+               selector:@selector(_windowDidResize:)
+                   name:NSWindowDidResizeNotification
+                 object:self.window];
+        // The log is already attached here (gClient's constructor does it when the
+        // bundle loads), so a resize now is logged with its geometry.
+        [self _matchWindowSize:"moved to window"];
+#endif
         [self _updateDisplayRefreshRate];
     }
 }
@@ -390,6 +486,10 @@ static NSScreen* ESScreenForWindow(NSWindow* window)
         [self _forceExitScreensaverWithReason:"secondary-instance" delaySeconds:0];
         return;
     }
+#endif
+
+#ifdef SCREEN_SAVER
+    [self _matchWindowSize:"startAnimation"];
 #endif
 
     //g_Log->Error("Test error 2");
@@ -463,6 +563,8 @@ static NSScreen* ESScreenForWindow(NSWindow* window)
 #ifdef SCREEN_SAVER
         g_Log->Info("Saver startAnimation on %f %f (preview=%d)",
                     self.frame.size.width, self.frame.size.height, (int)m_isPreview);
+        if (!m_isPreview)
+            [self _logGeometry:"startAnimation"];
 #endif
        
         [self _beginThread];
