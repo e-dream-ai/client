@@ -335,6 +335,7 @@ public:
             m_network_thread.get_id() != std::this_thread::get_id())
             m_network_thread.join();
         m_ws.reset();
+        m_buffer.reset();
         m_write_queue.clear();
         m_pending_emits.clear();
         m_writing = false;
@@ -580,14 +581,15 @@ private:
 
         if (m_parsed.secure)
         {
-            m_ws = std::make_unique<ws_stream>(std::in_place_type<tls_ws>, m_strand, m_ssl_ctx);
+            m_ws = std::make_shared<ws_stream>(std::in_place_type<tls_ws>, m_strand, m_ssl_ctx);
             std::get<tls_ws>(*m_ws).next_layer().set_verify_callback(
                 ssl::host_name_verification(m_parsed.host));
         }
         else
         {
-            m_ws = std::make_unique<ws_stream>(std::in_place_type<plain_ws>, m_strand);
+            m_ws = std::make_shared<ws_stream>(std::in_place_type<plain_ws>, m_strand);
         }
+        m_buffer = std::make_shared<beast::flat_buffer>();
 
         m_resolver.async_resolve(
             m_parsed.host, m_parsed.port,
@@ -595,6 +597,18 @@ private:
     }
 
     bool is_current(std::uint64_t id) const { return id == m_conn_id && m_ws; }
+
+    // Wrap a completion handler for an operation on the current stream so the
+    // handler co-owns the stream and its read buffer. A stream must outlive
+    // every operation started on it: after a teardown, a TLS read that had
+    // already completed can resume, start another read on the closed socket
+    // and touch the SSL engine again when that one fails. Holding these here
+    // frees the stream only after its last operation has finished.
+    template <class Handler> auto keep_alive(Handler&& handler)
+    {
+        return [ws = m_ws, buffer = m_buffer, handler = std::forward<Handler>(handler)](
+                   auto&&... args) mutable { handler(std::forward<decltype(args)>(args)...); };
+    }
 
     beast::tcp_stream& lowest_layer()
     {
@@ -613,7 +627,13 @@ private:
         }
         lowest_layer().expires_after(std::chrono::seconds(30));
         lowest_layer().async_connect(
-            results, beast::bind_front_handler(&client_impl::on_connect, shared_from_this(), id));
+            results,
+            // Explicit signature: async_connect would take a variadic callable
+            // for a connect condition.
+            [ws = m_ws, self = shared_from_this(), id](
+                beast::error_code ec, tcp::resolver::results_type::endpoint_type ep) {
+                self->on_connect(id, ec, ep);
+            });
     }
 
     void on_connect(std::uint64_t id, beast::error_code ec, tcp::resolver::results_type::endpoint_type)
@@ -642,7 +662,8 @@ private:
         lowest_layer().expires_after(std::chrono::seconds(30));
         tls.next_layer().async_handshake(
             ssl::stream_base::client,
-            beast::bind_front_handler(&client_impl::on_ssl_handshake, shared_from_this(), id));
+            keep_alive(
+                beast::bind_front_handler(&client_impl::on_ssl_handshake, shared_from_this(), id)));
     }
 
     void on_ssl_handshake(std::uint64_t id, beast::error_code ec)
@@ -686,7 +707,8 @@ private:
                     }));
                 ws.async_handshake(
                     m_parsed.host, target.str(),
-                    beast::bind_front_handler(&client_impl::on_ws_handshake, shared_from_this(), id));
+                    keep_alive(beast::bind_front_handler(&client_impl::on_ws_handshake,
+                                                         shared_from_this(), id)));
             },
             *m_ws);
     }
@@ -712,8 +734,8 @@ private:
         std::visit(
             [&](auto& ws) {
                 ws.async_read(
-                    m_buffer,
-                    beast::bind_front_handler(&client_impl::on_read, shared_from_this(), id));
+                    *m_buffer,
+                    keep_alive(beast::bind_front_handler(&client_impl::on_read, shared_from_this(), id)));
             },
             *m_ws);
     }
@@ -730,13 +752,13 @@ private:
 
         if (!std::visit([](auto& ws) { return ws.got_text(); }, *m_ws))
         {
-            m_buffer.consume(m_buffer.size());
+            m_buffer->consume(m_buffer->size());
             do_read(id);
             return;
         }
 
-        std::string data = beast::buffers_to_string(m_buffer.data());
-        m_buffer.consume(m_buffer.size());
+        std::string data = beast::buffers_to_string(m_buffer->data());
+        m_buffer->consume(m_buffer->size());
         handle_packet(data);
         do_read(id);
     }
@@ -929,13 +951,19 @@ private:
         }
         m_writing = true;
         std::uint64_t const id = m_conn_id;
-        auto& front = m_write_queue.front();
+        // The write handler owns the frame being sent: a teardown clears the
+        // queue while the write may still be copying from it.
+        auto frame = std::make_shared<std::string>(std::move(m_write_queue.front()));
+        m_write_queue.pop_front();
         std::visit(
             [&](auto& ws) {
                 ws.text(true);
                 ws.async_write(
-                    net::buffer(front),
-                    beast::bind_front_handler(&client_impl::on_write, shared_from_this(), id));
+                    net::buffer(*frame),
+                    keep_alive([self = shared_from_this(), id, frame](beast::error_code ec,
+                                                                       std::size_t n) {
+                        self->on_write(id, ec, n);
+                    }));
             },
             *m_ws);
     }
@@ -949,8 +977,6 @@ private:
             on_disconnected(client::close_reason_drop);
             return;
         }
-        if (!m_write_queue.empty())
-            m_write_queue.pop_front();
         if (m_write_queue.empty())
             m_writing = false;
         else
@@ -970,25 +996,20 @@ private:
         });
     }
 
-    // Tear down the active stream without destroying it inside a completion
-    // handler for that same stream (Beast UB). Cancel the TCP layer, move the
-    // stream off m_ws, and defer destruction until after the current strand
-    // handler returns.
+    // Tear down the active stream. Closing the TCP socket makes its pending
+    // operations finish with an error; each holds a reference (keep_alive), so
+    // the stream and its buffer are destroyed after the last one completes,
+    // never while one can still touch them.
     void close_socket_unlocked()
     {
         m_ping_timer.cancel();
         m_nsp_connect_timer.cancel();
         if (m_ws)
-        {
-            // Cancels outstanding ops and closes the TCP socket.
             lowest_layer().close();
-            // Destroy outside this completion handler (Beast requirement).
-            auto dying = std::move(m_ws);
-            net::post(m_strand, [dying = std::move(dying)]() mutable { dying.reset(); });
-        }
+        m_ws.reset();
+        m_buffer.reset();
         m_write_queue.clear();
         m_writing = false;
-        m_buffer.consume(m_buffer.size());
     }
 
     void arm_nsp_connect_timeout()
@@ -1083,8 +1104,9 @@ private:
     net::strand<net::io_context::executor_type> m_strand;
     tcp::resolver m_resolver;
     ssl::context m_ssl_ctx;
-    std::unique_ptr<ws_stream> m_ws;
-    beast::flat_buffer m_buffer;
+    // Shared with the completion handlers of operations on them (keep_alive).
+    std::shared_ptr<ws_stream> m_ws;
+    std::shared_ptr<beast::flat_buffer> m_buffer;
     net::steady_timer m_ping_timer;
     net::steady_timer m_reconnect_timer;
     net::steady_timer m_nsp_connect_timer;
