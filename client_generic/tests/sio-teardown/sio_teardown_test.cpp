@@ -44,7 +44,7 @@ int main(int argc, char** argv)
         std::fprintf(stderr, "usage: %s <port> close|reconnect|watchdog <iterations> [flood]\n", argv[0]);
         return 2;
     }
-    std::string const uri = std::string("wss://localhost:") + argv[1] + "/socket.io/";
+    std::string const uri = std::string("wss://127.0.0.1:") + argv[1] + "/socket.io/";
     std::string const scenario = argv[2];
     int const iterations = std::atoi(argv[3]);
     bool const flood = argc == 5 && std::strcmp(argv[4], "flood") == 0;
