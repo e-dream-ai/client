@@ -7,11 +7,10 @@
 set -euo pipefail
 here="$(cd "$(dirname "$0")" && pwd)"
 client_generic="$(cd "$here/../.." && pwd)"
-deps="$(cd "$client_generic/.." && pwd)/cache/univ-osx"
 python="$client_generic/tests/mock-server/venv/bin/python"
 iterations="${1:-200}"
 port=8766
-work="$(mktemp -d -t sio-teardown)"
+work="$(mktemp -d "${TMPDIR:-/tmp}/sio-teardown.XXXXXX")"
 trap 'kill $server_pid 2>/dev/null || true; rm -rf "$work"' EXIT
 
 # CA + localhost leaf cert. OpenSSL in the client reads SSL_CERT_FILE through
@@ -24,11 +23,22 @@ printf 'subjectAltName=DNS:localhost,IP:127.0.0.1\n' > "$work/ext.cnf"
 openssl x509 -req -in "$work/leaf.csr" -CA "$work/ca.pem" -CAkey "$work/ca.key" \
     -CAcreateserial -days 1 -extfile "$work/ext.cnf" -out "$work/leaf.pem" 2>/dev/null
 
-clang++ -std=c++17 -g -O1 -fsanitize=address -fno-omit-frame-pointer \
-    -I"$here/stub" -I"$client_generic/Networking/sio" -I"$deps/include" \
+# macOS: clang++ against the static vcpkg deps in cache/univ-osx.
+# Linux: g++ (or $CXX) against system Boost.JSON and OpenSSL.
+if [ "$(uname)" = Darwin ]; then
+    deps="$(cd "$client_generic/.." && pwd)/cache/univ-osx"
+    cxx="${CXX:-clang++}"
+    incs=(-I"$deps/include")
+    libs=("$deps/lib/libboost_json.a" "$deps/lib/libssl.a" "$deps/lib/libcrypto.a")
+else
+    cxx="${CXX:-g++}"
+    incs=()
+    libs=(-lboost_json -lssl -lcrypto -pthread)
+fi
+"$cxx" -std=c++17 -g -O1 -fsanitize=address -fno-omit-frame-pointer \
+    -I"$here/stub" -I"$client_generic/Networking/sio" ${incs[@]+"${incs[@]}"} \
     "$client_generic/Networking/sio/sio_beast.cpp" "$here/sio_teardown_test.cpp" \
-    "$deps/lib/libboost_json.a" "$deps/lib/libssl.a" "$deps/lib/libcrypto.a" \
-    -o "$work/sio_teardown_test"
+    "${libs[@]}" -o "$work/sio_teardown_test"
 
 "$python" "$here/server.py" --port $port --cert "$work/leaf.pem" --key "$work/leaf.key" &
 server_pid=$!

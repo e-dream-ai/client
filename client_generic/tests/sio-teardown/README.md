@@ -3,8 +3,9 @@
 Standalone AddressSanitizer test for the Socket.IO shim
 (`Networking/sio/sio_beast.cpp`) tearing down live `wss://` connections.
 
-It builds `sio_beast.cpp` alone (with a stub `Log.h`) against the vcpkg Boost and
-OpenSSL in `cache/univ-osx`, starts `server.py` (aiohttp, a minimal Engine.IO v4
+It builds `sio_beast.cpp` alone (with a stub `Log.h`) against Boost.JSON and
+OpenSSL (macOS: the vcpkg build in `cache/univ-osx`; Linux: system packages),
+starts `server.py` (aiohttp, a minimal Engine.IO v4
 server) on `wss://localhost:8766` with a throwaway CA trusted through
 `SSL_CERT_FILE`, and runs three scenarios, each with and without `flood`
 (the server streams large events nonstop so reads are in flight):
@@ -20,7 +21,8 @@ server) on `wss://localhost:8766` with a throwaway CA trusted through
 SCENARIOS=watchdog ./run.sh
 ```
 
-macOS only for now; needs the mock server's venv (`../mock-server/venv`).
+Runs on macOS (clang++) and Linux (g++, or set `CXX`); needs the mock server's
+venv (`../mock-server/venv`).
 
 Before the fix, `watchdog flood` crashed every run in OpenSSL's BIO code (the
 0.17.2 Bugsnag crash in `bio_write_intern`), and `close`/`reconnect` hit a
