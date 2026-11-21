@@ -9,6 +9,7 @@ always completing when the client tears a connection down.
 import asyncio
 import argparse
 import json
+import logging
 import ssl
 
 from aiohttp import WSMsgType, web
@@ -28,9 +29,12 @@ async def socket_io(request):
     if request.query.get("flood"):
         async def send_flood():
             frame = f'42{NAMESPACE},["flood","{"x" * 60000}"]'
-            while True:
-                await ws.send_str(frame)
-                await asyncio.sleep(0)
+            try:
+                while not ws.closed and not request.transport.is_closing():
+                    await ws.send_str(frame)
+                    await asyncio.sleep(0)
+            except (ConnectionError, RuntimeError):
+                pass
         flood = asyncio.create_task(send_flood())
     try:
         await serve(ws)
@@ -56,6 +60,8 @@ def main():
     parser.add_argument("--cert", required=True)
     parser.add_argument("--key", required=True)
     args = parser.parse_args()
+    # Clients vanish mid-write by design; asyncio would log each broken TLS write.
+    logging.getLogger("asyncio").setLevel(logging.CRITICAL)
     ctx = ssl.create_default_context(ssl.Purpose.CLIENT_AUTH)
     ctx.load_cert_chain(args.cert, args.key)
     app = web.Application()
