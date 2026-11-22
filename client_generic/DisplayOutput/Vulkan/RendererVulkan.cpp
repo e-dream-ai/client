@@ -1880,6 +1880,8 @@ void CRendererVulkan::DrawText(spCBaseText _text,
                                 const Base::Math::CVector4& _color)
 {
     if (!_text || !m_inFrame || !m_imguiInitialized) return;
+    // Match DX11: no HUD text (sign-in prompt, indicators) under the first-run wizard.
+    if (FirstTimeSetupVulkan_HasPendingOrVisible()) return;
 
     auto spTV = std::dynamic_pointer_cast<CTextImGui>(_text);
     if (!spTV || !spTV->IsEnabled()) return;

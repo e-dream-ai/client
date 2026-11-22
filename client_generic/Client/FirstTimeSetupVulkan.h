@@ -10,6 +10,10 @@ void FirstTimeSetupVulkan_Register();
 /// True while the wizard overlay is visible. Used to block game key-bindings.
 bool FirstTimeSetupVulkan_IsWizardVisible();
 
+/// True while the wizard is visible or has been requested but not yet drawn. The renderer
+/// skips HUD text under it (as DX11 does), including the frame before it first appears.
+bool FirstTimeSetupVulkan_HasPendingOrVisible();
+
 /// Called from RendererVulkan::EndFrame() just before ImGui::Render() — emits wizard ImGui
 /// calls into the current frame if the wizard is visible.
 void FirstTimeSetupVulkan_DrawIfNeeded();
