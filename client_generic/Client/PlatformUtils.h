@@ -50,6 +50,12 @@ class PlatformUtils
             return rev;
         return ver + " (" + rev + ")";
     }
+    /// The version line in Settings, the same on every platform (client#849):
+    /// "v0.17.2 Wed Nov 18 ...".
+    static std::string GetVersionLine()
+    {
+        return "v" + GetVersionDescription() + " " + GetBuildDate();
+    }
     static std::string GetPlatformName();
     static std::string GetWorkingDir();
     static void OpenURLExternally(std::string_view _url);
