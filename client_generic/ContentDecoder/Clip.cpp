@@ -425,7 +425,9 @@ bool CClip::Update(double _timelineTime, bool isPaused)
                 SetStartTime(m_ActualStartTime);
                 
                 // Start actual playback
-                StartPlayback(m_spDecoder->GetVideoInfo()->m_SeekTargetFrame);
+                // Not the decoder's m_SeekTargetFrame: its thread resets that
+                // without a lock (#873), and StartPlayback doesn't use it.
+                StartPlayback();
             }
         }
         else if (m_BufferingState == BufferingState::Rebuffering &&
@@ -771,7 +773,7 @@ const sFrameMetadata& CClip::GetCurrentFrameMetadata() const
 uint32_t CClip::GetFrameCount() const
 {
     const auto* info = m_spDecoder ? m_spDecoder->GetVideoInfo() : nullptr;
-    return info ? info->m_TotalFrameCount : 0;
+    return info ? info->m_TotalFrameCount.load() : 0;
 }
 
 void CClip::SetStartTime(double _startTime)

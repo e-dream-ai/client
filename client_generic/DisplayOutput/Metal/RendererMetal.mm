@@ -73,6 +73,20 @@ static const NSUInteger MaxFramesInFlight = 3;
 @implementation RendererContext
 @end
 
+// Happens-before annotations for ThreadSanitizer, where it can't see the
+// synchronization itself (Metal's completion handlers). No-ops otherwise.
+#if defined(__has_feature)
+#if __has_feature(thread_sanitizer)
+#include <sanitizer/tsan_interface.h>
+#define TSAN_ACQUIRE(addr) __tsan_acquire((void*)(addr))
+#define TSAN_RELEASE(addr) __tsan_release((void*)(addr))
+#endif
+#endif
+#ifndef TSAN_ACQUIRE
+#define TSAN_ACQUIRE(addr) ((void)0)
+#define TSAN_RELEASE(addr) ((void)0)
+#endif
+
 namespace DisplayOutput
 {
 
@@ -92,14 +106,15 @@ CRendererMetal::~CRendererMetal()
     dispatch_semaphore_signal(rendererContext->inFlightSemaphore);
     dispatch_semaphore_signal(rendererContext->inFlightSemaphore);
     dispatch_semaphore_signal(rendererContext->inFlightSemaphore);
-    usleep(1000);
-    
-    *m_pIsAlive = false;
-    //    while (rendererContext->framesStarted.load() !=
-    //           rendererContext->framesFinished.load())
-    //    {
-    //        std::this_thread::sleep_for(std::chrono::milliseconds(10));
-    //    }
+    // Let the completion handlers of frames in flight finish while this
+    // renderer and its context are still alive: they use both. A sleep isn't
+    // enough (#873). Bounded, in case a started frame is never committed.
+    for (int i = 0; i < 500 && rendererContext->framesStarted.load() !=
+                                   rendererContext->framesFinished.load();
+         ++i)
+        usleep(1000);
+
+    m_pIsAlive->store(false);
     if (rendererContext->textureCache)
     {
         CFRelease(rendererContext->textureCache);
@@ -161,7 +176,7 @@ bool CRendererMetal::Initialize(spCDisplayOutput _spDisplay)
         }
     }
 
-    m_pIsAlive = new bool(true);
+    m_pIsAlive = new std::atomic<bool>(true);
     return true;
 }
 
@@ -468,20 +483,24 @@ bool CRendererMetal::EndFrame(bool drawn)
     // End the frame's single render pass.
     [rendererContext->currentRenderEncoder endEncoding];
     rendererContext->currentRenderEncoder = nil;
-    __block dispatch_semaphore_t semaphore = rendererContext->inFlightSemaphore;
-    __block std::vector<CVMetalTextureRef>& metalTexturesUsed =
+    // Captured by value, not __block: the handler only reads them, and a
+    // __block byref copy raced the handler's reads (#873).
+    dispatch_semaphore_t semaphore = rendererContext->inFlightSemaphore;
+    std::vector<CVMetalTextureRef>& metalTexturesUsed =
         rendererContext->metalTexturesUsed[rendererContext->currentFrameIndex];
-    __block uint32_t frameNumber = rendererContext->frameCounter;
-    __block std::atomic<uint8_t>& framesFinished =
-        rendererContext->framesFinished;
-    __block std::atomic<float>& avgGpuFrameTimeMs =
-        rendererContext->avgGpuFrameTimeMs;
+    uint32_t frameNumber = rendererContext->frameCounter;
+    std::atomic<uint8_t>& framesFinished = rendererContext->framesFinished;
+    std::atomic<float>& avgGpuFrameTimeMs = rendererContext->avgGpuFrameTimeMs;
     rendererContext->framesStarted++;
-    bool* isAlivePtr = m_pIsAlive;
-    [rendererContext->currentCommandBuffer
-        addCompletedHandler:^(id<MTLCommandBuffer> _Nonnull commandBuffer) {
+    std::atomic<bool>* isAlivePtr = m_pIsAlive;
+    // Copied here rather than by addCompletedHandler, so the copy is done before
+    // the TSan release below. Metal runs the handler only after it was added,
+    // but TSan can't see Metal's own synchronization and reported the handler's
+    // reads of its captures as racing the copy (#873).
+    MTLCommandBufferHandler completed = [^(id<MTLCommandBuffer> _Nonnull commandBuffer) {
+            TSAN_ACQUIRE(isAlivePtr);
             {
-                if (!*isAlivePtr)
+                if (!isAlivePtr->load())
                     return;
                 writer_lock lock(m_textureMutex);
                 for (auto it = metalTexturesUsed.begin();
@@ -502,7 +521,9 @@ bool CRendererMetal::EndFrame(bool drawn)
             PROFILER_EVENT_F("Metal Frame Finished", "%d", frameNumber);
             dispatch_semaphore_signal(semaphore);
             framesFinished++;
-        }];
+        } copy];
+    TSAN_RELEASE(isAlivePtr);
+    [rendererContext->currentCommandBuffer addCompletedHandler:completed];
 
     @autoreleasepool
     {

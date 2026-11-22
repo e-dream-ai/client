@@ -8,6 +8,7 @@
 #ifndef JSONStorage_h
 #define JSONStorage_h
 
+#include <mutex>
 #include <string_view>
 #include <boost/json.hpp>
 
@@ -20,6 +21,11 @@ class JSONStorage : public IStorageInterface
 {
 
   private:
+    //	Settings are read and written from several threads (main, socket,
+    //	downloaders), and g_Settings() doesn't serialize them: it wraps the
+    //	singleton in a new CSyncAccessRep, with its own mutex, on every call
+    //	(#873). So every public method takes this lock. None calls another.
+    std::mutex m_Mutex;
     json::object m_JSON;
     std::string m_ConfigPath;
     bool m_bReadOnly;

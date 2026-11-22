@@ -99,7 +99,9 @@ struct sOpenVideoInfo
     const AVCodec* m_pVideoCodec;
     AVStream* m_pVideoStream;
     int32_t m_VideoStreamID;
-    uint32_t m_TotalFrameCount;
+    // Set by the decoder thread when it opens the file, read by CClip on the
+    // main thread (#873).
+    std::atomic<uint32_t> m_TotalFrameCount;
     int64_t m_CurrentFrameIndex;
     int64_t m_SeekTargetFrame;
     float m_DecodeFps;

@@ -3,6 +3,7 @@
 
 #include <map>
 #include <string>
+#include <atomic>
 #include <shared_mutex>
 
 #include "Font.h"
@@ -25,7 +26,9 @@ class CRendererMetal : public CRenderer
     CFTypeRef m_pRendererContext;
     std::shared_mutex m_textureMutex;
     std::map<std::string, spCBaseFont> m_fontPool;
-    bool* m_pIsAlive;
+    // Read by command buffer completion handlers on Metal's threads (#873).
+    // Never freed: a late handler may still read it after this renderer is gone.
+    std::atomic<bool>* m_pIsAlive;
     bool m_externalOutputThisFrame = false;  // primary display, set per frame
     bool m_syphonCaptureThisFrame = false;   // a Syphon client is receiving
 #ifdef __OBJC__

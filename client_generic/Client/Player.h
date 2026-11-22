@@ -145,8 +145,9 @@ class CPlayer : public Base::CSingleton<CPlayer>
 
     DisplayUnitList m_displayUnits;
     Base::CTimer m_Timer;
-    double m_DecoderFps;
-    double m_PerceptualFPS;
+    // Atomic: the socket thread reads both for its pings (#873).
+    std::atomic<double> m_DecoderFps;
+    std::atomic<double> m_PerceptualFPS;
     double m_DisplayFps;
     double m_LastFrameRealTime;
     bool m_bFullscreen;
