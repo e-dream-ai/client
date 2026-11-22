@@ -68,7 +68,7 @@ constexpr float kThanksOuterPad    = 20.f;
 constexpr float kThanksColGap      = 20.f;
 constexpr float kThanksTitleTop    = 2.f;
 constexpr float kThanksTitleToGrid = 8.f;
-constexpr float kThanksRowTopH     = 215.f;
+constexpr float kThanksTextToBtn   = 14.f;  // gap from the taller top-row copy to its button
 constexpr float kThanksRowBotH     = 132.f;
 constexpr float kThanksHSepGap     = 5.f;
 constexpr float kThanksHSepH       = 1.f;
@@ -77,7 +77,7 @@ constexpr float kThanksImgTop      = 10.f;
 constexpr float kThanksImgTrail    = 6.f;
 constexpr float kThanksTextImgGap  = 12.f;
 constexpr float kThanksPlaylistImg = 52.f;
-constexpr float kThanksBtnBottom   = 6.f;
+constexpr float kThanksBtnBottom   = 14.f; // matches kThanksTextToBtn above the buttons
 constexpr float kThanksBottomPad   = 4.f;
 constexpr float kThanksOpenRemoteBtnW   = 186.f;
 constexpr float kThanksOpenPlaylistBtnW = 224.f;
@@ -771,8 +771,31 @@ static void DrawWizard()
         const ImVec2 tipsTs   = ImGui::CalcTextSize(tipsTitle);
         if (g_fontTitle) ImGui::PopFont();
 
+        // Size the top row to its copy: both buttons sit a fixed gap below the taller cell,
+        // rather than pinned to the bottom of a fixed-height row (too much space above them).
+        static const char kTlCopy[] =
+            "Use the A and D keys to adjust the speed of playback. Press F1 to see more keyboard "
+            "controls. You can also interact with the remote control from a web browser:";
+        static const char kTrCopy[] =
+            "Change your dreams by selecting a playlist from the browser. Click the button on a "
+            "thumbnail to start that playlist.";
+        const ImTextureID playlistIcon = DialogImage("play-playlist.png", S(kThanksPlaylistImg));
+        const float tlWrapW = colW - 2.f * S(kThanksCellPad);
+        const float trWrapW = playlistIcon != ImTextureID_Invalid
+                                  ? colW - S(kThanksCellPad) - S(kThanksTextImgGap) - S(kThanksPlaylistImg) - S(kThanksImgTrail)
+                                  : tlWrapW;
+        if (g_fontThanksCopy) ImGui::PushFont(g_fontThanksCopy);
+        float topContentBottom = (std::max)(
+            S(kThanksCellPad) + ImGui::CalcTextSize(kTlCopy, nullptr, false, tlWrapW).y,
+            S(kThanksCellPad) + ImGui::CalcTextSize(kTrCopy, nullptr, false, trWrapW).y);
+        if (g_fontThanksCopy) ImGui::PopFont();
+        if (playlistIcon != ImTextureID_Invalid)
+            topContentBottom = (std::max)(topContentBottom, S(kThanksImgTop) + S(kThanksPlaylistImg));
+        const float topBtnY = topContentBottom + S(kThanksTextToBtn);
+        const float rowTopH = topBtnY + S(kThanksTipsBtnH) + S(kThanksBtnBottom);
+
         const float panelH = S(kThanksTitleTop) + tipsTs.y + S(kThanksTitleToGrid) +
-                             S(kThanksRowTopH) + S(kThanksHSepGap) + S(kThanksHSepH) +
+                             rowTopH + S(kThanksHSepGap) + S(kThanksHSepH) +
                              S(kThanksHSepGap) + S(kThanksRowBotH) + S(kThanksBottomPad);
 
         ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0.f, 0.f));
@@ -796,20 +819,18 @@ static void DrawWizard()
 
         // Top-left cell
         ImGui::SetCursorPos(ImVec2(S(kThanksOuterPad), yTop));
-        ImGui::BeginChild("tl", ImVec2(colW, S(kThanksRowTopH)), ImGuiChildFlags_None,
+        ImGui::BeginChild("tl", ImVec2(colW, rowTopH), ImGuiChildFlags_None,
                           ImGuiWindowFlags_NoBackground | ImGuiWindowFlags_NoScrollbar |
                               ImGuiWindowFlags_NoScrollWithMouse);
         {
             if (g_fontThanksCopy) ImGui::PushFont(g_fontThanksCopy);
             ImGui::SetCursorPos(ImVec2(S(kThanksCellPad), S(kThanksCellPad)));
-            ImGui::PushTextWrapPos(ImGui::GetCursorPosX() + colW - 2.f * S(kThanksCellPad));
-            ImGui::TextWrapped(
-                "Use the A and D keys to adjust the speed of playback. Press F1 to see more keyboard "
-                "controls. You can also interact with the remote control from a web browser:");
+            ImGui::PushTextWrapPos(ImGui::GetCursorPosX() + tlWrapW);
+            ImGui::TextWrapped("%s", kTlCopy);
             ImGui::PopTextWrapPos();
             if (g_fontThanksCopy) ImGui::PopFont();
 
-            const float btnY = S(kThanksRowTopH) - S(kThanksBtnBottom) - S(kThanksTipsBtnH);
+            const float btnY = topBtnY;
             ImGui::SetCursorPos(ImVec2((colW - S(kThanksOpenRemoteBtnW)) * 0.5f, btnY));
             ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(S(8.f), S(3.f)));
             if (g_fontThanksBtn) ImGui::PushFont(g_fontThanksBtn);
@@ -825,20 +846,14 @@ static void DrawWizard()
 
         // Top-right cell
         ImGui::SetCursorPos(ImVec2(S(kThanksOuterPad) + colW + S(kThanksColGap), yTop));
-        ImGui::BeginChild("tr", ImVec2(colW, S(kThanksRowTopH)), ImGuiChildFlags_None,
+        ImGui::BeginChild("tr", ImVec2(colW, rowTopH), ImGuiChildFlags_None,
                           ImGuiWindowFlags_NoBackground | ImGuiWindowFlags_NoScrollbar |
                               ImGuiWindowFlags_NoScrollWithMouse);
         {
-            const ImTextureID playlistIcon = DialogImage("play-playlist.png", S(kThanksPlaylistImg));
-            const float textWrapW = playlistIcon != ImTextureID_Invalid
-                                        ? colW - S(kThanksCellPad) - S(kThanksTextImgGap) - S(kThanksPlaylistImg) - S(kThanksImgTrail)
-                                        : colW - 2.f * S(kThanksCellPad);
             if (g_fontThanksCopy) ImGui::PushFont(g_fontThanksCopy);
             ImGui::SetCursorPos(ImVec2(S(kThanksCellPad), S(kThanksCellPad)));
-            ImGui::PushTextWrapPos(ImGui::GetCursorPosX() + textWrapW);
-            ImGui::TextWrapped(
-                "Change your dreams by selecting a playlist from the browser. Click the button on a "
-                "thumbnail to start that playlist.");
+            ImGui::PushTextWrapPos(ImGui::GetCursorPosX() + trWrapW);
+            ImGui::TextWrapped("%s", kTrCopy);
             ImGui::PopTextWrapPos();
             if (g_fontThanksCopy) ImGui::PopFont();
 
@@ -848,7 +863,7 @@ static void DrawWizard()
                 ImGui::Image(playlistIcon, ImVec2(S(kThanksPlaylistImg), S(kThanksPlaylistImg)));
             }
 
-            const float btnY = S(kThanksRowTopH) - S(kThanksBtnBottom) - S(kThanksTipsBtnH);
+            const float btnY = topBtnY;
             ImGui::SetCursorPos(ImVec2((colW - S(kThanksOpenPlaylistBtnW)) * 0.5f, btnY));
             ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(S(8.f), S(3.f)));
             if (g_fontThanksBtn) ImGui::PushFont(g_fontThanksBtn);
@@ -863,14 +878,14 @@ static void DrawWizard()
         // Vertical separator between top cells
         const float vSepX = tlRectMax.x + S(10.f);
         panelDl->AddRectFilled(ImVec2(vSepX, tlRectMin.y),
-                               ImVec2(vSepX + 1.f, tlRectMin.y + S(kThanksRowTopH)), sepU32);
+                               ImVec2(vSepX + 1.f, tlRectMin.y + rowTopH), sepU32);
 
         // Horizontal separator
         const float hSepTop = tlRectMax.y + S(kThanksHSepGap);
         panelDl->AddRectFilled(ImVec2(tlRectMin.x, hSepTop),
                                ImVec2(tlRectMin.x + innerW, hSepTop + S(kThanksHSepH)), sepU32);
 
-        const float yBot = yTop + S(kThanksRowTopH) + S(kThanksHSepGap) + S(kThanksHSepH) + S(kThanksHSepGap);
+        const float yBot = yTop + rowTopH + S(kThanksHSepGap) + S(kThanksHSepH) + S(kThanksHSepGap);
 
         // Bottom-left cell
         ImGui::SetCursorPos(ImVec2(S(kThanksOuterPad), yBot));
@@ -1011,6 +1026,12 @@ void FirstTimeSetupVulkan_Register()
 bool FirstTimeSetupVulkan_IsWizardVisible()
 {
     return g_visible.load(std::memory_order_acquire);
+}
+
+bool FirstTimeSetupVulkan_HasPendingOrVisible()
+{
+    return g_showRequested.load(std::memory_order_acquire) ||
+           g_visible.load(std::memory_order_acquire);
 }
 
 void FirstTimeSetupVulkan_DrawIfNeeded()
