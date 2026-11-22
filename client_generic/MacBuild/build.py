@@ -11,6 +11,7 @@ Override via environment variables: DEVELOPER_ID_CERT, TEAM_ID, KEYCHAIN_PROFILE
 """
 
 import argparse
+import copy
 import hashlib
 import os
 import plistlib
@@ -253,6 +254,7 @@ class BuildConfig:
         self.github_release = args.github
         self.version = args.version
         self.force = args.force
+        self.sanitize = args.sanitize
 
         # Configuration derived from flags
         self.build_config = "Release" if self.release else "Debug"
@@ -275,7 +277,9 @@ class BuildConfig:
 
         # Paths
         self.project = "infinidream.xcodeproj"
-        self.build_dir = Path("build")
+        # A sanitized build gets its own folder, outside build/ (which every
+        # normal build wipes), so it builds incrementally (#871).
+        self.build_dir = Path(f"build-{self.sanitize}") if self.sanitize else Path("build")
         self.derived_data = self.build_dir / "DerivedData"
         self.products_dir = self.derived_data / "Build" / "Products" / self.build_config
 
@@ -302,6 +306,10 @@ class BuildConfig:
 
 def validate_config(config: BuildConfig) -> None:
     """Validate build configuration."""
+    if config.sanitize and (config.release or config.notarize or config.github_release):
+        print_red("Error: --sanitize builds are for testing only; it can't be combined with -r, -n or -g")
+        sys.exit(1)
+
     if config.notarize and not config.release:
         print_red("Error: Notarization requires Release mode. Use -r flag with -n")
         sys.exit(1)
@@ -361,6 +369,8 @@ def print_build_info(config: BuildConfig) -> None:
         print(f"Environment: {Colors.GREEN}PRODUCTION{Colors.NC}")
 
     print(f"Configuration: {config.build_config}")
+    if config.sanitize:
+        print(f"Sanitizers: {', '.join(SANITIZERS[config.sanitize]['names'])} (app only)")
     print(f"Screensaver Scheme: {config.screensaver_scheme}")
     print(f"App Scheme: {config.app_scheme}")
     print(f"Notarization: {'Enabled' if config.notarize else 'Disabled'}")
@@ -385,6 +395,68 @@ def print_build_info(config: BuildConfig) -> None:
 
     print("========================================")
     print()
+
+
+# --sanitize: xcodebuild switches for each choice (#871). ASan and TSan can't be
+# combined, so they are separate builds; UBSan is cheap and rides along with ASan.
+SANITIZERS = {
+    'asan': {
+        'names': ['AddressSanitizer', 'UndefinedBehaviorSanitizer'],
+        'args': ['-enableAddressSanitizer', 'YES', '-enableUndefinedBehaviorSanitizer', 'YES'],
+    },
+    'tsan': {
+        'names': ['ThreadSanitizer'],
+        'args': ['-enableThreadSanitizer', 'YES'],
+    },
+}
+
+
+def build_sanitized_app(config: BuildConfig) -> Path:
+    """Builds just the app, Debug, with the chosen sanitizers, for the mock-server tests
+    (#871). Unsigned and never packaged. The screensaver isn't sanitized: a .saver runs
+    inside legacyScreenSaver, and a sanitizer runtime must be loaded when the process starts.
+    The app still bundles a plain screensaver from Resources, which is built first if missing.
+    Returns the path to the app's binary."""
+    project_saver = Path("Resources") / config.screensaver_name
+    if not project_saver.exists():
+        print_yellow(f"{project_saver} is missing; building a plain Debug screensaver first...")
+        saver_config = copy.copy(config)
+        saver_config.derived_data = config.build_dir / "DerivedData-saver"
+        saver_config.products_dir = saver_config.derived_data / "Build" / "Products" / config.build_config
+        copy_screensaver(saver_config, step1_build_screensaver(saver_config))
+
+    print()
+    print("========================================")
+    print(f"Building app with {', '.join(SANITIZERS[config.sanitize]['names'])}")
+    print("========================================")
+    env = {'BUILD_VERSION': config.plist_version} if config.plist_version else {}
+    run_xcodebuild([
+        'build',
+        '-project', config.project,
+        '-scheme', config.app_scheme,
+        '-configuration', config.build_config,
+        '-derivedDataPath', str(config.derived_data),
+        *SANITIZERS[config.sanitize]['args'],
+        'CODE_SIGN_IDENTITY=',
+        'CODE_SIGNING_REQUIRED=NO',
+        'CODE_SIGNING_ALLOWED=NO',
+    ], env=env)
+
+    app = config.products_dir / config.app_name
+    info = app / "Contents" / "Info.plist"
+    binary = app / "Contents" / "MacOS" / (plistlib.loads(info.read_bytes())["CFBundleExecutable"]
+                                           if info.exists() else "infinidream")
+    if not binary.exists():
+        print_red(f"Build finished but {binary} is missing")
+        sys.exit(1)
+    print()
+    print_green("========================================")
+    print_green(f"Sanitized build complete ({config.sanitize})")
+    print_green("========================================")
+    print(f"App: {app.resolve()}")
+    print("Run the mock-server tests against it with:")
+    print(f'  cd ../tests/mock-server && venv/bin/python run_all.py --app "{binary.resolve()}"')
+    return binary
 
 
 def clean_previous_builds(build_dir: Path) -> None:
@@ -1404,12 +1476,21 @@ Environment variables (optional overrides):
                         help='Version string (e.g., 0.12.0) - used for DMG naming and GitHub release')
     parser.add_argument('--force', action='store_true',
                         help='Overwrite an existing tag/release (destroys existing release notes)')
+    parser.add_argument('--sanitize', choices=sorted(SANITIZERS),
+                        help='Test build of the app only, Debug and unsigned: asan = AddressSanitizer + '
+                             'UndefinedBehaviorSanitizer, tsan = ThreadSanitizer. Builds incrementally '
+                             'in build-asan/ or build-tsan/. For the mock-server tests (#871).')
 
     args = parser.parse_args()
 
     config = BuildConfig(args)
     validate_config(config)
     print_build_info(config)
+
+    if config.sanitize:
+        check_submodules()
+        build_sanitized_app(config)
+        return
 
     # Clean previous builds
     clean_previous_builds(config.build_dir)

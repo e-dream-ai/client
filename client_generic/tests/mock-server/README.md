@@ -22,7 +22,7 @@ Windows (see "On Windows").
   frames and near the end, and `play_playlist` across the server's four playlists) while
   changing the media rate every few seconds, then checks the client recovers. `--seed N`
   replays a run; every action goes to `actions.jsonl` in the run folder. It finds more
-  with a build made with `xcodebuild ... -enableAddressSanitizer YES`.
+  with a sanitized build (see "Sanitizers").
 - `navigation_chaos_test.py` is the same with only `next`, `previous`, `forward`, `backward`,
   `play_playlist` and `play_dream`, and the rate changing every 1 to 4 seconds.
 - `keyframe_test.py` plays a keyframed playlist from a snapshot set (default `wanderlust-v1`)
@@ -206,6 +206,33 @@ Every test ends with these checks:
   dream buffers counts as buffering: the outgoing dream waits on its last frame under the
   buffering moon, which a burst of `next`s over a slow link can stretch past 5 s. The stacks are sampled (`stacks-hang.txt`).
   A locked screen also stops heartbeats, so it's reported as that instead.
+
+## Sanitizers
+
+Any test, or `run_all.py`, can run against a sanitized client build (#871). On the Mac:
+
+    cd client_generic/MacBuild
+    python3 build.py --sanitize asan    # AddressSanitizer + UndefinedBehaviorSanitizer
+    python3 build.py --sanitize tsan    # ThreadSanitizer (can't be combined with ASan)
+
+Each builds only the app, Debug and unsigned, incrementally in `build-asan/` or `build-tsan/`,
+and prints the binary's path for `--app`. The screensaver isn't sanitized: a `.saver` runs
+inside `legacyScreenSaver`, and a sanitizer runtime must be loaded when the process starts.
+
+The harness finds out from the binary which sanitizer it was built with; no option is needed.
+It then:
+
+- sets `ASAN_OPTIONS`/`UBSAN_OPTIONS` or `TSAN_OPTIONS`. Under ASan the client's SIGSEGV
+  handler is kept out (`allow_user_segv_handler=0`), so a segfault gets a full ASan report
+  instead of being swallowed. TSan reports every race and carries on. Suppressions, for code we
+  don't own, go in `asan.supp` and `tsan.supp` here, each with its reason.
+- multiplies the hang limits by 3 (ASan) or 5 (TSan), since sanitized builds run slower.
+- adds the check **No asan report** (or tsan): any `AddressSanitizer`, `runtime error:` or
+  `ThreadSanitizer` report in the client's output fails it, and all reports are saved to
+  `sanitizer-reports.txt` in the run folder.
+
+ffmpeg, Boost and OpenSSL come prebuilt from vcpkg without instrumentation, so bugs inside
+them aren't seen. Heap misuse in our own code still is, since ASan replaces malloc.
 
 ## Frame timing
 
