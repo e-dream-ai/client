@@ -384,10 +384,7 @@
              "settings.content.sheepdir", ""))
             .stringByAbbreviatingWithTildeInPath;
 
-    // Put full version with git + date
-    version.stringValue = [NSString stringWithFormat:@"%@ %@",
-                           [NSString stringWithUTF8String:PlatformUtils::GetVersionDescription().c_str()],
-                           [NSString stringWithUTF8String:PlatformUtils::GetBuildDate().c_str()]];
+    version.stringValue = [NSString stringWithUTF8String:PlatformUtils::GetVersionLine().c_str()];
 
 #ifndef DEBUG
     serverLabel.hidden = YES;

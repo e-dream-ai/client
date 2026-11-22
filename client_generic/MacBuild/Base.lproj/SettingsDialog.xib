@@ -66,14 +66,6 @@ Gw
                             <action selector="ok:" target="-2" id="738"/>
                         </connections>
                     </button>
-                    <textField focusRingType="none" verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="769">
-                        <rect key="frame" x="46" y="23" width="24" height="14"/>
-                        <textFieldCell key="cell" controlSize="small" scrollable="YES" lineBreakMode="clipping" sendsActionOnEndEditing="YES" alignment="right" title="ver." id="770">
-                            <font key="font" metaFont="smallSystem"/>
-                            <color key="textColor" name="controlTextColor" catalog="System" colorSpace="catalog"/>
-                            <color key="backgroundColor" name="controlColor" catalog="System" colorSpace="catalog"/>
-                        </textFieldCell>
-                    </textField>
                     <button toolTip="Launch online help" horizontalHuggingPriority="750" verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="1182">
                         <rect key="frame" x="17" y="16" width="25" height="25"/>
                         <buttonCell key="cell" type="help" bezelStyle="helpButton" alignment="center" borderStyle="border" imageScaling="proportionallyDown" inset="2" id="1183">
@@ -761,7 +753,7 @@ room for new ones</string>
                         </connections>
                     </tabView>
                     <textField focusRingType="none" verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="764">
-                        <rect key="frame" x="70" y="23" width="42" height="14"/>
+                        <rect key="frame" x="46" y="23" width="42" height="14"/>
                         <textFieldCell key="cell" controlSize="small" scrollable="YES" lineBreakMode="clipping" sendsActionOnEndEditing="YES" placeholderString="version" id="765">
                             <font key="font" metaFont="smallSystem"/>
                             <color key="textColor" name="controlTextColor" catalog="System" colorSpace="catalog"/>
@@ -771,15 +763,13 @@ room for new ones</string>
                 </subviews>
                 <constraints>
                     <constraint firstItem="328" firstAttribute="leading" secondItem="323" secondAttribute="leading" constant="20" symbolic="YES" id="5S2-q4-xDr"/>
-                    <constraint firstItem="769" firstAttribute="firstBaseline" secondItem="1182" secondAttribute="firstBaseline" id="5nB-ma-125"/>
                     <constraint firstItem="764" firstAttribute="firstBaseline" secondItem="1182" secondAttribute="firstBaseline" id="Afk-9S-ZmC"/>
                     <constraint firstAttribute="bottom" secondItem="1182" secondAttribute="bottom" constant="20" symbolic="YES" id="Wtd-js-Psn"/>
                     <constraint firstItem="328" firstAttribute="top" secondItem="323" secondAttribute="top" constant="10" id="WxJ-sd-aKa"/>
                     <constraint firstItem="1182" firstAttribute="top" secondItem="328" secondAttribute="bottom" constant="12" symbolic="YES" id="fl6-uQ-tTN"/>
                     <constraint firstAttribute="bottom" secondItem="331" secondAttribute="bottom" constant="13" id="ihe-Ag-EJE"/>
-                    <constraint firstItem="764" firstAttribute="leading" secondItem="769" secondAttribute="trailing" constant="4" id="jkE-TO-zFA"/>
+                    <constraint firstItem="764" firstAttribute="leading" secondItem="1182" secondAttribute="trailing" constant="8" id="jkE-TO-zFA"/>
                     <constraint firstItem="1182" firstAttribute="leading" secondItem="323" secondAttribute="leading" constant="20" symbolic="YES" id="kuq-KJ-Qz0"/>
-                    <constraint firstItem="769" firstAttribute="leading" secondItem="1182" secondAttribute="trailing" constant="8" id="r3q-DR-s5L"/>
                     <constraint firstAttribute="trailing" secondItem="328" secondAttribute="trailing" constant="20" symbolic="YES" id="r8t-es-IFS"/>
                     <constraint firstAttribute="trailing" secondItem="331" secondAttribute="trailing" constant="20" symbolic="YES" id="sVM-M7-hSm"/>
                 </constraints>

@@ -12,9 +12,7 @@ static void LoadSettingsForShow()
     g_sentCode = false;
     g_previousLoginEmailBuf[0] = '\0';
     g_hasPreviousLoginEmail = false;
-    g_versionText = PlatformUtils::GetAppVersion() + " " +
-                    PlatformUtils::GetGitRevision() + " " +
-                    PlatformUtils::GetBuildDate();
+    g_versionText = PlatformUtils::GetVersionLine();
 
     g_playerFps = g_Settings()->Get("settings.player.player_fps", 23.0);
     g_preserveAR = g_Settings()->Get("settings.player.preserve_AR", false);
