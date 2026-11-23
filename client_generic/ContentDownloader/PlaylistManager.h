@@ -52,6 +52,26 @@ struct PlaylistEntry {
         , endKeyframe(std::move(end)) {}
 };
 
+struct PlaylistMetadata
+{
+    std::string name;
+    std::string artist;
+    bool nsfw = false;
+    int64_t timestamp = 0;
+    int loops = 0;
+    // Crossfade seconds between dreams; nullopt = client default.
+    std::optional<float> transitionTime;
+};
+
+// A playlist read from disk, parsed and filtered, ready for the player thread to
+// switch to without doing that work itself (client#883).
+struct PreparedPlaylist
+{
+    std::string uuid;
+    std::vector<PlaylistEntry> entries;  // already filtered
+    PlaylistMetadata metadata;
+};
+
 class PlaylistManager {
 public:
     PlaylistManager();
@@ -60,7 +80,16 @@ public:
 
     
     // Initialize the playlist with it's uuid and a list of dream UUIDs
-    bool initializePlaylist(const std::string& playlistUUID, bool fetchPlaylist);
+    // With `prepared` (from preparePlaylist, for the same UUID) the playlist is not
+    // read and parsed again.
+    bool initializePlaylist(const std::string& playlistUUID, bool fetchPlaylist,
+                            std::shared_ptr<const PreparedPlaylist> prepared = nullptr);
+
+    // Reads, parses and filters a playlist that is already on disk. Slow for a
+    // large playlist (about 70 ms for 2,000 dreams) and may wait on the server
+    // for missing dream metadata, so call it off the render thread. Returns
+    // null when the playlist can't be read or is empty.
+    std::shared_ptr<const PreparedPlaylist> preparePlaylist(const std::string& playlistUUID) const;
 
     void setOfflineMode(bool offline);
     bool isOfflineMode() const {
@@ -268,7 +297,8 @@ private:
     bool parsePlaylist(const std::string& playlistUUID, uint64_t expectedGeneration,
                        bool preserveCurrent = false,
                        const std::string& currentDreamUUID = {},
-                       size_t oldPosition = 0);
+                       size_t oldPosition = 0,
+                       std::shared_ptr<const PreparedPlaylist> prepared = nullptr);
     size_t findPositionOfDream(const std::string& dreamUUID) const;
     
     std::atomic<std::chrono::steady_clock::time_point> m_nextCheckTime;
