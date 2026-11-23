@@ -1,0 +1,18 @@
+# LeakSanitizer suppressions for the mock-server tests (#871, Linux ASan builds). The harness
+# passes this file in LSAN_OPTIONS. Each entry is memory a system library keeps for the life
+# of the process; the client never tears its window down before _exit().
+
+# Window decorations (libdecor's GTK plugin) and the fonts GTK loads for them: GTK, Pango,
+# fontconfig and GLib caches.
+leak:libdecor-gtk.so
+leak:libdecor-0.so
+leak:libgtk-3.so
+leak:libgdk-3.so
+leak:libpango-1.0.so
+leak:libpangoft2-1.0.so
+leak:libfontconfig.so
+leak:libglib-2.0.so
+leak:libgobject-2.0.so
+
+# Wayland proxies (the registry from initWayland) live as long as the display connection.
+leak:libwayland-client.so

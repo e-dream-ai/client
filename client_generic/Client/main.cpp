@@ -96,6 +96,12 @@ int32_t main(int argc, char* argv[])
 
     client.Shutdown();
 
+#ifdef INFINIDREAM_LSAN
+    // Leak check here, before static destructors run, rather than in exit()
+    // racing the shutdown watchdog's own check (#871).
+    ForceExitProcess();
+#endif
+
     //g_Log->Shutdown();
 
     return 0;

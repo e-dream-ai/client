@@ -49,6 +49,24 @@
 #include "PlatformUtils.h"
 #include "CacheManager.h"
 
+// LeakSanitizer (Linux ASan builds, #871). The process ends with _exit(), which skips
+// LSan's check at exit, so ForceExitProcess runs it first.
+#if defined(__linux__) && !defined(SCREEN_SAVER)
+#if defined(__SANITIZE_ADDRESS__)
+#define INFINIDREAM_LSAN 1
+#elif defined(__has_feature)
+#if __has_feature(address_sanitizer)
+#define INFINIDREAM_LSAN 1
+#endif
+#endif
+#endif
+#ifdef INFINIDREAM_LSAN
+#include <sanitizer/lsan_interface.h>
+// Set by the first ForceExitProcess call: the shutdown watchdog and main() can both get
+// there, and only one may run the leak check.
+inline std::atomic<bool> g_ForceExitStarted{false};
+#endif
+
 // Flag to cancel the shutdown watchdog when restarting (e.g., after wizard)
 static std::atomic<bool> s_shutdownCancelled{false};
 
@@ -66,6 +84,12 @@ static std::atomic<bool> s_shutdownCancelled{false};
 #elif defined(SCREEN_SAVER)
     exit(0);
 #else
+#ifdef INFINIDREAM_LSAN
+    if (g_ForceExitStarted.exchange(true))
+        for (;;) std::this_thread::sleep_for(std::chrono::hours(1));  // the other caller exits
+    // Reports leaks and exits with status 1 (ASan's exitcode) if it finds any.
+    __lsan_do_leak_check();
+#endif
     _exit(0);
 #endif
 }

@@ -60,17 +60,22 @@ SANITIZER_OPTIONS = {
     "asan": {"ASAN_OPTIONS": "halt_on_error=1:abort_on_error=0:allow_user_segv_handler=0:"
                              "detect_stack_use_after_return=1:strict_string_checks=1:"
                              "intercept_strndup=0",
-             "UBSAN_OPTIONS": "print_stacktrace=1"},
+             "UBSAN_OPTIONS": "print_stacktrace=1",
+             # LeakSanitizer (Linux): the client runs the check itself before its final
+             # _exit(). Report each leak with its own stack.
+             "LSAN_OPTIONS": "print_suppressions=0"},
     # TSan reports every race it sees and carries on, so one run finds them all. By default it
     # then aborts at exit when it reported anything; exitcode=0 and abort_on_error=0 leave the
     # verdict to the "No tsan report" check instead of also failing the clean quit.
     "tsan": {"TSAN_OPTIONS": "halt_on_error=0:abort_on_error=0:exitcode=0:"
                              "second_deadlock_stack=1:history_size=4"},
 }
-SUPPRESSIONS = {"asan": ("ASAN_OPTIONS", HERE / "asan.supp"), "tsan": ("TSAN_OPTIONS", HERE / "tsan.supp")}
+SUPPRESSIONS = {"asan": [("ASAN_OPTIONS", HERE / "asan.supp"), ("LSAN_OPTIONS", HERE / "lsan.supp")],
+                "tsan": [("TSAN_OPTIONS", HERE / "tsan.supp")]}
 # The start of each kind of report, in the client's output.
 SANITIZER_REPORT = re.compile(
-    r"^(==\d+==ERROR: AddressSanitizer.*|.*: runtime error: .*|WARNING: ThreadSanitizer: .*)$",
+    r"^(==\d+==ERROR: (?:AddressSanitizer|LeakSanitizer).*|.*: runtime error: .*|"
+    r"WARNING: ThreadSanitizer: .*)$",
     re.MULTILINE)
 _sanitizers = {}
 
@@ -91,10 +96,17 @@ def sanitizer_of(app):
 def sanitizer_reports(text):
     """Each sanitizer report in the client's output, as a string. An ASan report runs to its
     ABORTING line, a TSan one to its closing row of =; a UBSan report is its line plus the
-    stack after it."""
+    stack after it. LeakSanitizer lists every leak in one report; each leak is returned on
+    its own, as "LeakSanitizer: Direct leak of ..." and its stack."""
     reports = []
     for match in SANITIZER_REPORT.finditer(text):
         rest = text[match.start():]
+        if "LeakSanitizer" in match.group(1):
+            end = rest.find("\nSUMMARY: AddressSanitizer")
+            body = rest[:end if end > 0 else len(rest)]
+            reports += ["LeakSanitizer: " + leak.strip()
+                        for leak in re.split(r"\n(?=(?:Direct|Indirect) leak of )", body)[1:]]
+            continue
         if "AddressSanitizer" in match.group(1):
             end = rest.find("==ABORTING")
         elif "ThreadSanitizer" in match.group(1):
@@ -114,6 +126,8 @@ def report_kind(report):
     first = report.splitlines()[0]
     if "runtime error: " in first:
         return "UB: " + " ".join(first.split("runtime error: ", 1)[1].split()[:3]).rstrip(":")
+    if first.startswith("LeakSanitizer: "):
+        return first.split(" leak of ")[0].replace("LeakSanitizer: ", "").lower() + " leak"
     first = re.sub(r"^==\d+==ERROR: AddressSanitizer: |^WARNING: ThreadSanitizer: ", "", first)
     return re.sub(r" (on|in|at) .*$| \(pid=\d+\)$", "", first)
 
@@ -277,6 +291,7 @@ class Run:
         self.died_during_run = None  # Exit code if the client exited before the test stopped it.
         self.ignored_sigterm = False
         self.quit_cleanly = None  # Whether the client obeyed the test-only quit command.
+        self.exited_on_quit = False  # It exited after quit, though maybe not with status 0.
 
     # What the client and server did.
 
@@ -365,9 +380,9 @@ class Run:
                "INFINIDREAM_API_KEY": API_KEY, "INFINIDREAM_HEARTBEAT_SECONDS": "1",
                **SANITIZER_OPTIONS.get(self.sanitizer, {})}
         if self.sanitizer:
-            variable, path = SUPPRESSIONS[self.sanitizer]
-            if path.exists():
-                env[variable] += f":suppressions={path}"
+            for variable, path in SUPPRESSIONS[self.sanitizer]:
+                if path.exists():
+                    env[variable] = env.get(variable, "") + f":suppressions={path}"
         self.started_at = time.time()
         with open(self.client_output, "w") as output:
             command = [str(self.app), *(["--fullscreen"] if FULLSCREEN else [])]
@@ -430,6 +445,7 @@ class Run:
                 try:
                     self.send("quit")
                     self.client.wait(quit_timeout)
+                    self.exited_on_quit = True
                     self.quit_cleanly = self.client.returncode == 0
                 except (Failed, OSError) as error:
                     print(f"Couldn't send quit: {error}", flush=True)
@@ -693,6 +709,8 @@ def verify_process(run):
     if run.died_during_run is None:
         check("Client quit cleanly when asked", bool(run.quit_cleanly),
               describe_exit(code) if run.quit_cleanly else
+              # A sanitizer report at exit (e.g. LeakSanitizer's leaks) makes the status 1.
+              f"exited on quit with {describe_exit(code)}" if run.exited_on_quit else
               f"didn't quit; then {describe_exit(code)}" + (" after ignoring SIGTERM" if run.ignored_sigterm else ""))
         if run.quit_cleanly:
             leftovers = sorted(p.name for p in (run.data / "content").rglob("*.tmp"))
