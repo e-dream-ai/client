@@ -177,7 +177,17 @@ class CContentDecoder
 #endif
 
     void Close();
-    bool Start(const sClipMetadata& metadata, int64_t _seekFrame = -1);
+    // Hands a clip's codec context on: an open hardware one is kept for the next
+    // clip of the same kind (Windows, client#879), any other is freed.
+    static void ReleaseCodecContext(AVCodecContext*& ctx);
+    // Frees the contexts kept by ReleaseCodecContext. Call at shutdown, once the
+    // clips are gone.
+    static void ReleaseIdleCodecContexts();
+    // _asyncOpen opens a local file on the decoder thread, as remote URLs always
+    // are, so the caller doesn't wait for the open (client#804). Start then
+    // returns true and a failed open shows up later in FailedToOpen().
+    bool Start(const sClipMetadata& metadata, int64_t _seekFrame = -1,
+               bool _asyncOpen = false);
     void Stop();
     const sOpenVideoInfo* GetVideoInfo() const
     {
@@ -245,6 +255,7 @@ class CContentDecoder
     std::string m_CachePath;
     FILE* m_CacheFile = nullptr;
     bool m_IsStreaming = false;
+    bool m_OpenOnDecoderThread = false;  // set by Start, for Open's timing label
     static int ReadPacket(void* opaque, uint8_t* buf, int buf_size);
     static int64_t SeekPacket(void* opaque, int64_t offset, int whence);
     void SetCachePath(const std::string& path);

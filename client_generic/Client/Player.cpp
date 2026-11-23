@@ -785,6 +785,8 @@ bool CPlayer::Shutdown(void)
     // the wait early, which is fine: _exit() runs no destructors.
     if (!waitForClipDestroys(std::chrono::seconds(3)))
         g_Log->Warning("Clip destruction still running after 3 s at shutdown");
+    // The decoders those clips left open for reuse hold the renderer's device.
+    ContentDecoder::CContentDecoder::ReleaseIdleCodecContexts();
 
 #ifdef LINUX_GNU
     // Decoders still tearing down hold their own references to the device.
@@ -1197,6 +1199,20 @@ bool CPlayer::Update(uint32_t displayUnit)
             destroyClipAsync(std::move(m_nextClip));
             m_nextClip = nullptr;
             NoteContentSettled();
+        }
+
+        // A preloaded file is opened on the decoder thread (client#804), so a missing
+        // or corrupt one fails after PreloadClip has returned. Leave the same state a
+        // failed PreloadClip leaves: no next clip and no preload in progress. A
+        // transition or pending seek already under way handles its own failure.
+        if (m_nextClip && !m_isTransitioning && !m_pendingSeekCrossfade &&
+            m_nextClip->IsPreloadFailed()) {
+            g_Log->Error("Preloaded clip %s failed to open; dropping it",
+                         m_nextClip->GetClipMetadata().dreamData.uuid.c_str());
+            destroyClipAsync(std::move(m_nextClip));
+            m_nextClip = nullptr;
+            m_PreloadingNextClip = false;
+            m_PreloadingDreamUUID.clear();
         }
 
         // Check if pending seek crossfade can now start (next clip finished buffering)

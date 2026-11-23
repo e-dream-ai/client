@@ -134,7 +134,10 @@ public:
     // Must be called by the render/update thread before asynchronous teardown.
     void ReleaseRenderResources();
     
-    bool Preload(int64_t _seekFrame = -1);
+    // Starts the decoder filling its queue. By default the file is opened on the
+    // decoder thread, not the caller's (client#804): a failed open then shows up
+    // in IsPreloadFailed(), not in the return value.
+    bool Preload(int64_t _seekFrame = -1, bool _asyncOpen = true);
     bool IsPreloadComplete() const;
     bool IsPreloadFailed() const
     {
