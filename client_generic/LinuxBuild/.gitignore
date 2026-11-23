@@ -1,5 +1,7 @@
 build/
 build-stage/
+build-asan/
+build-tsan/
 build-appimage/
 build-glibc-check/
 a.out

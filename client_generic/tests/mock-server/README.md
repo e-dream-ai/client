@@ -219,19 +219,32 @@ Each builds only the app, Debug and unsigned, incrementally in `build-asan/` or 
 and prints the binary's path for `--app`. The screensaver isn't sanitized: a `.saver` runs
 inside `legacyScreenSaver`, and a sanitizer runtime must be loaded when the process starts.
 
+On Linux, configure a separate CMake tree with `INFINIDREAM_SANITIZE` (GCC or Clang):
+
+    cd client_generic/LinuxBuild
+    cmake -B build-asan -DCMAKE_BUILD_TYPE=Debug -DINFINIDREAM_SANITIZE=asan
+    cmake -B build-tsan -DCMAKE_BUILD_TYPE=Debug -DINFINIDREAM_SANITIZE=tsan
+    cmake --build build-tsan -j$(nproc)    # binary: build-tsan/infinidream
+
+ASan comes with LeakSanitizer on Linux, but it never reports: the client ends with `_exit()`,
+which skips the leak check at exit.
+
 The harness finds out from the binary which sanitizer it was built with; no option is needed.
 It then:
 
 - sets `ASAN_OPTIONS`/`UBSAN_OPTIONS` or `TSAN_OPTIONS`. Under ASan the client's SIGSEGV
   handler is kept out (`allow_user_segv_handler=0`), so a segfault gets a full ASan report
   instead of being swallowed. TSan reports every race and carries on. Suppressions, for code we
-  don't own, go in `asan.supp` and `tsan.supp` here, each with its reason.
+  don't own, go in `asan.supp` and `tsan.supp` here, each with its reason. On Linux,
+  `tsan.supp` drops races inside GLib, GIO, Pango, fontconfig, glycin and PulseAudio (threads
+  started by the window decorations and font loading) and ffmpeg's lock-order report; without
+  it a short e2e run has over 200 reports, none in our code.
 - multiplies the hang limits by 3 (ASan) or 5 (TSan), since sanitized builds run slower.
 - adds the check **No asan report** (or tsan): any `AddressSanitizer`, `runtime error:` or
   `ThreadSanitizer` report in the client's output fails it, and all reports are saved to
   `sanitizer-reports.txt` in the run folder.
 
-ffmpeg, Boost and OpenSSL come prebuilt from vcpkg without instrumentation, so bugs inside
+ffmpeg, Boost and OpenSSL come prebuilt (from vcpkg, or the distro on Linux) without instrumentation, so bugs inside
 them aren't seen. Heap misuse in our own code still is, since ASan replaces malloc.
 
 ## Frame timing

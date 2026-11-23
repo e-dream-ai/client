@@ -21,6 +21,29 @@ if(INFINIDREAM_STAGE)
 endif()
 
 # ---------------------------------------------------------------------------
+# Sanitized build for the mock-server tests (#871). Debug, in its own tree,
+# never for a release:
+#   cmake -B build-asan -DCMAKE_BUILD_TYPE=Debug -DINFINIDREAM_SANITIZE=asan
+#   cmake -B build-tsan -DCMAKE_BUILD_TYPE=Debug -DINFINIDREAM_SANITIZE=tsan
+# asan is AddressSanitizer + UndefinedBehaviorSanitizer (LeakSanitizer comes
+# with ASan on Linux); tsan is ThreadSanitizer, which can't be combined with them.
+# ---------------------------------------------------------------------------
+set(INFINIDREAM_SANITIZE "" CACHE STRING "Sanitizer for test builds: asan, tsan or empty")
+set_property(CACHE INFINIDREAM_SANITIZE PROPERTY STRINGS "" asan tsan)
+if(INFINIDREAM_SANITIZE STREQUAL "asan")
+    set(_sanitize_flags -fsanitize=address,undefined -fno-omit-frame-pointer)
+elseif(INFINIDREAM_SANITIZE STREQUAL "tsan")
+    set(_sanitize_flags -fsanitize=thread -fno-omit-frame-pointer)
+elseif(NOT INFINIDREAM_SANITIZE STREQUAL "")
+    message(FATAL_ERROR "INFINIDREAM_SANITIZE must be asan, tsan or empty, not '${INFINIDREAM_SANITIZE}'")
+endif()
+if(INFINIDREAM_SANITIZE)
+    add_compile_options(${_sanitize_flags})
+    add_link_options(${_sanitize_flags})
+    message(STATUS "Sanitized build: ${INFINIDREAM_SANITIZE} (${_sanitize_flags})")
+endif()
+
+# ---------------------------------------------------------------------------
 # Compile definitions
 # ---------------------------------------------------------------------------
 add_compile_definitions(
