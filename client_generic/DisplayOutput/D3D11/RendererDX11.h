@@ -97,7 +97,10 @@ private:
         float color[4];
         float brightness;
         int rotation;  // video rotation in degrees: 0 = none, 90 = rotate 90 CW
-        float padding[2];
+        // Half a luma texel of a bound NV12 surface, in uv units; 0 when none is
+        // bound. The NV12 shaders keep samples this far inside uvRect so
+        // filtering can't reach the surface's padding rows.
+        float halfTexel[2];
     };
 
     struct Vertex

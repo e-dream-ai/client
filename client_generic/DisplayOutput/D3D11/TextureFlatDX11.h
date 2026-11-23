@@ -21,6 +21,9 @@ protected:
     ComPtr<ID3D11Device> m_device;
     ComPtr<ID3D11DeviceContext> m_context;
     ContentDecoder::spCVideoFrame m_spBoundFrame;
+    // Size of the decoder surface behind m_srvY (coded size, >= display size).
+    uint32_t m_surfaceWidth = 0;
+    uint32_t m_surfaceHeight = 0;
 
 public:
     CTextureFlatDX11(ComPtr<ID3D11Device> device, ComPtr<ID3D11DeviceContext> context, const uint32_t flags = 0);
@@ -38,6 +41,8 @@ public:
     ID3D11ShaderResourceView* GetSRVY() const { return m_srvY.Get(); }
     ID3D11ShaderResourceView* GetSRVUV() const { return m_srvUV.Get(); }
     ID3D11SamplerState* GetSampler() const { return m_sampler.Get(); }
+    uint32_t GetSurfaceWidth() const { return m_surfaceWidth; }
+    uint32_t GetSurfaceHeight() const { return m_surfaceHeight; }
 
 private:
     bool CreateSampler();
