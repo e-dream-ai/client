@@ -425,7 +425,9 @@ bool CClip::Update(double _timelineTime, bool isPaused)
                 SetStartTime(m_ActualStartTime);
                 
                 // Start actual playback
-                StartPlayback(m_spDecoder->GetVideoInfo()->m_SeekTargetFrame);
+                // Not the decoder's m_SeekTargetFrame: its thread resets that
+                // without a lock (#873), and StartPlayback doesn't use it.
+                StartPlayback();
             }
         }
         else if (m_BufferingState == BufferingState::Rebuffering &&
@@ -543,6 +545,7 @@ bool CClip::Update(double _timelineTime, bool isPaused)
                 g_Log->Info("Reusing last valid, faking increment count");
                 // Just keep using the last valid frame
                 m_spFrameData = m_LastValidFrame;
+                std::unique_lock<std::shared_mutex> lock(m_CurrentFrameMetadataLock);
                 m_CurrentFrameMetadata.frameIdx++;
             }
             else
@@ -762,6 +765,12 @@ uint32_t CClip::GetCurrentFrameIdx() const
     return m_CurrentFrameMetadata.frameIdx;
 }
 
+sFrameMetadata CClip::CopyCurrentFrameMetadata() const
+{
+    std::shared_lock<std::shared_mutex> lock(m_CurrentFrameMetadataLock);
+    return m_CurrentFrameMetadata;
+}
+
 const sFrameMetadata& CClip::GetCurrentFrameMetadata() const
 {
     std::shared_lock<std::shared_mutex> lock(m_CurrentFrameMetadataLock);
@@ -771,7 +780,7 @@ const sFrameMetadata& CClip::GetCurrentFrameMetadata() const
 uint32_t CClip::GetFrameCount() const
 {
     const auto* info = m_spDecoder ? m_spDecoder->GetVideoInfo() : nullptr;
-    return info ? info->m_TotalFrameCount : 0;
+    return info ? info->m_TotalFrameCount.load() : 0;
 }
 
 void CClip::SetStartTime(double _startTime)

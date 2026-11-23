@@ -5,6 +5,7 @@
 #include <chrono>
 #include <deque>
 #include <future>
+#include <optional>
 #include <queue>
 #include <thread>
 
@@ -145,13 +146,14 @@ class CPlayer : public Base::CSingleton<CPlayer>
 
     DisplayUnitList m_displayUnits;
     Base::CTimer m_Timer;
-    double m_DecoderFps;
-    double m_PerceptualFPS;
+    // Atomic: the socket thread reads both for its pings (#873).
+    std::atomic<double> m_DecoderFps;
+    std::atomic<double> m_PerceptualFPS;
     double m_DisplayFps;
     double m_LastFrameRealTime;
     bool m_bFullscreen;
     bool m_InitPlayCounts;
-    bool m_bPaused = false;
+    std::atomic<bool> m_bPaused{false};  // IsPaused() is also called from SendPing
     bool m_UserPaused = false;
     bool m_PausedForBuffering = false;
     /// Windows first-run ImGui wizard: freeze timeline and playlist transitions until "Dream on!".
@@ -332,6 +334,8 @@ class CPlayer : public Base::CSingleton<CPlayer>
 
     const ContentDecoder::sClipMetadata* GetCurrentPlayingClipMetadata() const;
     const ContentDecoder::sFrameMetadata* GetCurrentFrameMetadata() const;
+    // The same metadata, copied: safe from other threads (SendPing on the socket thread).
+    std::optional<ContentDecoder::sFrameMetadata> CopyCurrentFrameMetadata() const;
     double GetCurrentClipElapsedTime() const;
 
     void PlayNextDream(bool quickFade = false);

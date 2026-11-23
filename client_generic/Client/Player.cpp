@@ -18,6 +18,8 @@
 #include <cstdlib>
 #include "StringFormat.h"
 #include <thread>
+#include <condition_variable>
+#include <mutex>
 #include <unordered_set>
 
 #include "Log.h"
@@ -107,6 +109,22 @@ double ClampPerceptualFPS(double fps)
 }
 } // namespace
 
+// Clip destructions still running on their detached threads. Shutdown waits
+// for them: otherwise the main thread can go on into exit() and destroy the
+// log (and other statics) while one of them still logs (#873).
+static std::mutex s_clipDestroysMutex;
+static std::condition_variable s_clipDestroysDone;
+static int s_clipDestroysRunning = 0;
+
+// Waits up to _timeout for every destroyClipAsync thread to finish. Returns
+// false if some were still running.
+static bool waitForClipDestroys(std::chrono::milliseconds _timeout)
+{
+    std::unique_lock lock(s_clipDestroysMutex);
+    return s_clipDestroysDone.wait_for(lock, _timeout,
+                                       [] { return s_clipDestroysRunning == 0; });
+}
+
 // Async destruction of a clip. The destructor may be delayed by a
 // catch up streaming mechanism for caching
 void destroyClipAsync(ContentDecoder::spCClip clip) {
@@ -117,10 +135,17 @@ void destroyClipAsync(ContentDecoder::spCClip clip) {
     // thread: Vulkan command pools and resource lifetimes require external
     // synchronization with rendering.
     clip->ReleaseRenderResources();
+    {
+        std::scoped_lock lock(s_clipDestroysMutex);
+        ++s_clipDestroysRunning;
+    }
     std::thread([clip = std::move(clip)]() mutable {
         // Decoder shutdown can block while its worker exits, but all render-owned
         // resources have already been released safely on the player thread.
         clip = nullptr;
+        std::scoped_lock lock(s_clipDestroysMutex);
+        if (--s_clipDestroysRunning == 0)
+            s_clipDestroysDone.notify_all();
     }).detach();
 }
 
@@ -632,7 +657,7 @@ void CPlayer::Start()
         
         // Grab perceptual FPS
         m_PerceptualFPS = g_Settings()->Get("settings.player.perceptual_fps",
-                                            m_PerceptualFPS);
+                                            m_PerceptualFPS.load());
 
         // Make sure this is reset before we start the thread
         // This matters on changing accounts and disconnected starts
@@ -707,9 +732,9 @@ void CPlayer::Stop()
         g_Settings()->Set("settings.content.last_played_frame",
                           (uint64_t)m_currentClip->GetCurrentFrameIdx());
 
-        g_Settings()->Set("settings.content.last_played_fps", m_DecoderFps);
+        g_Settings()->Set("settings.content.last_played_fps", m_DecoderFps.load());
 
-        g_Settings()->Set("settings.player.perceptual_fps", m_PerceptualFPS);
+        g_Settings()->Set("settings.player.perceptual_fps", m_PerceptualFPS.load());
     }
 
     m_bStarted = false;
@@ -755,6 +780,11 @@ bool CPlayer::Shutdown(void)
         m_PreloadingNextClip = false;
         m_PreloadingDreamUUID.clear();
     }
+
+    // Outside m_UpdateMutex. In the app, the shutdown watchdog's _exit() may end
+    // the wait early, which is fine: _exit() runs no destructors.
+    if (!waitForClipDestroys(std::chrono::seconds(3)))
+        g_Log->Warning("Clip destruction still running after 3 s at shutdown");
 
 #ifdef LINUX_GNU
     // Decoders still tearing down hold their own references to the device.
@@ -1577,7 +1607,7 @@ void CPlayer::SyncClipRate(const ContentDecoder::spCClip& clip)
 }
 
 void CPlayer::MultiplyPerceptualFPS(const double _multiplier){
-    SetPerceptualFPS(m_PerceptualFPS * _multiplier);
+    SetPerceptualFPS(m_PerceptualFPS.load() * _multiplier);
 }
 
 void CPlayer::SetPerceptualFPS(const double _fps){
@@ -2266,6 +2296,11 @@ void CPlayer::SkipToNext(std::string_view endReason)
         PlayDreamNow(nextDecision->dream->uuid, -1, endReason);
         return;
     }
+
+    // Swapping clips: hold m_UpdateMutex like Update does, since SendPing reads
+    // m_currentClip/m_nextClip from the socket thread. Released before
+    // SendStateUpdate, whose ping reads under it.
+    writer_lock lock(m_UpdateMutex);
     
     // If already transitioning, change the target
     if (m_isTransitioning && m_nextClip) {
@@ -2335,6 +2370,7 @@ void CPlayer::SkipToNext(std::string_view endReason)
         }
 
         g_Log->Info("User skip to next, syncing state to server");
+        lock.unlock();
         EDreamClient::SendStateUpdate();
         return;
     
@@ -2357,6 +2393,11 @@ void CPlayer::ReturnToPrevious()
         PlayDreamNow(previousDream->uuid, -1, "previous");
         return;
     }
+
+    // Swapping clips: hold m_UpdateMutex like Update does, since SendPing reads
+    // m_currentClip/m_nextClip from the socket thread. Released before
+    // SendStateUpdate, whose ping reads under it.
+    writer_lock lock(m_UpdateMutex);
     
     if (m_isTransitioning && m_nextClip) {
         g_Log->Info("Previous during transition - changing target");
@@ -2382,6 +2423,7 @@ void CPlayer::ReturnToPrevious()
         }
 
         g_Log->Info("User skip to previous during transition, syncing state to server");
+        lock.unlock();
         EDreamClient::SendStateUpdate();
         return;
     }
@@ -2393,11 +2435,13 @@ void CPlayer::ReturnToPrevious()
     m_nextClip->SetTransitionLength(1.0f, NaturalFadeSeconds(m_nextClip));
 
     g_Log->Info("User skip to previous, syncing state to server");
+    lock.unlock();
     EDreamClient::SendStateUpdate();
 }
 
 void CPlayer::RepeatClip()
 {
+    writer_lock lock(m_UpdateMutex);  // swaps clips; see ReturnToPrevious
     m_transitionDuration = 1.0f;
     auto currentDream = m_playlistManager->getCurrentDream();
     StartTransition();
@@ -2620,6 +2664,17 @@ CPlayer::GetCurrentPlayingClipMetadata() const
         return nullptr;
     return &m_currentClip->GetClipMetadata();
 }
+std::optional<ContentDecoder::sFrameMetadata> CPlayer::CopyCurrentFrameMetadata() const
+{
+    reader_lock l(m_UpdateMutex);
+    // During transition, use next clip metadata (the new dream)
+    if (m_isTransitioning && m_nextClip)
+        return m_nextClip->CopyCurrentFrameMetadata();
+    if (!m_currentClip)
+        return std::nullopt;
+    return m_currentClip->CopyCurrentFrameMetadata();
+}
+
 const ContentDecoder::sFrameMetadata* CPlayer::GetCurrentFrameMetadata() const
 {
     reader_lock l(m_UpdateMutex);

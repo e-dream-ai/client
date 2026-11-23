@@ -23,6 +23,7 @@ namespace TupleStorage
 bool JSONStorage::Initialise(std::string_view _sRoot,
                              std::string_view /*_sWorkingDir*/, bool _bReadOnly)
 {
+    std::lock_guard<std::mutex> lock(m_Mutex);
     m_sRoot = _sRoot;
     m_ConfigPath = m_sRoot + CLIENT_SETTINGS + ".json";
     std::error_code error;
@@ -178,6 +179,7 @@ static void EmplaceStringVectorInDictionary(json::object* _dict,
 
 bool JSONStorage::Set(std::string_view _entry, bool _val)
 {
+    std::lock_guard<std::mutex> lock(m_Mutex);
     GetOrSetValue<bool>(
         _entry, _val,
         [=](json::value* jsonVal) -> bool { return jsonVal->as_bool() = _val; },
@@ -188,6 +190,7 @@ bool JSONStorage::Set(std::string_view _entry, bool _val)
 
 bool JSONStorage::Set(std::string_view _entry, int32_t _val)
 {
+    std::lock_guard<std::mutex> lock(m_Mutex);
     GetOrSetValue<int32_t>(
         _entry, _val,
         [=](json::value* jsonVal) -> int32_t
@@ -198,6 +201,7 @@ bool JSONStorage::Set(std::string_view _entry, int32_t _val)
 }
 bool JSONStorage::Set(std::string_view _entry, double _val)
 {
+    std::lock_guard<std::mutex> lock(m_Mutex);
     GetOrSetValue<double>(
         _entry, _val,
         [=](json::value* jsonVal) -> double
@@ -208,6 +212,7 @@ bool JSONStorage::Set(std::string_view _entry, double _val)
 }
 bool JSONStorage::Set(std::string_view _entry, uint64_t _val)
 {
+    std::lock_guard<std::mutex> lock(m_Mutex);
     GetOrSetValue<uint64_t>(
         _entry, _val,
         [=](json::value* jsonVal) -> uint64_t
@@ -218,6 +223,7 @@ bool JSONStorage::Set(std::string_view _entry, uint64_t _val)
 }
 bool JSONStorage::Set(std::string_view _entry, std::string_view _str)
 {
+    std::lock_guard<std::mutex> lock(m_Mutex);
     std::string str;
     GetOrSetValue<std::string>(
         _entry, str,
@@ -232,6 +238,7 @@ bool JSONStorage::Set(std::string_view _entry, std::string_view _str)
 }
 bool JSONStorage::Set(std::string_view _entry, std::vector<std::string> _val)
 {
+    std::lock_guard<std::mutex> lock(m_Mutex);
     GetOrSetValue<std::vector<std::string>>(
         _entry, _val,
         [=](json::value* jsonVal) -> std::vector<std::string>
@@ -251,6 +258,7 @@ bool JSONStorage::Set(std::string_view _entry, std::vector<std::string> _val)
 //    Get values.
 bool JSONStorage::Get(std::string_view _entry, bool& _ret)
 {
+    std::lock_guard<std::mutex> lock(m_Mutex);
     return GetOrSetValue<bool>(
         _entry, _ret,
         [=](json::value* jsonVal) -> bool { return jsonVal->as_bool(); },
@@ -258,6 +266,7 @@ bool JSONStorage::Get(std::string_view _entry, bool& _ret)
 }
 bool JSONStorage::Get(std::string_view _entry, int32_t& _ret)
 {
+    std::lock_guard<std::mutex> lock(m_Mutex);
     return GetOrSetValue<int32_t>(
         _entry, _ret,
         [=](json::value* jsonVal) -> int32_t
@@ -266,6 +275,7 @@ bool JSONStorage::Get(std::string_view _entry, int32_t& _ret)
 }
 bool JSONStorage::Get(std::string_view _entry, double& _ret)
 {
+    std::lock_guard<std::mutex> lock(m_Mutex);
     return GetOrSetValue<double>(
         _entry, _ret,
         [=](json::value* jsonVal) -> double { return jsonVal->as_double(); },
@@ -273,6 +283,7 @@ bool JSONStorage::Get(std::string_view _entry, double& _ret)
 }
 bool JSONStorage::Get(std::string_view _entry, uint64_t& _ret)
 {
+    std::lock_guard<std::mutex> lock(m_Mutex);
     return GetOrSetValue<uint64_t>(
         _entry, _ret,
         [=](json::value* jsonVal) -> uint64_t { return jsonVal->as_uint64(); },
@@ -280,6 +291,7 @@ bool JSONStorage::Get(std::string_view _entry, uint64_t& _ret)
 }
 bool JSONStorage::Get(std::string_view _entry, std::string& _ret)
 {
+    std::lock_guard<std::mutex> lock(m_Mutex);
     return GetOrSetValue<std::string>(
         _entry, _ret,
         [=](json::value* jsonVal) -> std::string
@@ -288,6 +300,7 @@ bool JSONStorage::Get(std::string_view _entry, std::string& _ret)
 }
 bool JSONStorage::Get(std::string_view _entry, std::vector<std::string>& _ret)
 {
+    std::lock_guard<std::mutex> lock(m_Mutex);
     return GetOrSetValue<std::vector<std::string>>(
         _entry, _ret,
         [=](json::value* jsonVal) -> std::vector<std::string>
@@ -309,6 +322,7 @@ bool JSONStorage::Remove(std::string_view /*_entry*/) { return true; }
 //    Persist changes.
 bool JSONStorage::Commit()
 {
+    std::lock_guard<std::mutex> lock(m_Mutex);
     if (Dirty() && !m_bReadOnly)
     {
         std::ofstream outFile(m_ConfigPath);

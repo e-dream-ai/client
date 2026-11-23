@@ -1134,7 +1134,9 @@ private:
     std::deque<std::string> m_write_queue;
     std::deque<pending_emit> m_pending_emits;
     bool m_writing = false;
-    std::uint64_t m_conn_id = 0;
+    // Atomic: shutdown() bumps it from the caller's thread while handlers on the
+    // network thread compare against it (#873).
+    std::atomic<std::uint64_t> m_conn_id{0};
 
     std::atomic<bool> m_opened{false};
     bool m_nsp_connected = false;

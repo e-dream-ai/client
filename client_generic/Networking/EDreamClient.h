@@ -157,9 +157,16 @@ private:
     static void SetQuota(long long quota, std::chrono::system_clock::time_point expiresAt);
 
   private:
-    static std::unique_ptr<boost::asio::io_context> io_context;
-    static std::unique_ptr<boost::asio::steady_timer> ping_timer;
-    static std::unique_ptr<boost::asio::steady_timer> quota_timer;
+    static boost::asio::io_context* io_context;
+    static boost::asio::steady_timer* ping_timer;
+    static boost::asio::steady_timer* quota_timer;
+    // Asio timers aren't thread-safe, and io_context can be run by more than
+    // one thread (each connect starts one) while SendPing is also called
+    // directly. Every use of a timer goes through its strand (#873). Separate
+    // strands, so a slow quota request doesn't hold up pings.
+    using TimerStrand = boost::asio::strand<boost::asio::io_context::executor_type>;
+    static TimerStrand* ping_strand;
+    static TimerStrand* quota_strand;
     static void ScheduleNextPing();
     static void ScheduleNextQuotaUpdate();
     static void UpdateQuota();

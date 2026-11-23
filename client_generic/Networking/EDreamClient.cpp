@@ -131,31 +131,26 @@ static void SetNewAndDeleteOldString(
 }
 
 
-std::unique_ptr<boost::asio::io_context> EDreamClient::io_context = nullptr;
-std::unique_ptr<boost::asio::steady_timer> EDreamClient::ping_timer = nullptr;
-std::unique_ptr<boost::asio::steady_timer> EDreamClient::quota_timer = nullptr;
+// Never destroyed, so plain pointers. Detached threads may still be running
+// io_context->run() at process exit, and ~io_context waits for operations that
+// will never complete, so destroying it hung the exit. Releasing unique_ptrs
+// from an atexit hook avoided that but raced those threads' reads of the
+// pointers (#873). The OS frees the memory.
+boost::asio::io_context* EDreamClient::io_context = nullptr;
+boost::asio::steady_timer* EDreamClient::ping_timer = nullptr;
+boost::asio::steady_timer* EDreamClient::quota_timer = nullptr;
+EDreamClient::TimerStrand* EDreamClient::ping_strand = nullptr;
+EDreamClient::TimerStrand* EDreamClient::quota_strand = nullptr;
 
 void EDreamClient::EnsureIOContext()
 {
     if (!io_context) {
-        io_context = std::make_unique<boost::asio::io_context>();
-        ping_timer = std::make_unique<boost::asio::steady_timer>(*io_context);
-        quota_timer = std::make_unique<boost::asio::steady_timer>(*io_context);
-
-        // Never destroy these at process exit. Detached threads may still be
-        // running io_context->run() then, and ~io_context waits for operations
-        // that will never complete, so the exit hung forever. Registered after
-        // the statics were constructed, this runs before their destructors and
-        // leaves them nothing to destroy. The OS frees the memory.
-        static bool s_leakAtExitRegistered = false;
-        if (!s_leakAtExitRegistered) {
-            s_leakAtExitRegistered = true;
-            std::atexit([]() {
-                (void)ping_timer.release();
-                (void)quota_timer.release();
-                (void)io_context.release();
-            });
-        }
+        io_context = new boost::asio::io_context();
+        ping_strand = new TimerStrand(io_context->get_executor());
+        quota_strand = new TimerStrand(io_context->get_executor());
+        // On their strands, so their completion handlers are serialized too.
+        ping_timer = new boost::asio::steady_timer(*ping_strand);
+        quota_timer = new boost::asio::steady_timer(*quota_strand);
     }
 }
 
@@ -224,7 +219,9 @@ void EDreamClient::SendPing()
 
     // Get current player state
     const ContentDecoder::sClipMetadata* clipMetadata = g_Player().GetCurrentPlayingClipMetadata();
-    const ContentDecoder::sFrameMetadata* frameMetadata = g_Player().GetCurrentFrameMetadata();
+    // A copy: the main thread rewrites the clip's frame metadata while this runs.
+    const std::optional<ContentDecoder::sFrameMetadata> frameMetadata =
+        g_Player().CopyCurrentFrameMetadata();
 
     // Create state sync message
     std::shared_ptr<sio::object_message> ms =
@@ -249,7 +246,7 @@ void EDreamClient::SendPing()
     double timecode = 0.0;
     if (frameMetadata && clipMetadata) {
         double baseFps = clipMetadata->dreamData.getFps();
-        auto [currentTime, totalTime] = CElectricSheep::CalculateTimecode(frameMetadata, baseFps);
+        auto [currentTime, totalTime] = CElectricSheep::CalculateTimecode(&*frameMetadata, baseFps);
         timecode = currentTime;
     }
     if (timecode < 0.0) timecode = 0.0;  // Clamp to 0 if negative
@@ -297,11 +294,14 @@ void EDreamClient::SendPing()
 
 void EDreamClient::ScheduleNextPing()
 {
-    ping_timer->expires_after(std::chrono::seconds(30));
-    ping_timer->async_wait([](const boost::system::error_code& ec) {
-        if (!ec) {
-            SendPing();
-        }
+    // SendPing runs on the connect thread too, not only from the timer.
+    boost::asio::dispatch(*ping_strand, [timer = ping_timer]() {
+        timer->expires_after(std::chrono::seconds(30));
+        timer->async_wait([](const boost::system::error_code& ec) {
+            if (!ec) {
+                SendPing();
+            }
+        });
     });
 }
 
@@ -310,8 +310,8 @@ void EDreamClient::SendStateUpdate()
     // Post to io_context thread for thread safety
     // boost::asio timers are not thread-safe for cancel() from multiple threads
     if (io_context && !io_context->stopped()) {
-        boost::asio::post(*io_context, []() {
-            ping_timer->cancel();
+        boost::asio::post(*ping_strand, [timer = ping_timer]() {
+            timer->cancel();
             SendPing();
         });
     }
@@ -428,11 +428,13 @@ void EDreamClient::ScheduleNextQuotaUpdate()
 {
     g_Log->Info("Scheduling next quota update in one hour");
     // Schedule quota update every hour (3600 seconds)
-    quota_timer->expires_after(std::chrono::seconds(3600));
-    quota_timer->async_wait([](const boost::system::error_code& ec) {
-        if (!ec) {
-            UpdateQuota();
-        }
+    boost::asio::dispatch(*quota_strand, [timer = quota_timer]() {
+        timer->expires_after(std::chrono::seconds(3600));
+        timer->async_wait([](const boost::system::error_code& ec) {
+            if (!ec) {
+                UpdateQuota();
+            }
+        });
     });
 }
 
@@ -655,11 +657,14 @@ void EDreamClient::DeinitializeClient()
     // Mark websocket as disconnected immediately
     UnbindWebSocketCallbacks();
     // Stop the timers and io_context
+    // On the strands, like every other timer use (#873). If stop() below beats
+    // them, they run first thing after a restart, before any new arming: each
+    // strand runs its work in order.
     if (ping_timer) {
-        ping_timer->cancel();
+        boost::asio::post(*ping_strand, [timer = ping_timer]() { timer->cancel(); });
     }
     if (quota_timer) {
-        quota_timer->cancel();
+        boost::asio::post(*quota_strand, [timer = quota_timer]() { timer->cancel(); });
     }
     if (io_context) {
         io_context->stop();
