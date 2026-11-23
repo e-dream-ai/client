@@ -170,8 +170,8 @@ struct PSInput {
 
 float4 main(PSInput input) : SV_TARGET {
     float2 adjustedUV = (input.uv - rect.xy) / rect.zw;
-    adjustedUV = uvRect.xy + adjustedUV * uvRect.zw;
     if (rotation == 90) adjustedUV = float2(adjustedUV.y, 1.0 - adjustedUV.x);  // portrait rotation
+    adjustedUV = uvRect.xy + adjustedUV * uvRect.zw;  // after rotating: uvRect is in texture space
     float4 sampled = tx0.Sample(smp0, adjustedUV);
     sampled.rgb += brightness;
     return float4(sampled.rgb * color.rgb, color.a);
@@ -206,8 +206,8 @@ struct PSInput {
 
 float4 main(PSInput input) : SV_TARGET {
     float2 adjustedUV = (input.uv - rect.xy) / rect.zw;
-    adjustedUV = uvRect.xy + adjustedUV * uvRect.zw;
     if (rotation == 90) adjustedUV = float2(adjustedUV.y, 1.0 - adjustedUV.x);  // portrait rotation
+    adjustedUV = uvRect.xy + adjustedUV * uvRect.zw;  // after rotating: uvRect is in texture space
     float4 c1 = tx1.Sample(smp1, adjustedUV);
     float4 c2 = tx2.Sample(smp2, adjustedUV);
     float4 blended = lerp(c1, c2, delta);
@@ -248,14 +248,17 @@ cbuffer QuadUniforms : register(b0) {
     float4 color;
     float  brightness;
     int    rotation;
-    float2 padding;
+    float2 halfTexel;
 };
 
 struct PSInput { float4 position : SV_POSITION; float2 uv : TEXCOORD0; };
 
 float4 SampleNV12(Texture2D yT, Texture2D uvT, SamplerState sY2, SamplerState sUV2, float2 uv) {
-    float  y   = yT.Sample(sY2,  uv).r;
-    float2 uv2 = uvT.Sample(sUV2, uv).rg;
+    // Stay half a texel inside uvRect (chroma texels are twice the size) so
+    // filtering never blends in the surface's padding rows/columns.
+    float2 uvEnd = uvRect.xy + uvRect.zw;
+    float  y   = yT.Sample(sY2,  min(uv, uvEnd - halfTexel)).r;
+    float2 uv2 = uvT.Sample(sUV2, min(uv, uvEnd - 2.0 * halfTexel)).rg;
     float  cb  = uv2.x - 0.5; float cr = uv2.y - 0.5;
     y = 1.164383561643836 * (y - 0.0625);
     return float4(saturate(y + 1.792741071428571 * cr),
@@ -265,8 +268,8 @@ float4 SampleNV12(Texture2D yT, Texture2D uvT, SamplerState sY2, SamplerState sU
 
 float4 main(PSInput input) : SV_TARGET {
     float2 adjustedUV = (input.uv - rect.xy) / rect.zw;
-    adjustedUV = uvRect.xy + adjustedUV * uvRect.zw;
     if (rotation == 90) adjustedUV = float2(adjustedUV.y, 1.0 - adjustedUV.x);  // portrait rotation
+    adjustedUV = uvRect.xy + adjustedUV * uvRect.zw;  // after rotating: uvRect is in texture space
     float4 c = SampleNV12(yTex, uvTex, sY, sUV, adjustedUV);
     c.rgb += brightness;
     return float4(c.rgb * color.rgb, color.a);
@@ -285,15 +288,18 @@ SamplerState s4 : register(s4);
 SamplerState s5 : register(s5);
 
 cbuffer QuadUniforms : register(b0) {
-    float4 rect; float4 uvRect; float4 color; float brightness; int rotation; float2 padding;
+    float4 rect; float4 uvRect; float4 color; float brightness; int rotation; float2 halfTexel;
 };
 cbuffer LinearDeltaCB : register(b1) { float delta; float3 _padDelta; };
 
 struct PSInput { float4 position : SV_POSITION; float2 uv : TEXCOORD0; };
 
 float4 SampleNV12_2(Texture2D yT, Texture2D uvT, SamplerState sY2, SamplerState sUV2, float2 uv) {
-    float  y   = yT.Sample(sY2,  uv).r;
-    float2 uv2 = uvT.Sample(sUV2, uv).rg;
+    // Stay half a texel inside uvRect (chroma texels are twice the size) so
+    // filtering never blends in the surface's padding rows/columns.
+    float2 uvEnd = uvRect.xy + uvRect.zw;
+    float  y   = yT.Sample(sY2,  min(uv, uvEnd - halfTexel)).r;
+    float2 uv2 = uvT.Sample(sUV2, min(uv, uvEnd - 2.0 * halfTexel)).rg;
     float  cb  = uv2.x - 0.5; float cr = uv2.y - 0.5;
     y = 1.164383561643836 * (y - 0.0625);
     return float4(saturate(y + 1.792741071428571 * cr),
@@ -303,8 +309,8 @@ float4 SampleNV12_2(Texture2D yT, Texture2D uvT, SamplerState sY2, SamplerState 
 
 float4 main(PSInput input) : SV_TARGET {
     float2 adjustedUV = (input.uv - rect.xy) / rect.zw;
-    adjustedUV = uvRect.xy + adjustedUV * uvRect.zw;
     if (rotation == 90) adjustedUV = float2(adjustedUV.y, 1.0 - adjustedUV.x);  // portrait rotation
+    adjustedUV = uvRect.xy + adjustedUV * uvRect.zw;  // after rotating: uvRect is in texture space
     float4 c1 = SampleNV12_2(f1Y, f1UV, s2, s3, adjustedUV);
     float4 c2 = SampleNV12_2(f2Y, f2UV, s4, s5, adjustedUV);
     float4 blended = lerp(c1, c2, delta);
@@ -325,15 +331,18 @@ SamplerState s6 : register(s6);  SamplerState s7 : register(s7);
 SamplerState s8 : register(s8);  SamplerState s9 : register(s9);
 
 cbuffer QuadUniforms : register(b0) {
-    float4 rect; float4 uvRect; float4 color; float brightness; int rotation; float2 padding;
+    float4 rect; float4 uvRect; float4 color; float brightness; int rotation; float2 halfTexel;
 };
 cbuffer CubicWeightsCB : register(b1) { float4 weights; };
 
 struct PSInput { float4 position : SV_POSITION; float2 uv : TEXCOORD0; };
 
 float4 SampleNV12_3(Texture2D yT, Texture2D uvT, SamplerState sY2, SamplerState sUV2, float2 uv) {
-    float  y   = yT.Sample(sY2,  uv).r;
-    float2 uv2 = uvT.Sample(sUV2, uv).rg;
+    // Stay half a texel inside uvRect (chroma texels are twice the size) so
+    // filtering never blends in the surface's padding rows/columns.
+    float2 uvEnd = uvRect.xy + uvRect.zw;
+    float  y   = yT.Sample(sY2,  min(uv, uvEnd - halfTexel)).r;
+    float2 uv2 = uvT.Sample(sUV2, min(uv, uvEnd - 2.0 * halfTexel)).rg;
     float  cb  = uv2.x - 0.5; float cr = uv2.y - 0.5;
     y = 1.164383561643836 * (y - 0.0625);
     return float4(saturate(y + 1.792741071428571 * cr),
@@ -343,8 +352,8 @@ float4 SampleNV12_3(Texture2D yT, Texture2D uvT, SamplerState sY2, SamplerState 
 
 float4 main(PSInput input) : SV_TARGET {
     float2 adjustedUV = (input.uv - rect.xy) / rect.zw;
-    adjustedUV = uvRect.xy + adjustedUV * uvRect.zw;
     if (rotation == 90) adjustedUV = float2(adjustedUV.y, 1.0 - adjustedUV.x);  // portrait rotation
+    adjustedUV = uvRect.xy + adjustedUV * uvRect.zw;  // after rotating: uvRect is in texture space
     float4 c1 = SampleNV12_3(f1Y, f1UV, s2, s3, adjustedUV);
     float4 c2 = SampleNV12_3(f2Y, f2UV, s4, s5, adjustedUV);
     float4 c3 = SampleNV12_3(f3Y, f3UV, s6, s7, adjustedUV);
@@ -386,8 +395,8 @@ struct PSInput {
 
 float4 main(PSInput input) : SV_TARGET {
     float2 adjustedUV = (input.uv - rect.xy) / rect.zw;
-    adjustedUV = uvRect.xy + adjustedUV * uvRect.zw;
     if (rotation == 90) adjustedUV = float2(adjustedUV.y, 1.0 - adjustedUV.x);  // portrait rotation
+    adjustedUV = uvRect.xy + adjustedUV * uvRect.zw;  // after rotating: uvRect is in texture space
     float4 c1 = tx1.Sample(smp1, adjustedUV);
     float4 c2 = tx2.Sample(smp2, adjustedUV);
     float4 c3 = tx3.Sample(smp3, adjustedUV);
@@ -2719,7 +2728,20 @@ void CRendererDX11::DrawTexturedQuad(const Base::Math::CRect& _rect,
     uniforms->color[3] = _color.m_W;
     uniforms->brightness = GetBrightness();
     uniforms->rotation = videoRotation;
-    uniforms->padding[0] = uniforms->padding[1] = 0.0f;
+    uniforms->halfTexel[0] = uniforms->halfTexel[1] = 0.0f;
+    // Frames blended in one draw come from one clip, so the first bound NV12
+    // surface speaks for all of them.
+    for (uint32_t i = 0; i < MAX_TEXUNIT; ++i)
+    {
+        auto* texDx11 = dynamic_cast<CTextureFlatDX11*>(m_aspSelectedTextures[i].get());
+        if (texDx11 && texDx11->IsYUVTexture() && texDx11->GetSurfaceWidth() > 0 &&
+            texDx11->GetSurfaceHeight() > 0)
+        {
+            uniforms->halfTexel[0] = 0.5f / static_cast<float>(texDx11->GetSurfaceWidth());
+            uniforms->halfTexel[1] = 0.5f / static_cast<float>(texDx11->GetSurfaceHeight());
+            break;
+        }
+    }
 
     m_context->Unmap(m_quadUniformBuffer.Get(), 0);
     ID3D11Buffer* cb = m_quadUniformBuffer.Get();

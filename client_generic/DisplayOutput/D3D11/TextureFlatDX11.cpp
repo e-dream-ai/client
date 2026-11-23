@@ -96,6 +96,8 @@ bool CTextureFlatDX11::Upload(const uint8_t* _data, CImageFormat _format,
             // Release previous resources first
             m_srv.Reset();
             m_texture.Reset();
+            // An uploaded image fills its texture; drop any crop left by BindFrame.
+            m_texRect = Base::Math::CRect(1, 1);
 
             D3D11_TEXTURE2D_DESC desc = {};
             desc.Width = _width;
@@ -255,6 +257,33 @@ bool CTextureFlatDX11::BindFrame(ContentDecoder::spCVideoFrame _spFrame) {
             g_Log->Error("CTextureFlatDX11::BindFrame: CreateSRV (UV) failed: %08X", hr);
         m_srvY.Reset();
         return false;
+    }
+
+    // The decoder surface is allocated at the coded size, which can exceed the
+    // display size (e.g. 1920x1088 coded for 1920x1080: 8 padding rows at the
+    // bottom). For hw frames ffmpeg leaves the data alone and reports the crop
+    // as frame->width/height (right/bottom) and crop_left/crop_top, so sample
+    // only that sub-rectangle of the surface (#884).
+    D3D11_TEXTURE2D_DESC surfaceDesc = {};
+    tex->GetDesc(&surfaceDesc);
+    m_surfaceWidth = surfaceDesc.Width;
+    m_surfaceHeight = surfaceDesc.Height;
+    if (frame->width > 0 && frame->height > 0 &&
+        static_cast<UINT>(frame->width) <= surfaceDesc.Width &&
+        static_cast<UINT>(frame->height) <= surfaceDesc.Height &&
+        frame->crop_left < static_cast<size_t>(frame->width) &&
+        frame->crop_top < static_cast<size_t>(frame->height))
+    {
+        const float w = static_cast<float>(surfaceDesc.Width);
+        const float h = static_cast<float>(surfaceDesc.Height);
+        m_texRect = Base::Math::CRect(static_cast<float>(frame->crop_left) / w,
+                                      static_cast<float>(frame->crop_top) / h,
+                                      static_cast<float>(frame->width) / w,
+                                      static_cast<float>(frame->height) / h);
+    }
+    else
+    {
+        m_texRect = Base::Math::CRect(1, 1);
     }
 
     m_Flags |= eTextureFlags::TEXTURE_YUV;
