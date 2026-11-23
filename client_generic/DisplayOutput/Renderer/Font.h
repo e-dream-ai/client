@@ -37,6 +37,7 @@ class CFontDescription
     bool m_bUnderline;
     bool m_bAntiAliased;
     std::string m_TypeFace;
+    std::string m_Glyphs;
 
   public:
     //
@@ -66,6 +67,13 @@ class CFontDescription
     //
     void AntiAliased(const bool _b) { m_bAntiAliased = _b; };
     bool AntiAliased(void) const { return (m_bAntiAliased); };
+
+    // The only characters (UTF-8) this font will draw; empty for any text. A
+    // renderer that rasterizes its glyphs up front (Windows) then draws just
+    // these, which takes a few milliseconds where the full set takes 130-200
+    // (client#881). Other characters come out blank.
+    void Glyphs(const std::string& _utf8) { m_Glyphs = _utf8; };
+    const std::string& Glyphs(void) const { return (m_Glyphs); };
 
     //
     void TypeFace(const std::string& _n) { m_TypeFace = _n; };

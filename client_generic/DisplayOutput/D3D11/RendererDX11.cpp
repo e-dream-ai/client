@@ -2407,10 +2407,16 @@ spCBaseFont CRendererDX11::GetFont(CFontDescription& _desc) {
                             "#" + std::to_string(static_cast<int>(_desc.Style())) +
                             "#" + (_desc.Italic() ? "i" : "n") +
                             "#" + (_desc.Underline() ? "u" : "n") +
-                            "#" + (_desc.AntiAliased() ? "aa" : "na");
+                            "#" + (_desc.AntiAliased() ? "aa" : "na") +
+                            "#" + _desc.Glyphs();
     auto it = m_fontPool.find(key);
     if (it != m_fontPool.end())
         return it->second;
+
+    // Drop fonts nothing uses any more. The speed popup asks for a new size whenever
+    // the window height changes, and each font keeps its atlas in memory twice.
+    for (auto unused = m_fontPool.begin(); unused != m_fontPool.end();)
+        unused = unused->second.use_count() == 1 ? m_fontPool.erase(unused) : std::next(unused);
 
     auto font = std::make_shared<CFontDX11DirectWriteAtlas>(m_device, m_context);
     font->FontDescription(_desc);

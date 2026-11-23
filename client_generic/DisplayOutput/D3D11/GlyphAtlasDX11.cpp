@@ -15,6 +15,7 @@
 #include <dwrite.h>
 
 #include "../../Common/Log.h"
+#include "../../Common/StepTimer.h"
 #include "../Image.h"
 
 #ifdef GetGlyphIndices
@@ -188,7 +189,9 @@ uint32_t CFontDX11DirectWriteAtlas::MeasureTextHeightPx(const std::string& text)
     return lines * m_lineHeightPx;
 }
 
-static void BuildGlyphCodepointList(std::vector<uint32_t>& out)
+// `only` is CFontDescription::Glyphs(): when a font names the characters it will
+// draw, the atlas holds those (and a space) instead of the full set below.
+static void BuildGlyphCodepointList(std::vector<uint32_t>& out, const std::string& only)
 {
     out.clear();
     auto pushUnique = [&](uint32_t cp) {
@@ -199,6 +202,18 @@ static void BuildGlyphCodepointList(std::vector<uint32_t>& out)
         }
         out.push_back(cp);
     };
+
+    if (!only.empty())
+    {
+        for (size_t i = 0; i < only.size();)
+        {
+            uint32_t cp = 0;
+            Utf8DecodeNext(only, i, cp);
+            pushUnique(cp);
+        }
+        pushUnique(0x0020); // space, also the stand-in for a missing glyph
+        return;
+    }
 
     for (uint32_t cp = 32; cp <= 126; ++cp)
         pushUnique(cp);
@@ -233,8 +248,15 @@ bool CFontDX11DirectWriteAtlas::EnsureCreated()
     if (!m_device || !m_context)
         return false;
 
-    if (!BuildAtlasDirectWriteOnce())
-        return false;
+    {
+        // Up to a few hundred milliseconds for the full glyph set, on the render thread.
+        Base::CStepTimer timer("glyph atlas build");
+        if (!BuildAtlasDirectWriteOnce())
+            return false;
+    }
+    g_Log->Info("Glyph atlas: built %ux%u for %zu glyphs at height %u, scale %.2f", m_atlasW, m_atlasH,
+                m_glyphByCodepoint.size(), static_cast<unsigned>(FontDescription().Height()),
+                m_pixelScale);
 
     // Upload CPU atlas as a GPU texture.
     const uint32_t bytesPerPixel = 4;
@@ -434,7 +456,7 @@ bool CFontDX11DirectWriteAtlas::BuildAtlasDirectWriteOnce()
     m_lineHeightPx = lineH > 0 ? lineH : 1u;
 
     std::vector<uint32_t> codepoints;
-    BuildGlyphCodepointList(codepoints);
+    BuildGlyphCodepointList(codepoints, FontDescription().Glyphs());
     const uint32_t glyphCount = static_cast<uint32_t>(codepoints.size());
     if (glyphCount == 0)
         return false;
@@ -450,8 +472,9 @@ bool CFontDX11DirectWriteAtlas::BuildAtlasDirectWriteOnce()
         int abcA = 0;
     };
 
-    uint32_t atlasW = 1024;
-    uint32_t atlasH = 1024;
+    // A font with a short glyph list (see CFontDescription::Glyphs) needs far less.
+    uint32_t atlasW = glyphCount <= 128 ? 256 : 1024;
+    uint32_t atlasH = atlasW;
 
     constexpr uint32_t kPackPadX = 2;
     constexpr uint32_t kPackPadY = 1;
