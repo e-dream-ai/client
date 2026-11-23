@@ -157,6 +157,9 @@ public:
     /// Gets the frame index of the last frame read from the encoder. Thread safe function.
     uint32_t GetCurrentFrameIdx() const;
     const sFrameMetadata& GetCurrentFrameMetadata() const;
+    /// A copy of the current frame's metadata, taken under its lock. Use this from other
+    /// threads: GrabVideoFrame overwrites the struct GetCurrentFrameMetadata refers to.
+    sFrameMetadata CopyCurrentFrameMetadata() const;
     uint32_t GetFrameCount() const;
     void SetStartTime(double _startTime);
     double GetStartTime() const { return m_StartTime; }

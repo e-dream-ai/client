@@ -2296,6 +2296,11 @@ void CPlayer::SkipToNext(std::string_view endReason)
         PlayDreamNow(nextDecision->dream->uuid, -1, endReason);
         return;
     }
+
+    // Swapping clips: hold m_UpdateMutex like Update does, since SendPing reads
+    // m_currentClip/m_nextClip from the socket thread. Released before
+    // SendStateUpdate, whose ping reads under it.
+    writer_lock lock(m_UpdateMutex);
     
     // If already transitioning, change the target
     if (m_isTransitioning && m_nextClip) {
@@ -2365,6 +2370,7 @@ void CPlayer::SkipToNext(std::string_view endReason)
         }
 
         g_Log->Info("User skip to next, syncing state to server");
+        lock.unlock();
         EDreamClient::SendStateUpdate();
         return;
     
@@ -2387,6 +2393,11 @@ void CPlayer::ReturnToPrevious()
         PlayDreamNow(previousDream->uuid, -1, "previous");
         return;
     }
+
+    // Swapping clips: hold m_UpdateMutex like Update does, since SendPing reads
+    // m_currentClip/m_nextClip from the socket thread. Released before
+    // SendStateUpdate, whose ping reads under it.
+    writer_lock lock(m_UpdateMutex);
     
     if (m_isTransitioning && m_nextClip) {
         g_Log->Info("Previous during transition - changing target");
@@ -2412,6 +2423,7 @@ void CPlayer::ReturnToPrevious()
         }
 
         g_Log->Info("User skip to previous during transition, syncing state to server");
+        lock.unlock();
         EDreamClient::SendStateUpdate();
         return;
     }
@@ -2423,11 +2435,13 @@ void CPlayer::ReturnToPrevious()
     m_nextClip->SetTransitionLength(1.0f, NaturalFadeSeconds(m_nextClip));
 
     g_Log->Info("User skip to previous, syncing state to server");
+    lock.unlock();
     EDreamClient::SendStateUpdate();
 }
 
 void CPlayer::RepeatClip()
 {
+    writer_lock lock(m_UpdateMutex);  // swaps clips; see ReturnToPrevious
     m_transitionDuration = 1.0f;
     auto currentDream = m_playlistManager->getCurrentDream();
     StartTransition();
@@ -2650,6 +2664,17 @@ CPlayer::GetCurrentPlayingClipMetadata() const
         return nullptr;
     return &m_currentClip->GetClipMetadata();
 }
+std::optional<ContentDecoder::sFrameMetadata> CPlayer::CopyCurrentFrameMetadata() const
+{
+    reader_lock l(m_UpdateMutex);
+    // During transition, use next clip metadata (the new dream)
+    if (m_isTransitioning && m_nextClip)
+        return m_nextClip->CopyCurrentFrameMetadata();
+    if (!m_currentClip)
+        return std::nullopt;
+    return m_currentClip->CopyCurrentFrameMetadata();
+}
+
 const ContentDecoder::sFrameMetadata* CPlayer::GetCurrentFrameMetadata() const
 {
     reader_lock l(m_UpdateMutex);

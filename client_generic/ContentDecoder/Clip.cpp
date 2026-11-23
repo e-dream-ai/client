@@ -545,6 +545,7 @@ bool CClip::Update(double _timelineTime, bool isPaused)
                 g_Log->Info("Reusing last valid, faking increment count");
                 // Just keep using the last valid frame
                 m_spFrameData = m_LastValidFrame;
+                std::unique_lock<std::shared_mutex> lock(m_CurrentFrameMetadataLock);
                 m_CurrentFrameMetadata.frameIdx++;
             }
             else
@@ -762,6 +763,12 @@ uint32_t CClip::GetCurrentFrameIdx() const
 {
     std::shared_lock<std::shared_mutex> lock(m_CurrentFrameMetadataLock);
     return m_CurrentFrameMetadata.frameIdx;
+}
+
+sFrameMetadata CClip::CopyCurrentFrameMetadata() const
+{
+    std::shared_lock<std::shared_mutex> lock(m_CurrentFrameMetadataLock);
+    return m_CurrentFrameMetadata;
 }
 
 const sFrameMetadata& CClip::GetCurrentFrameMetadata() const

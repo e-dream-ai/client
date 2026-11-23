@@ -219,7 +219,9 @@ void EDreamClient::SendPing()
 
     // Get current player state
     const ContentDecoder::sClipMetadata* clipMetadata = g_Player().GetCurrentPlayingClipMetadata();
-    const ContentDecoder::sFrameMetadata* frameMetadata = g_Player().GetCurrentFrameMetadata();
+    // A copy: the main thread rewrites the clip's frame metadata while this runs.
+    const std::optional<ContentDecoder::sFrameMetadata> frameMetadata =
+        g_Player().CopyCurrentFrameMetadata();
 
     // Create state sync message
     std::shared_ptr<sio::object_message> ms =
@@ -244,7 +246,7 @@ void EDreamClient::SendPing()
     double timecode = 0.0;
     if (frameMetadata && clipMetadata) {
         double baseFps = clipMetadata->dreamData.getFps();
-        auto [currentTime, totalTime] = CElectricSheep::CalculateTimecode(frameMetadata, baseFps);
+        auto [currentTime, totalTime] = CElectricSheep::CalculateTimecode(&*frameMetadata, baseFps);
         timecode = currentTime;
     }
     if (timecode < 0.0) timecode = 0.0;  // Clamp to 0 if negative
