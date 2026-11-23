@@ -192,6 +192,10 @@ CContentDecoder::CContentDecoder(const uint32_t _queueLenght,
 CContentDecoder::~CContentDecoder()
 {
     Stop();
+    // The decoder thread is gone: free the frames still queued. Close() does this too,
+    // but a decoder destroyed without it (a skipped clip) leaked a queue's worth of
+    // decoded frames (#871, found by LeakSanitizer).
+    ClearQueue();
 
     // Only wait for futures if we're not in a shutdown state
     if (!m_isShuttingDown.load()) {
@@ -390,6 +394,16 @@ AVPixelFormat CContentDecoder::GetHWFormat(AVCodecContext* ctx,
 }
 #endif
 
+// Frees an AVIOContext from avio_alloc_context and its buffer (which ffmpeg may have
+// replaced while probing). Formats opened with AVFMT_FLAG_CUSTOM_IO leave it to us.
+static void FreeCustomIO(AVIOContext*& io)
+{
+    if (!io)
+        return;
+    av_freep(&io->buffer);
+    avio_context_free(&io);
+}
+
 bool CContentDecoder::Open()
 {
     auto ovi = m_CurrentVideoInfo.get();
@@ -404,6 +418,7 @@ bool CContentDecoder::Open()
     Base::CStepTimer openTimer(IsURL(_filename) ? "decoder Open total (remote, decoder thread)"
                                                 : "decoder Open total (local, caller thread)");
 
+    AVIOContext* customIO = nullptr;  // our own I/O for a streamed open; see FreeCustomIO
     if (IsURL(_filename))
     {
         m_IsStreaming = true;
@@ -479,12 +494,14 @@ bool CContentDecoder::Open()
         if (!ovi->m_pFormatContext)
         {
             g_Log->Error("Failed to allocate format context for %s", _filename.c_str());
+            FreeCustomIO(custom_io);
             return false;
         }
         AVIOInterruptCB interruptCallback{&CContentDecoder::InterruptIO, this};
         ovi->m_pFormatContext->interrupt_callback = interruptCallback;
         ovi->m_pFormatContext->pb = custom_io;
         ovi->m_pFormatContext->flags |= AVFMT_FLAG_CUSTOM_IO;
+        customIO = custom_io;
     } else {
         m_IsStreaming = false;
     }
@@ -498,13 +515,16 @@ bool CContentDecoder::Open()
         Base::CStepTimer timer("decoder avformat_open_input");
         openInputResult = avformat_open_input(&ovi->m_pFormatContext, m_IsStreaming ? nullptr : _filename.c_str(), nullptr, &options);
     }
+    av_dict_free(&options);
     if (DumpError(openInputResult) < 0)
     {
         g_Log->Warning("Failed to open %s...", _filename.c_str());
+        // avformat_open_input freed the format context but not our AVIOContext
+        // (AVFMT_FLAG_CUSTOM_IO), so each interrupted streamed open leaked it and its
+        // probe buffer (#871, found by LeakSanitizer).
+        FreeCustomIO(customIO);
         return false;
     }
-
-    av_dict_free(&options);
 
     int streamInfoResult;
     {
@@ -1620,9 +1640,14 @@ sOpenVideoInfo::~sOpenVideoInfo()
     
     if (m_pFormatContext)
     {
+        // A streamed open uses our own AVIOContext, which avformat_close_input leaves
+        // alone (AVFMT_FLAG_CUSTOM_IO). Close() frees it; a decoder destroyed without
+        // Close() leaked it and its buffer (#871, found by LeakSanitizer).
+        if (m_pFormatContext->flags & AVFMT_FLAG_CUSTOM_IO)
+            FreeCustomIO(m_pFormatContext->pb);
         avformat_close_input(&m_pFormatContext);
     }
-    
+
     if (m_pFrame)
     {
         av_frame_free(&m_pFrame);

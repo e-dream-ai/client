@@ -66,7 +66,11 @@ class CSettings : public Base::CSingleton<CSettings>
     bool Init(std::string_view _sRoot, std::string_view _workingDir,
               bool _bReadOnly = false)
     {
-        m_pStorage = new TupleStorage::JSONStorage();
+        // Init runs more than once (each platform's Startup, then CElectricSheep::Startup,
+        // and again after the first-run wizard). Reload into the same storage: a new one
+        // each time leaked the old (#871), and callers may still hold Storage().
+        if (!m_pStorage)
+            m_pStorage = new TupleStorage::JSONStorage();
         return m_pStorage->Initialise(_sRoot, _workingDir, _bReadOnly);
     }
 
