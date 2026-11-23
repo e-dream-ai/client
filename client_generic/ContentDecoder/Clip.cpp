@@ -126,8 +126,9 @@ bool CClip::Start(int64_t _seekFrame)
     g_Log->Info("Starting clip %s in buffering mode (seek: %d), waiting for frames...",
                 m_ClipMetadata.dreamData.uuid.c_str(), _seekFrame);
 
-    // First preload the clip
-    if (!Preload(_seekFrame)) {
+    // First preload the clip. Open the file before returning, so a missing or
+    // corrupt one fails here.
+    if (!Preload(_seekFrame, false)) {
         return false;
     }
     
@@ -159,7 +160,7 @@ void CClip::ReleaseRenderResources()
     m_spRenderer.reset();
 }
 
-bool CClip::Preload(int64_t _seekFrame)
+bool CClip::Preload(int64_t _seekFrame, bool _asyncOpen)
 {
     g_Log->Info("Starting preloading %s at frame %d", m_ClipMetadata.path.c_str(), _seekFrame);
     g_Log->Info("Dream: %s by %s", m_ClipMetadata.dreamData.name.c_str(), m_ClipMetadata.dreamData.artist.c_str());
@@ -170,7 +171,7 @@ bool CClip::Preload(int64_t _seekFrame)
     m_IsPreloaded = false;
     
     // Initialize the decoder without starting playback
-    if (!m_spDecoder->Start(m_ClipMetadata, _seekFrame)) {
+    if (!m_spDecoder->Start(m_ClipMetadata, _seekFrame, _asyncOpen)) {
         g_Log->Error("Failed to initialize decoder for %s", m_ClipMetadata.path.c_str());
         return false;
     }

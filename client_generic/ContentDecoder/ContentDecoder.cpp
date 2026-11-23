@@ -51,6 +51,11 @@ namespace ContentDecoder
 // Static mutex definition
 std::mutex CContentDecoder::s_RenameMutex;
 
+// Step-timing threshold for the per-frame decode calls. They run on the decoder
+// thread, where a few milliseconds per frame is normal work, so they only log
+// when one takes most of a 60 Hz refresh.
+static constexpr double kSlowDecodeStepMs = 10.0;
+
 #ifdef LINUX_GNU
 // Prefer AV_PIX_FMT_VULKAN when the codec offers it; otherwise take the first
 // software format in the list. FFmpeg only offers it when its Vulkan hwaccel
@@ -233,9 +238,8 @@ void CContentDecoder::Destroy()
     }
     if (m_CurrentVideoInfo && m_CurrentVideoInfo->m_pVideoCodecContext)
     {
-        avcodec_free_context(&m_CurrentVideoInfo->m_pVideoCodecContext);
+        ReleaseCodecContext(m_CurrentVideoInfo->m_pVideoCodecContext);
         av_bsf_free(&m_CurrentVideoInfo->m_pBsfContext);
-        m_CurrentVideoInfo->m_pVideoCodecContext = nullptr;
     }
 }
 
@@ -310,6 +314,127 @@ int CContentDecoder::InterruptIO(void* opaque)
 }
 
 #if defined(WIN32) || defined(_WIN32) || defined(_WIN64)
+// Idle D3D11VA codec contexts, kept open for the next clip (client#879).
+//
+// Freeing a codec context destroys its D3D11 video decoder, and on Intel graphics a
+// later decode submit of the clip then playing stalls for 40-50 ms with the D3D11
+// context lock held (about 6 s after the free), so the renderer misses a refresh or
+// two at every clip change. Dreams in a playlist nearly always share codec and size,
+// so a finished clip's context is flushed and handed to the next clip that matches.
+// That also saves creating a decoder and its 32-surface pool for every clip.
+namespace
+{
+// What a context was opened for; hangs on AVCodecContext::opaque.
+struct CodecKey
+{
+    AVCodecID codecId;
+    int width;
+    int height;
+    int format;
+    int profile;
+    ID3D11Device* device;  // not a reference: the context's hw device holds one
+
+    bool operator==(const CodecKey& o) const
+    {
+        return codecId == o.codecId && width == o.width && height == o.height &&
+               format == o.format && profile == o.profile && device == o.device;
+    }
+};
+
+CodecKey MakeCodecKey(const AVCodecParameters* par, ID3D11Device* device)
+{
+    return {par->codec_id, par->width, par->height, par->format, par->profile, device};
+}
+
+// One playing and one preloading clip is the steady state, so two idle contexts
+// cover a playlist of one kind of dream; a third allows for a second kind.
+constexpr size_t kMaxIdleCodecContexts = 3;
+std::mutex s_IdleCodecMutex;
+std::vector<AVCodecContext*> s_IdleCodecContexts;  // oldest first
+
+void FreeCodecContext(AVCodecContext*& ctx)
+{
+    if (!ctx)
+        return;
+    delete static_cast<CodecKey*>(ctx->opaque);
+    ctx->opaque = nullptr;
+    avcodec_free_context(&ctx);
+}
+
+AVCodecContext* TakeIdleCodecContext(const CodecKey& key)
+{
+    std::lock_guard<std::mutex> lock(s_IdleCodecMutex);
+    for (auto it = s_IdleCodecContexts.begin(); it != s_IdleCodecContexts.end(); ++it)
+    {
+        const auto* idleKey = static_cast<const CodecKey*>((*it)->opaque);
+        if (idleKey && *idleKey == key)
+        {
+            AVCodecContext* ctx = *it;
+            s_IdleCodecContexts.erase(it);
+            return ctx;
+        }
+    }
+    return nullptr;
+}
+} // namespace
+
+void CContentDecoder::ReleaseIdleCodecContexts()
+{
+    std::vector<AVCodecContext*> idle;
+    {
+        std::lock_guard<std::mutex> lock(s_IdleCodecMutex);
+        idle.swap(s_IdleCodecContexts);
+    }
+    for (AVCodecContext*& ctx : idle)
+        FreeCodecContext(ctx);
+}
+#else
+void CContentDecoder::ReleaseIdleCodecContexts() {}
+#endif
+
+// Done with a clip's codec context: keep an open D3D11VA one for the next clip, free
+// any other.
+void CContentDecoder::ReleaseCodecContext(AVCodecContext*& ctx)
+{
+    if (!ctx)
+        return;
+#if defined(WIN32) || defined(_WIN32) || defined(_WIN64)
+    const auto* key = static_cast<const CodecKey*>(ctx->opaque);
+    const bool reusable = key && avcodec_is_open(ctx) && ctx->hw_device_ctx &&
+                          key->device && key->device->GetDeviceRemovedReason() == S_OK;
+    if (reusable)
+    {
+        {
+            // Drop the old clip's reference frames, as a seek does.
+            std::lock_guard<std::recursive_mutex> d3dCtxLock(GetD3D11ImmediateContextMutex());
+            avcodec_flush_buffers(ctx);
+        }
+        AVCodecContext* evicted = nullptr;
+        {
+            std::lock_guard<std::mutex> lock(s_IdleCodecMutex);
+            s_IdleCodecContexts.push_back(ctx);
+            if (s_IdleCodecContexts.size() > kMaxIdleCodecContexts)
+            {
+                evicted = s_IdleCodecContexts.front();
+                s_IdleCodecContexts.erase(s_IdleCodecContexts.begin());
+            }
+        }
+        ctx = nullptr;
+        FreeCodecContext(evicted);
+        return;
+    }
+    FreeCodecContext(ctx);
+#else
+    avcodec_free_context(&ctx);
+#endif
+}
+
+#if defined(WIN32) || defined(_WIN32) || defined(_WIN64)
+// When ffmpeg's D3D11VA lock callbacks (set in Open) took the shared context lock on
+// this thread, for timing how long they hold it. The lock is recursive.
+static thread_local int t_D3DLockDepth = 0;
+static thread_local std::chrono::steady_clock::time_point t_D3DLockStart;
+
 // Prefers AV_PIX_FMT_D3D11 when available; falls back to first software format.
 // Also creates the hw_frames_ctx here because coded_width/coded_height are only
 // finalized by the time get_format is invoked (they may differ from codecpar
@@ -359,7 +484,10 @@ AVPixelFormat CContentDecoder::GetHWFormat(AVCodecContext* ctx,
         // D3D11_BIND_SHADER_RESOURCE is required to create SRVs for the Y/UV planes.
         d3d11Frames->BindFlags = D3D11_BIND_DECODER | D3D11_BIND_SHADER_RESOURCE;
 
-        if (av_hwframe_ctx_init(framesRef) != 0)
+        Base::CStepTimer framesInitTimer("decoder av_hwframe_ctx_init");
+        const int framesInitResult = av_hwframe_ctx_init(framesRef);
+        framesInitTimer.Stop();
+        if (framesInitResult != 0)
         {
             g_Log->Warning("D3D11VA get_format: av_hwframe_ctx_init failed; falling back to software");
             av_buffer_unref(&framesRef);
@@ -413,10 +541,11 @@ bool CContentDecoder::Open()
     std::string _filename = ovi->m_Path;
     ovi->m_TotalFrameCount = 0;
     g_Log->Info("Opening: %s", _filename.c_str());
-    // Local files open on the caller (player/render) thread; remote ones on
-    // the decoder thread (see Start). client#798.
-    Base::CStepTimer openTimer(IsURL(_filename) ? "decoder Open total (remote, decoder thread)"
-                                                : "decoder Open total (local, caller thread)");
+    // Remote files and preloaded local ones open on the decoder thread; other
+    // local files on the caller (player/render) thread (see Start). client#798, #804.
+    Base::CStepTimer openTimer(IsURL(_filename)        ? "decoder Open total (remote, decoder thread)"
+                               : m_OpenOnDecoderThread ? "decoder Open total (local, decoder thread)"
+                                                       : "decoder Open total (local, caller thread)");
 
     AVIOContext* customIO = nullptr;  // our own I/O for a streamed open; see FreeCustomIO
     if (IsURL(_filename))
@@ -557,7 +686,19 @@ bool CContentDecoder::Open()
     const auto& codecPar =
     ovi->m_pFormatContext->streams[ovi->m_VideoStreamID]->codecpar;
     ovi->m_pVideoCodec = avcodec_find_decoder(codecPar->codec_id);
-    ovi->m_pVideoCodecContext = avcodec_alloc_context3(ovi->m_pVideoCodec);
+    // A context left open by an earlier clip of the same kind is ready to decode
+    // (see s_IdleCodecContexts); only a new one needs the setup below.
+    bool reusedCodecContext = false;
+#if defined(WIN32) || defined(_WIN32) || defined(_WIN64)
+    if (m_d3d11Device)
+    {
+        ovi->m_pVideoCodecContext =
+            TakeIdleCodecContext(MakeCodecKey(codecPar, m_d3d11Device.Get()));
+        reusedCodecContext = ovi->m_pVideoCodecContext != nullptr;
+    }
+#endif
+    if (!reusedCodecContext)
+        ovi->m_pVideoCodecContext = avcodec_alloc_context3(ovi->m_pVideoCodec);
     if (codecPar->codec_id == AV_CODEC_ID_H264)
     {
         const AVBitStreamFilter* bsf = av_bsf_get_by_name("h264_mp4toannexb");
@@ -607,7 +748,11 @@ bool CContentDecoder::Open()
 #if defined(WIN32) || defined(_WIN32) || defined(_WIN64)
     // D3D11VA: share the renderer's ID3D11Device so decoded textures stay on
     // the same GPU and can be sampled directly without a CPU round-trip.
-    if (m_d3d11Device)
+    if (reusedCodecContext)
+    {
+        g_Log->Info("Reusing an open D3D11VA decoder");
+    }
+    else if (m_d3d11Device)
     {
         AVBufferRef* hwDevCtxBuf = av_hwdevice_ctx_alloc(AV_HWDEVICE_TYPE_D3D11VA);
         if (hwDevCtxBuf)
@@ -626,11 +771,24 @@ bool CContentDecoder::Open()
             // BeginFrame→Execute→EndFrame sequences on the shared ID3D11VideoContext.
             // Each lambda uses the process-wide immediate-context mutex so decode
             // and render context calls are serialized through the same lock.
+            // With step timing on, also log how long ffmpeg held the lock: the
+            // renderer waits for it at the start of every frame (client#879).
             d3d11vaCtx->lock = [](void* ctx) {
                 static_cast<std::recursive_mutex*>(ctx)->lock();
+                if (Base::StepTimingEnabled() && t_D3DLockDepth++ == 0)
+                    t_D3DLockStart = std::chrono::steady_clock::now();
             };
             d3d11vaCtx->unlock = [](void* ctx) {
+                const bool outermost = Base::StepTimingEnabled() && --t_D3DLockDepth == 0;
                 static_cast<std::recursive_mutex*>(ctx)->unlock();
+                if (outermost)
+                {
+                    const double ms = std::chrono::duration<double, std::milli>(
+                                          std::chrono::steady_clock::now() - t_D3DLockStart)
+                                          .count();
+                    if (ms >= Base::StepTimingThresholdMs())
+                        g_Log->Info("Slow step decoder D3D11VA context lock held ms=%.1f", ms);
+                }
             };
             d3d11vaCtx->lock_ctx = &GetD3D11ImmediateContextMutex();
 
@@ -638,6 +796,8 @@ bool CContentDecoder::Open()
             {
                 ovi->m_pVideoCodecContext->hw_device_ctx = hwDevCtxBuf;
                 ovi->m_pVideoCodecContext->get_format = CContentDecoder::GetHWFormat;
+                ovi->m_pVideoCodecContext->opaque =
+                    new CodecKey(MakeCodecKey(codecPar, m_d3d11Device.Get()));
                 // hw_frames_ctx is created inside GetHWFormat where coded_width/coded_height
                 // are known, ensuring the correct padded dimensions and D3D11_BIND_SHADER_RESOURCE.
                 g_Log->Info("D3D11VA hw device created successfully");
@@ -697,7 +857,8 @@ bool CContentDecoder::Open()
     // and mismatches annex-B packets, causing "Invalid NAL unit size" and zero frames.
     const AVCodecParameters* paramsForCodec =
         ovi->m_pBsfContext ? ovi->m_pBsfContext->par_out : codecPar;
-    if (DumpError(avcodec_parameters_to_context(ovi->m_pVideoCodecContext,
+    if (!reusedCodecContext &&
+        DumpError(avcodec_parameters_to_context(ovi->m_pVideoCodecContext,
                                                paramsForCodec)) < 0)
     {
         g_Log->Error("avcodec_parameters_to_context failed for %s", _filename.c_str());
@@ -708,7 +869,8 @@ bool CContentDecoder::Open()
     ovi->m_pFormatContext->flags |= AVFMT_FLAG_IGNIDX;   //	Ignore index.
     ovi->m_pFormatContext->flags |= AVFMT_FLAG_NONBLOCK; //	Do not
     // block when reading packets from input.
-    int codecOpenResult;
+    int codecOpenResult = 0;
+    if (!reusedCodecContext)
     {
         Base::CStepTimer timer("decoder avcodec_open2");
         codecOpenResult = avcodec_open2(ovi->m_pVideoCodecContext, ovi->m_pVideoCodec, nullptr);
@@ -942,7 +1104,10 @@ CVideoFrame* CContentDecoder::ReadOneFrame()
         // Send packet to decoder (or continue flushing if endOfPackets)
         if (!endOfPackets && packetToSend)
         {
-            ret = avcodec_send_packet(pVideoCodecContext, packetToSend);
+            {
+                Base::CStepTimer timer("decoder avcodec_send_packet", kSlowDecodeStepMs);
+                ret = avcodec_send_packet(pVideoCodecContext, packetToSend);
+            }
             
             if (packet && packet->stream_index != ovi->m_VideoStreamID)
             {
@@ -968,7 +1133,10 @@ CVideoFrame* CContentDecoder::ReadOneFrame()
         }
         
         // Try to receive a frame (works for both normal packets and flushing)
-        ret = avcodec_receive_frame(pVideoCodecContext, pFrame);
+        {
+            Base::CStepTimer timer("decoder avcodec_receive_frame", kSlowDecodeStepMs);
+            ret = avcodec_receive_frame(pVideoCodecContext, pFrame);
+        }
         
         if (ret == AVERROR(EAGAIN))
         {
@@ -1393,6 +1561,7 @@ void CContentDecoder::ReadFramesThread()
                 // BEFORE the demuxer seek below so the renderer is never locked out
                 // during potentially slow file/disk I/O.
                 {
+                    Base::CStepTimer timer("decoder seek GPU sync + ClearQueue (context lock)");
                     std::lock_guard<std::mutex> qLock(m_FrameQueueMutex);
 #if defined(WIN32) || defined(_WIN32) || defined(_WIN64)
                     std::lock_guard<std::recursive_mutex> d3dCtxLock(GetD3D11ImmediateContextMutex());
@@ -1459,6 +1628,7 @@ void CContentDecoder::ReadFramesThread()
                 // renderer during codec-internal D3D11 cleanup.
 #if defined(WIN32) || defined(_WIN32) || defined(_WIN64)
                 {
+                    Base::CStepTimer timer("decoder seek avcodec_flush_buffers (context lock)");
                     std::lock_guard<std::recursive_mutex> d3dCtxLock(GetD3D11ImmediateContextMutex());
                     avcodec_flush_buffers(m_CurrentVideoInfo->m_pVideoCodecContext);
                 }
@@ -1549,7 +1719,8 @@ spCVideoFrame CContentDecoder::PopVideoFrame()
     return spCVideoFrame{tmp};
 }
 
-bool CContentDecoder::Start(const sClipMetadata& metadata, int64_t _seekFrame)
+bool CContentDecoder::Start(const sClipMetadata& metadata, int64_t _seekFrame,
+                            bool _asyncOpen)
 {
     if (m_HasStarted.load()) {
         g_Log->Info("decoder already started");
@@ -1568,13 +1739,18 @@ bool CContentDecoder::Start(const sClipMetadata& metadata, int64_t _seekFrame)
 
     // Remote demuxer initialization can spend seconds in curl startup,
     // avformat_open_input, or avformat_find_stream_info. Keep that work off the
-    // player/render thread so the outgoing clip remains responsive. Local files
-    // retain synchronous validation so callers still get immediate failures for
-    // missing or corrupt cache entries.
-    if (IsURL(metadata.path))
+    // player/render thread so the outgoing clip remains responsive. A local open
+    // is short but not bounded (10-60 ms seen), which is a missed refresh or two
+    // when it runs on the render thread at every preload (client#804), so
+    // preloads ask for it here too. Other local opens stay synchronous, so those
+    // callers still get immediate failures for missing or corrupt cache entries.
+    const bool remote = IsURL(metadata.path);
+    m_OpenOnDecoderThread = remote || _asyncOpen;
+    if (m_OpenOnDecoderThread)
     {
-        g_Log->Info("Opening remote decoder asynchronously for %s",
-                    metadata.dreamData.uuid.c_str());
+        if (remote)
+            g_Log->Info("Opening remote decoder asynchronously for %s",
+                        metadata.dreamData.uuid.c_str());
         m_pDecoderThread =
             new thread(bind(&CContentDecoder::OpenAndReadFramesThread, this));
     }
@@ -1640,7 +1816,7 @@ sOpenVideoInfo::~sOpenVideoInfo()
 {
     if (m_pVideoCodecContext)
     {
-        avcodec_free_context(&m_pVideoCodecContext);
+        CContentDecoder::ReleaseCodecContext(m_pVideoCodecContext);
     }
     
     if (m_pFormatContext)
