@@ -2055,12 +2055,13 @@ std::future<bool> EDreamClient::EnqueuePlaylistAsync(const std::string& uuid) {
             return false;
         }
 
-        // Parse on this network worker before handing the playlist to the
-        // player thread. ParsePlaylist fills any missing dream metadata and
+        // Parse on this network worker and hand the result to the player
+        // thread. ParsePlaylist fills any missing dream metadata and
         // prefetches the first streaming URL; both operations may block on the
-        // server and must not pause rendering during a playlist switch.
-        auto entries = ParsePlaylist(uuid);
-        if (entries.empty()) {
+        // server and must not pause rendering during a playlist switch. Nor
+        // must the parse itself: about 70 ms for 2,000 dreams (client#883).
+        auto prepared = g_Player().m_playlistManager->preparePlaylist(uuid);
+        if (!prepared) {
             g_Log->Error("Failed to prepare playlist. UUID: %s", uuid.c_str());
             g_Player().NoteContentSettled();
             return false;
@@ -2068,9 +2069,9 @@ std::future<bool> EDreamClient::EnqueuePlaylistAsync(const std::string& uuid) {
 
         // save the current playlist id, this will get reused at next startup
         g_Settings()->Set("settings.content.current_playlist_uuid", uuid);
-        
+
         // Player and renderer state is owned by the frame-update thread.
-        g_Player().EnqueuePlaylistChange(uuid);
+        g_Player().EnqueuePlaylistChange(uuid, std::move(prepared));
         
         return true;
     });
@@ -2724,17 +2725,17 @@ bool EDreamClient::EnqueuePlaylist(std::string_view uuid) {
         return false;
     }
 
-    // Parse the playlist, we do this here as, in cascade, it will also fetch any dream metadata we need
-    auto uuids = ParsePlaylist(uuid);
-    
-    if (uuids.empty()) {
-        g_Log->Error("Failed to parse playlist or playlist is empty. UUID: %s", std::string(uuid).c_str());
+    // Parse the playlist, we do this here as, in cascade, it will also fetch any dream metadata we need.
+    // The player thread gets the parsed result, so it doesn't parse again (client#883).
+    auto prepared = g_Player().m_playlistManager->preparePlaylist(std::string(uuid));
+
+    if (!prepared) {
         return false;
     }
 
     // save the current playlist id, this will get reused at next startup
     g_Settings()->Set("settings.content.current_playlist_uuid", uuid);
-    g_Player().EnqueuePlaylistChange(std::string(uuid));
+    g_Player().EnqueuePlaylistChange(std::string(uuid), std::move(prepared));
     
     return true;
 }

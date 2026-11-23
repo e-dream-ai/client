@@ -73,6 +73,8 @@ class CPlayer : public Base::CSingleton<CPlayer>
         std::string resumeDreamUuid;
         bool offline = false;
         std::string endReason;
+        // ChangePlaylist: the playlist already parsed by the caller, if it did that.
+        std::shared_ptr<const PreparedPlaylist> preparedPlaylist;
     };
 
     std::mutex m_pendingCommandMutex;
@@ -357,11 +359,15 @@ class CPlayer : public Base::CSingleton<CPlayer>
     void PlayDreamNow(std::string_view _uuid, int64_t frameNumber,
                       std::string_view endReason = "play_dream");
     void EnqueuePlayDream(std::string uuid, int64_t frameNumber = -1);
-    void EnqueuePlaylistChange(std::string uuid);
+    // Pass the playlist from PlaylistManager::preparePlaylist so the player thread
+    // doesn't parse it again while frames are due (client#883).
+    void EnqueuePlaylistChange(std::string uuid,
+                               std::shared_ptr<const PreparedPlaylist> prepared = nullptr);
     void ResetPlaylist();
     
     // Set playlist from the start
-    bool SetPlaylist(const std::string& playlistUUID, bool fetchPlaylist);
+    bool SetPlaylist(const std::string& playlistUUID, bool fetchPlaylist,
+                     std::shared_ptr<const PreparedPlaylist> prepared = nullptr);
 
     // Set playlist at a given dream. Used to resume
     bool SetPlaylistAtDream(const std::string& playlistUUID, const std::string& dreamUUID, bool fetchPlaylist);

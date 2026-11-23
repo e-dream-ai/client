@@ -16,17 +16,6 @@
 #include "Networking.h"
 #include "PlaylistManager.h"
 
-struct PlaylistMetadata
-{
-    std::string name;
-    std::string artist;
-    bool nsfw = false;
-    int64_t timestamp = 0;
-    int loops = 0;
-    // Crossfade seconds between dreams; nullopt = client default.
-    std::optional<float> transitionTime;
-};
-
 class EDreamClient
 {
   public:

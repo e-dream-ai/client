@@ -179,12 +179,14 @@ void CPlayer::EnqueuePlayDream(std::string uuid, int64_t frameNumber)
          {}, false, {}, false});
 }
 
-void CPlayer::EnqueuePlaylistChange(std::string uuid)
+void CPlayer::EnqueuePlaylistChange(std::string uuid,
+                                    std::shared_ptr<const PreparedPlaylist> prepared)
 {
+    PendingCommand command{PendingCommandType::ChangePlaylist, std::move(uuid), -1, nullptr,
+                           {}, false, {}, false};
+    command.preparedPlaylist = std::move(prepared);
     std::scoped_lock lock(m_pendingCommandMutex);
-    m_pendingCommands.push_back(
-        {PendingCommandType::ChangePlaylist, std::move(uuid), -1, nullptr,
-         {}, false, {}, false});
+    m_pendingCommands.push_back(std::move(command));
 }
 
 void CPlayer::EnqueuePlaylistInitialization(std::string playlistUuid,
@@ -296,7 +298,7 @@ void CPlayer::ProcessPendingCommands()
             writer_lock lock(m_UpdateMutex);
             g_Log->Info("Applying queued playlist change on the player thread: %s",
                         command.uuid.c_str());
-            if (SetPlaylist(command.uuid, false))
+            if (SetPlaylist(command.uuid, false, std::move(command.preparedPlaylist)))
             {
                 MarkPlayEnd("playlist");
                 SetTransitionDuration(1.0f);
@@ -1751,11 +1753,12 @@ std::string CPlayer::GetPlaylistName() const
     return m_playlistManager->getPlaylistName();
 }
 
-bool CPlayer::SetPlaylist(const std::string& playlistUUID, bool fetchPlaylist = true) {
+bool CPlayer::SetPlaylist(const std::string& playlistUUID, bool fetchPlaylist = true,
+                          std::shared_ptr<const PreparedPlaylist> prepared) {
     // Reset any pending transition decision
     m_nextDreamDecision = std::nullopt;
-    
-    if (!m_playlistManager->initializePlaylist(playlistUUID, fetchPlaylist)) {
+
+    if (!m_playlistManager->initializePlaylist(playlistUUID, fetchPlaylist, std::move(prepared))) {
         g_Log->Error("Failed to set playlist with UUID: %s", playlistUUID.c_str());
         NoteContentSettled();
         return false;

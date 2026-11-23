@@ -47,7 +47,8 @@ PlaybackMode PlaylistManager::getPlaybackMode() const {
 }
 
 // MARK: Init
-bool PlaylistManager::initializePlaylist(const std::string& playlistUUID, bool fetchPlaylist = true) {
+bool PlaylistManager::initializePlaylist(const std::string& playlistUUID, bool fetchPlaylist = true,
+                                         std::shared_ptr<const PreparedPlaylist> prepared) {
     uint64_t generation = 0;
     bool offline = false;
     {
@@ -68,7 +69,7 @@ bool PlaylistManager::initializePlaylist(const std::string& playlistUUID, bool f
         }
     }
     
-    if (!parsePlaylist(playlistUUID, generation)) {
+    if (!parsePlaylist(playlistUUID, generation, false, {}, 0, std::move(prepared))) {
         if (offline) {
             g_Log->Warning("Failed to parse playlist in offline mode. Falling back to offline playlist.");
             initializeOfflinePlaylist();
@@ -158,29 +159,44 @@ bool PlaylistManager::containsDream(const std::string& uuid) const {
                        [&uuid](const PlaylistEntry& entry) { return entry.uuid == uuid; });
 }
 
-bool PlaylistManager::parsePlaylist(const std::string& playlistUUID,
-                                    uint64_t expectedGeneration,
-                                    bool preserveCurrent,
-                                    const std::string& currentDreamUUID,
-                                    size_t oldPosition) {
+std::shared_ptr<const PreparedPlaylist>
+PlaylistManager::preparePlaylist(const std::string& playlistUUID) const {
     // Parse the playlist
     std::vector<PlaylistEntry> entries = EDreamClient::ParsePlaylist(playlistUUID);
-    
+
     if (entries.empty()) {
         g_Log->Error("Failed to parse playlist or playlist is empty. UUID: %s", playlistUUID.c_str());
-        return false;
+        return nullptr;
     }
 
-    // Get the playlist metadata
-    auto metadata = EDreamClient::ParsePlaylistMetadata(playlistUUID);
+    auto prepared = std::make_shared<PreparedPlaylist>();
+    prepared->uuid = playlistUUID;
+    prepared->metadata = EDreamClient::ParsePlaylistMetadata(playlistUUID);
 
     bool offline = false;
     {
         std::lock_guard lock(m_stateMutex);
         offline = m_offlineMode;
     }
-    auto filtered = offline ? filterUncachedDreams(entries)
-                            : filterActiveAndProcessedDreams(entries);
+    prepared->entries = offline ? filterUncachedDreams(entries)
+                                : filterActiveAndProcessedDreams(entries);
+    return prepared;
+}
+
+bool PlaylistManager::parsePlaylist(const std::string& playlistUUID,
+                                    uint64_t expectedGeneration,
+                                    bool preserveCurrent,
+                                    const std::string& currentDreamUUID,
+                                    size_t oldPosition,
+                                    std::shared_ptr<const PreparedPlaylist> prepared) {
+    // A caller off the render thread may have done the reading and parsing already.
+    if (!prepared || prepared->uuid != playlistUUID)
+        prepared = preparePlaylist(playlistUUID);
+    if (!prepared)
+        return false;
+
+    std::vector<PlaylistEntry> filtered = prepared->entries;
+    const PlaylistMetadata& metadata = prepared->metadata;
 
     {
         std::lock_guard lock(m_stateMutex);
