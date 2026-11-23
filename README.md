@@ -86,8 +86,15 @@ The timed steps cover:
 - **Starting a clip:** creating the `CClip` and starting or preloading it, in
   both `PlayClip` and `PreloadClip`.
 - **Opening the decoder:** `avformat_open_input`, `avformat_find_stream_info`,
-  hw device setup, `avcodec_open2` and the total. The total's label says whether
-  it ran on the caller's thread (local files) or the decoder thread (streams).
+  hw device setup, `avcodec_open2` and the total. On Windows a clip usually
+  reuses the open decoder of an earlier one, and then only the first two are
+  timed. The total's label says whether
+  it ran on the decoder thread (streams and preloaded local files) or the
+  caller's thread (other local files).
+- **Decoding (Windows):** `decoder D3D11VA context lock held`, how long ffmpeg
+  held the D3D11 context lock that the renderer also takes each frame, the
+  decoder's own holds of it during a seek, and `avcodec_send_packet` /
+  `avcodec_receive_frame` calls of 10 ms or more.
 - **Dropping the old clip:** `ReleaseRenderResources` and the GPU `WaitForIdle`
   inside it.
 - **Frame boundaries:** `frame BeginDisplayFrame` and `frame EndDisplayFrame`,
