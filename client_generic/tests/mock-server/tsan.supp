@@ -1,0 +1,20 @@
+# ThreadSanitizer suppressions for the mock-server tests (#871). The harness passes this file
+# to sanitized builds. Each entry is code we don't own and that isn't instrumented, so TSan
+# can't see its own locks and atomics, and reports races between its threads.
+
+# Linux: GLib, GIO, Pango, fontconfig and glycin (GNOME's image loader) run threads of their
+# own, started by the window decorations (libdecor's GTK plugin) and font loading in
+# CDisplayVulkan::Initialize. PulseAudio's client library does the same.
+race:libglib-2.0.so
+race:libgio-2.0.so
+race:libgobject-2.0.so
+race:libglycin-2.so
+race:libpango-1.0.so
+race:libpangoft2-1.0.so
+race:libfontconfig.so
+race:libpulsecommon-*.so
+race:libpulse.so
+
+# Linux: ffmpeg's frame threads take its own mutexes in either order inside avcodec, which TSan
+# reports as a potential deadlock (lock-order inversion). The Mac build reports none.
+deadlock:libavcodec.so

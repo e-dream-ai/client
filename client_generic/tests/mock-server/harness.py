@@ -43,6 +43,81 @@ FIELD = re.compile(r"(\w+)=(\S+)")
 CLIP_STATE = re.compile(r"\b(current|next)=\S+ frame=\S+ queue=\S+ (\w+)")
 
 
+# Sanitized builds (#871: MacBuild/build.py --sanitize asan|tsan). The harness finds out from
+# the binary itself which sanitizer it was built with, so no option is needed. They run slower,
+# so the hang limits are multiplied by SLOWDOWN.
+SANITIZER_MARKERS = {"asan": (b"__asan_init", b"clang_rt.asan"),
+                     "tsan": (b"__tsan_init", b"clang_rt.tsan")}
+SLOWDOWN = {None: 1, "asan": 3, "tsan": 5}
+SANITIZER_OPTIONS = {
+    # allow_user_segv_handler=0 keeps ASan's SIGSEGV handler in place of the client's, which
+    # would swallow the fault and exit 0. abort_on_error=0 exits with an error code instead of
+    # aborting, so macOS doesn't spend seconds writing a crash report for an ASan stop.
+    # intercept_strndup=0: macOS CoreGraphics' PDF lexer (SwiftUI loading a vector image, e.g.
+    # the OSD icons) calls strndup on a string that isn't NUL-terminated within the length.
+    # ASan's interceptor reports that, and even when suppressed its strlen runs off the mapped
+    # page (BUS). It's Apple's code, and ours never calls strndup.
+    "asan": {"ASAN_OPTIONS": "halt_on_error=1:abort_on_error=0:allow_user_segv_handler=0:"
+                             "detect_stack_use_after_return=1:strict_string_checks=1:"
+                             "intercept_strndup=0",
+             "UBSAN_OPTIONS": "print_stacktrace=1"},
+    # TSan reports every race it sees and carries on, so one run finds them all. By default it
+    # then aborts at exit when it reported anything; exitcode=0 and abort_on_error=0 leave the
+    # verdict to the "No tsan report" check instead of also failing the clean quit.
+    "tsan": {"TSAN_OPTIONS": "halt_on_error=0:abort_on_error=0:exitcode=0:"
+                             "second_deadlock_stack=1:history_size=4"},
+}
+SUPPRESSIONS = {"asan": ("ASAN_OPTIONS", HERE / "asan.supp"), "tsan": ("TSAN_OPTIONS", HERE / "tsan.supp")}
+# The start of each kind of report, in the client's output.
+SANITIZER_REPORT = re.compile(
+    r"^(==\d+==ERROR: AddressSanitizer.*|.*: runtime error: .*|WARNING: ThreadSanitizer: .*)$",
+    re.MULTILINE)
+_sanitizers = {}
+
+
+def sanitizer_of(app):
+    """"asan", "tsan" or None: which sanitizer the client binary was built with. Looks for the
+    sanitizer's init symbol (static runtime) or runtime library name (dynamic) in the binary,
+    and in the <binary>.debug.dylib that holds a Mac Debug build's code."""
+    app = str(app)
+    if app not in _sanitizers:
+        files = [Path(app), Path(app + ".debug.dylib")]
+        data = b"".join(f.read_bytes() for f in files if f.is_file())
+        _sanitizers[app] = next((name for name, markers in SANITIZER_MARKERS.items()
+                                 if any(m in data for m in markers)), None)
+    return _sanitizers[app]
+
+
+def sanitizer_reports(text):
+    """Each sanitizer report in the client's output, as a string. An ASan report runs to its
+    ABORTING line, a TSan one to its closing row of =; a UBSan report is its line plus the
+    stack after it."""
+    reports = []
+    for match in SANITIZER_REPORT.finditer(text):
+        rest = text[match.start():]
+        if "AddressSanitizer" in match.group(1):
+            end = rest.find("==ABORTING")
+        elif "ThreadSanitizer" in match.group(1):
+            end = rest.find("\n==================", 1)
+        else:  # UBSan: the stack is the indented lines that follow.
+            lines = rest.splitlines()
+            n = 1
+            while n < len(lines) and lines[n].startswith("    #"):
+                n += 1
+            end = len("\n".join(lines[:n]))
+        reports.append(rest[:end if end > 0 else 4000].rstrip())
+    return reports
+
+
+def report_kind(report):
+    """A short name for a report, like "heap-use-after-free" or "data race"."""
+    first = report.splitlines()[0]
+    if "runtime error: " in first:
+        return "UB: " + " ".join(first.split("runtime error: ", 1)[1].split()[:3]).rstrip(":")
+    first = re.sub(r"^==\d+==ERROR: AddressSanitizer: |^WARNING: ThreadSanitizer: ", "", first)
+    return re.sub(r" (on|in|at) .*$| \(pid=\d+\)$", "", first)
+
+
 class Failed(Exception):
     pass
 
@@ -192,7 +267,11 @@ class Run:
         self.marks = {}
         self.server_args = server_args
         self.screenshots = screenshots
-        self.max_gap, self.max_stuck = max_gap, max_stuck
+        self.sanitizer = sanitizer_of(app)
+        slowdown = SLOWDOWN[self.sanitizer]
+        self.max_gap, self.max_stuck = max_gap * slowdown, max_stuck * slowdown
+        if self.sanitizer:
+            print(f"NOTE  Client built with {self.sanitizer}; hang limits x{slowdown}", flush=True)
         self.started_at = None
         self.exit_code = None
         self.died_during_run = None  # Exit code if the client exited before the test stopped it.
@@ -283,7 +362,12 @@ class Run:
         self.dreams, self.dream_fps = health["dreams"], health["fps"]
         self.dream_frames, self.playlists = health["frames"], health["playlists"]
         env = {**os.environ, "INFINIDREAM_DATA_DIR": str(self.data),
-               "INFINIDREAM_API_KEY": API_KEY, "INFINIDREAM_HEARTBEAT_SECONDS": "1"}
+               "INFINIDREAM_API_KEY": API_KEY, "INFINIDREAM_HEARTBEAT_SECONDS": "1",
+               **SANITIZER_OPTIONS.get(self.sanitizer, {})}
+        if self.sanitizer:
+            variable, path = SUPPRESSIONS[self.sanitizer]
+            if path.exists():
+                env[variable] += f":suppressions={path}"
         self.started_at = time.time()
         with open(self.client_output, "w") as output:
             command = [str(self.app), *(["--fullscreen"] if FULLSCREEN else [])]
@@ -630,6 +714,17 @@ def verify_process(run):
           "the log says RECEIVED SIGSEGV" if swallowed else "")
     hang = run.watchdog.hang if run.watchdog else None
     check("No hang", hang is None, hang or "")
+    if run.sanitizer:
+        output = run.client_output.read_text(encoding="utf-8", errors="replace") \
+            if run.client_output.exists() else ""
+        reports = sanitizer_reports(output)
+        kinds = sorted({report_kind(r) for r in reports})
+        check(f"No {run.sanitizer} report", not reports,
+              f"{len(reports)}: {'; '.join(kinds[:3])}" if reports else "")
+        if reports:
+            (run.work / "sanitizer-reports.txt").write_text("\n\n".join(reports) + "\n")
+            print(f"First report (all in {run.work / 'sanitizer-reports.txt'}):", flush=True)
+            print("\n".join(reports[0].splitlines()[:40]), flush=True)
 
 
 def verify_server(run, before, require_download=True):
