@@ -614,7 +614,12 @@ bool CContentDecoder::Open()
         {
             auto* hwDevCtx = reinterpret_cast<AVHWDeviceContext*>(hwDevCtxBuf->data);
             auto* d3d11vaCtx = reinterpret_cast<AVD3D11VADeviceContext*>(hwDevCtx->hwctx);
+            // Freeing the hw device context releases device (and device_context), so it
+            // needs a reference of its own. Without this AddRef, every freed context
+            // released the shared device once too often; that stayed hidden while
+            // decoders leaked their queued frames, which held those contexts, until #876.
             d3d11vaCtx->device = m_d3d11Device.Get();
+            d3d11vaCtx->device->AddRef();
             m_d3d11Device->GetImmediateContext(&d3d11vaCtx->device_context);
 
             // Prevent two decoder threads from interleaving their D3D11VA
