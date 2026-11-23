@@ -390,6 +390,10 @@ public:
         m_FontDesc.Style(DisplayOutput::CFontDescription::Normal);
         m_FontDesc.Italic(false);
         m_FontDesc.TypeFace("Lato");
+        // All the popup ever writes is a speed like "57.00 fps". Its font size follows
+        // the window height, so it's a font of its own; on Windows, drawing the full
+        // glyph set for it stalled the first speed keypress by 70-400 ms (client#881).
+        m_FontDesc.Glyphs("0123456789. fps");
         // Renderer can be unavailable during early startup; lazily acquire font/text in Render().
         m_spFont = nullptr;
         m_spFpsText = nullptr;
@@ -469,14 +473,9 @@ public:
         if (m_spBgTexture == NULL)
             return false;
 
-        // Lazily init font/text once we have a renderer.
-        if (_spRenderer && (!m_spFont || !m_spFpsText))
-        {
-            if (!m_spFont)
-                m_spFont = _spRenderer->GetFont(m_FontDesc);
-            if (m_spFont && !m_spFpsText)
-                m_spFpsText = _spRenderer->NewText(m_spFont, "");
-        }
+        // The font and text are made where the speed is drawn, below, at the size the
+        // window has by then. Making them here too, at the size worked out in the
+        // constructor, built a second font whenever the two sizes differed.
 
         DisplayOutput::spCRenderer spRenderer = _spRenderer;
 

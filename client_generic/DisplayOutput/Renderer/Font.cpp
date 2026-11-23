@@ -28,7 +28,7 @@ bool CFontDescription::operator==(const CFontDescription& _rhs) const
             (m_bItalic == _rhs.m_bItalic) &&
             (m_bUnderline == _rhs.m_bUnderline) &&
             (m_bAntiAliased == _rhs.m_bAntiAliased) &&
-            (m_TypeFace == _rhs.m_TypeFace));
+            (m_TypeFace == _rhs.m_TypeFace) && (m_Glyphs == _rhs.m_Glyphs));
 }
 
 /*
