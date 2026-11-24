@@ -43,9 +43,9 @@ FIELD = re.compile(r"(\w+)=(\S+)")
 CLIP_STATE = re.compile(r"\b(current|next)=\S+ frame=\S+ queue=\S+ (\w+)")
 
 
-# Sanitized builds (#871: MacBuild/build.py --sanitize asan|tsan). The harness finds out from
-# the binary itself which sanitizer it was built with, so no option is needed. They run slower,
-# so the hang limits are multiplied by SLOWDOWN.
+# Sanitized builds (#871: MacBuild/build.py --sanitize asan|tsan; #888: WinBuild/build.py
+# --sanitize asan). The harness finds out from the binary itself which sanitizer it was built
+# with, so no option is needed. They run slower, so the hang limits are multiplied by SLOWDOWN.
 SANITIZER_MARKERS = {"asan": (b"__asan_init", b"clang_rt.asan"),
                      "tsan": (b"__tsan_init", b"clang_rt.tsan")}
 SLOWDOWN = {None: 1, "asan": 3, "tsan": 5}
@@ -72,6 +72,15 @@ SANITIZER_OPTIONS = {
 }
 SUPPRESSIONS = {"asan": [("ASAN_OPTIONS", HERE / "asan.supp"), ("LSAN_OPTIONS", HERE / "lsan.supp")],
                 "tsan": [("TSAN_OPTIONS", HERE / "tsan.supp")]}
+if sys.platform == "win32":
+    # MSVC's ASan (#888) has no UBSan or LeakSanitizer. allow_user_segv_handler doesn't exist
+    # there (the client installs no exception filter on Windows, so ASan's own reports an
+    # access violation), intercept_strndup is a Mac workaround, and
+    # detect_stack_use_after_return needs /fsanitize-address-use-after-return at compile time.
+    # The process exits with status 1 after a report.
+    SANITIZER_OPTIONS["asan"] = {
+        "ASAN_OPTIONS": "halt_on_error=1:abort_on_error=0:strict_string_checks=1"}
+    SUPPRESSIONS["asan"] = [("ASAN_OPTIONS", HERE / "asan.supp")]
 # The start of each kind of report, in the client's output.
 SANITIZER_REPORT = re.compile(
     r"^(==\d+==ERROR: (?:AddressSanitizer|LeakSanitizer).*|.*: runtime error: .*|"
@@ -382,7 +391,8 @@ class Run:
         if self.sanitizer:
             for variable, path in SUPPRESSIONS[self.sanitizer]:
                 if path.exists():
-                    env[variable] = env.get(variable, "") + f":suppressions={path}"
+                    # Quoted, because a Windows path has a colon, which separates options.
+                    env[variable] = env.get(variable, "") + f":suppressions='{path}'"
         self.started_at = time.time()
         with open(self.client_output, "w") as output:
             command = [str(self.app), *(["--fullscreen"] if FULLSCREEN else [])]

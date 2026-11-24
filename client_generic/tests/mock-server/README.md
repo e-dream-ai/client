@@ -226,6 +226,18 @@ On Linux, configure a separate CMake tree with `INFINIDREAM_SANITIZE` (GCC or Cl
     cmake -B build-tsan -DCMAKE_BUILD_TYPE=Debug -DINFINIDREAM_SANITIZE=tsan
     cmake --build build-tsan -j$(nproc)    # binary: build-tsan/infinidream
 
+On Windows (#888), MSVC has AddressSanitizer only: no ThreadSanitizer, UBSan or LeakSanitizer.
+
+    cd client_generic\WinBuild
+    python build.py --sanitize asan     # MSVC\build-asan\infinidream.exe
+
+It builds only the app (no `.scr`), with Release | x64's settings but unoptimized, unsigned, in
+its own folder with the ASan runtime DLL and the `.pdb` next to the exe, so it starts from
+anywhere and reports have file and line. `std::string` and `std::vector` container annotations
+are off there, because vcpkg's static SpoutDX library isn't instrumented and the linker refuses
+to mix the two; overflows into a string's or vector's spare capacity aren't seen. All 18 tests
+pass against it with no report, so there is no `asan.supp` yet.
+
 On Linux, ASan comes with LeakSanitizer. The client ends with `_exit()`, which skips LSan's
 check at exit, so an ASan build runs the check itself just before (`ForceExitProcess` in
 `client.h`); leaks make it exit with status 1. The Mac (arm64) and MSVC have no LeakSanitizer.
@@ -235,7 +247,10 @@ It then:
 
 - sets `ASAN_OPTIONS`/`UBSAN_OPTIONS` or `TSAN_OPTIONS`. Under ASan the client's SIGSEGV
   handler is kept out (`allow_user_segv_handler=0`), so a segfault gets a full ASan report
-  instead of being swallowed. TSan reports every race and carries on. Suppressions, for code we
+  instead of being swallowed. On Windows the client has no such handler, and an access
+  violation gets an ASan report (`access-violation`) and exit status 1 like any other; the
+  Mac-only options and `detect_stack_use_after_return` (a compile-time switch on MSVC) are
+  left out. TSan reports every race and carries on. Suppressions, for code we
   don't own, go in `asan.supp`, `lsan.supp` and `tsan.supp` here, each with its reason. On Linux,
   `tsan.supp` drops races inside GLib, GIO, Pango, fontconfig, glycin and PulseAudio (threads
   started by the window decorations and font loading) and ffmpeg's lock-order report; without

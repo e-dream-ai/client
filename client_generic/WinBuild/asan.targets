@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Overrides for build.py's "sanitize asan" build (#888), on top of Release|x64. build.py imports
+     this after Microsoft.Cpp.targets (ForceImportAfterCppTargets), so these win over the
+     project's own settings without another configuration to keep in sync. It also passes
+     EnableASAN (/fsanitize=address), CopyAsanBinariesToOutDir, OutDir and IntDir.
+     Release|x64 is the base because it links the release DLL CRT (/MD), like vcpkg's
+     x64-windows libraries, and has none of Debug's /RTC, /ZI or incremental linking,
+     which ASan can't be combined with. -->
+<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemDefinitionGroup>
+    <ClCompile>
+      <!-- Unoptimized, so reports have every frame and line. -->
+      <Optimization>Disabled</Optimization>
+      <InlineFunctionExpansion>Disabled</InlineFunctionExpansion>
+      <WholeProgramOptimization>false</WholeProgramOptimization>
+      <!-- vcpkg's static C++ libraries (SpoutDX) aren't built with ASan, and the linker
+           refuses to mix them with code whose std::string and std::vector carry ASan's
+           container annotations (LNK2038 annotate_string/annotate_vector). So those are
+           off: an overflow inside a string's or vector's spare capacity isn't seen. -->
+      <PreprocessorDefinitions>_DISABLE_STRING_ANNOTATION;_DISABLE_VECTOR_ANNOTATION;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+    </ClCompile>
+    <Link>
+      <LinkTimeCodeGeneration>Default</LinkTimeCodeGeneration>
+      <MapFileName>$(OutDir)es.map</MapFileName>
+    </Link>
+    <!-- No sanitized .scr: only the app is tested. -->
+    <PostBuildEvent>
+      <Command></Command>
+    </PostBuildEvent>
+  </ItemDefinitionGroup>
+</Project>

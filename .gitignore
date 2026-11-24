@@ -48,6 +48,7 @@ client_generic/MSVC/DebugMD
 client_generic/MSVC/DebugMDx64
 client_generic/MSVC/DebugMDd
 client_generic/MSVC/DebugMDdx64
+client_generic/MSVC/build-asan
 client_generic/MSVC/es.map
 client_generic/MSVC/edream_build_version_generated.h
 
