@@ -187,6 +187,7 @@ void CPlayer::EnqueuePlaylistChange(std::string uuid,
     command.preparedPlaylist = std::move(prepared);
     std::scoped_lock lock(m_pendingCommandMutex);
     m_pendingCommands.push_back(std::move(command));
+    m_playlistQueued = true;
 }
 
 void CPlayer::EnqueuePlaylistInitialization(std::string playlistUuid,
@@ -197,6 +198,7 @@ void CPlayer::EnqueuePlaylistInitialization(std::string playlistUuid,
     m_pendingCommands.push_back(
         {PendingCommandType::InitializePlaylist, std::move(playlistUuid), -1,
          nullptr, {}, false, std::move(resumeDreamUuid), offline});
+    m_playlistQueued = true;
 }
 
 void CPlayer::EnqueuePreparedDream(std::shared_ptr<const Cache::Dream> dream,
@@ -665,51 +667,71 @@ void CPlayer::Start()
         // This matters on changing accounts and disconnected starts
         m_shutdownFlag = false;
         
-        // We do this async, so client rendering loop doesn't lock
-        m_startupThread = std::make_shared<std::thread>([this]{
-            // Helper to check if we should abort startup
-            auto shouldAbort = [this]() {
-                return m_shutdownFlag.load() || g_NetworkManager->IsAborted();
-            };
-            
+        m_playlistQueued = false;
+        LaunchStartupThread();
+    }
+}
+
+// Runs the startup sequence off the render thread: waits for the initial auth,
+// then queues the server playlist (signed in) or the cached one (offline).
+void CPlayer::LaunchStartupThread()
+{
+    if (m_startupThread && m_startupThread->joinable())
+        m_startupThread->join();
+
+    // We do this async, so client rendering loop doesn't lock
+    m_startupThread = std::make_shared<std::thread>([this]{
+        // Helper to check if we should abort startup
+        auto shouldAbort = [this]() {
+            return m_shutdownFlag.load() || g_NetworkManager->IsAborted();
+        };
+
+        if (shouldAbort()) return;
+
+        // Wait for initial auth to complete before deciding online vs offline path.
+        // This runs on the player startup thread, so it doesn't block the main/render thread.
+        while (!EDreamClient::HasCompletedInitialAuth() && !shouldAbort()) {
+            std::this_thread::sleep_for(std::chrono::milliseconds(100));
+        }
+
+        if (shouldAbort()) return;
+
+        std::string lastPlayedUUID = g_Settings()->Get(
+            "settings.content.last_played_uuid", std::string{});
+
+        auto clientPlaylistId = g_Settings()->Get("settings.content.current_playlist_uuid", std::string(""));
+
+        if (EDreamClient::IsLoggedIn()) {
+            if (shouldAbort()) return;
+            BootstrapLoggedInPlaylist();
+        } else {
             if (shouldAbort()) return;
 
-            // Wait for initial auth to complete before deciding online vs offline path.
-            // This runs on the player startup thread, so it doesn't block the main/render thread.
-            while (!EDreamClient::HasCompletedInitialAuth() && !shouldAbort()) {
-                std::this_thread::sleep_for(std::chrono::milliseconds(100));
-            }
-
-            if (shouldAbort()) return;
-
-            std::string lastPlayedUUID = g_Settings()->Get(
-                "settings.content.last_played_uuid", std::string{});
-
-            auto clientPlaylistId = g_Settings()->Get("settings.content.current_playlist_uuid", std::string(""));
-
+            // Not logged in (including transient auth/server outage): play from cache only.
+            // This avoids blocking startup on server calls for streaming links/metadata.
             if (EDreamClient::IsLoggedIn()) {
-                if (shouldAbort()) return;
+                // Signed in while this thread was preparing the offline playlist.
                 BootstrapLoggedInPlaylist();
             } else {
-                if (shouldAbort()) return;
-                
-                // Not logged in (including transient auth/server outage): play from cache only.
-                // This avoids blocking startup on server calls for streaming links/metadata.
-                if (EDreamClient::IsLoggedIn()) {
-                    // Signed in while this thread was preparing the offline playlist.
-                    BootstrapLoggedInPlaylist();
-                } else {
-                    EnqueuePlaylistInitialization(clientPlaylistId, lastPlayedUUID, true);
-                }
+                EnqueuePlaylistInitialization(clientPlaylistId, lastPlayedUUID, true);
             }
-        });
-    }
+        }
+    });
 }
 
 void CPlayer::ResumeAfterPause()
 {
     m_shutdownFlag = false;
     m_bStarted.exchange(true);
+
+    // Stop() during startup (Preferences opened right after launch) aborts the
+    // startup thread before it queues a playlist, which would leave the player
+    // with nothing to play until relaunch. Run startup again (client#893).
+    if (!m_playlistQueued.load())
+    {
+        g_Log->Info("Resume: startup was interrupted before a playlist was queued, restarting it");
+        LaunchStartupThread();
+    }
 }
 
 void CPlayer::Stop()

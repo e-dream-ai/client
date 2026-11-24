@@ -54,6 +54,12 @@ class CPlayer : public Base::CSingleton<CPlayer>
     
     std::atomic<bool> m_shutdownFlag{false};
     std::shared_ptr<std::thread> m_startupThread;
+    // Set once startup (or a later playlist change) has queued a playlist for
+    // the player thread. A Stop() during startup (Preferences sheet opened right
+    // after launch) aborts the startup thread before it queues one; with this
+    // still false, ResumeAfterPause() runs startup again (client#893).
+    std::atomic<bool> m_playlistQueued{false};
+    void LaunchStartupThread();
 
     enum class PendingCommandType {
         ChangePlaylist,
@@ -284,7 +290,8 @@ class CPlayer : public Base::CSingleton<CPlayer>
     void Start();
     /// Load server playlist and refresh quota when sign-in happens after offline startup (first-run wizard, etc.).
     void EnsureOnlinePlaybackAfterSignIn();
-    /// Resume after Stop() without re-running startup (e.g. after Preferences sheet). Keeps current clip and playlist.
+    /// Resume after Stop() (e.g. after Preferences sheet). Keeps current clip and playlist;
+    /// re-runs startup only if the Stop() cut it short before it queued a playlist.
     void ResumeAfterPause();
     void Stop();
     bool NextClipForPlaying(int32_t _forceNext);
