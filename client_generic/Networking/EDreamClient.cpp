@@ -3124,7 +3124,15 @@ void EDreamClient::ConnectRemoteControlSocket()
     std::lock_guard<std::mutex> lock(fWebSocketMutex);
     
     g_Log->Info("Performing remote control connect.");
-    
+
+    // io_context is created lazily (EnsureIOContext) and never in busy /
+    // multiple-instances mode. Callers create it first today; don't crash if
+    // one doesn't (client#895, same pattern as #526).
+    if (!io_context) {
+        g_Log->Warning("Cannot connect WebSocket: io_context not initialized.");
+        return;
+    }
+
     // If io_context was stopped (e.g. by a player restart), restart it. The WebSocket
     // runs on its own thread and may still be open, so this doesn't imply a reconnect.
     const bool ioWasStopped = io_context->stopped();
