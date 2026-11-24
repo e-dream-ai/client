@@ -33,7 +33,9 @@ Windows (see "On Windows").
   count. `--rate N` streams over a limited link.
 - `repro_test.py` reproduces client bugs found with these tests, one fresh client per case:
   `seek-past-end` (#775), `seek-near-end` (its control), `previous-after-wrap` and
-  `previous-two-dreams` (#776). Each checks the right behavior, so it fails until the bug is
+  `previous-two-dreams` (#776), and `switch-as-dream-ends`, a `play_dream` to an uncached dream
+  over a slow link just before the current dream ends, which must still fade in (#890). Each
+  checks the right behavior, so it fails until the bug is
   fixed and then guards against it coming back.
 - `crash_test.py` sends malformed remote-control messages, one per fresh client, and checks
   the client survives each. `--list` shows the cases; `--case NAME` runs one.
