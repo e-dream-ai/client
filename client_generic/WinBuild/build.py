@@ -238,7 +238,31 @@ def main() -> None:
             "installer). Without it the build is a dev build versioned from the latest git tag."
         ),
     )
+    parser.add_argument(
+        "--sanitize",
+        choices=["asan", "tsan"],
+        default=None,
+        help=(
+            "Test build of the app only, with AddressSanitizer (asan; MSVC has no tsan), "
+            "unsigned and with no .scr, in MSVC/build-asan/. For the mock-server tests (#888)."
+        ),
+    )
     args = parser.parse_args()
+
+    if args.sanitize == "tsan":
+        print_red(
+            "MSVC has no ThreadSanitizer (nor UBSan or LeakSanitizer); only --sanitize asan. "
+            "For tsan use MacBuild/build.py --sanitize tsan or Linux -DINFINIDREAM_SANITIZE=tsan."
+        )
+        sys.exit(1)
+    if args.sanitize and (
+        args.embed_version is not None or args.debug or args.configuration or args.platform != "x64"
+    ):
+        print_red(
+            "--sanitize builds are for testing only (Release | x64 settings, unoptimized); "
+            "it can't be combined with -v, -d, --configuration or --platform."
+        )
+        sys.exit(1)
 
     if args.configuration:
         configuration = args.configuration
@@ -265,9 +289,16 @@ def main() -> None:
     # The intermediate directory (object files) stays unless --clean, so builds remain
     # incremental; the output is just relinked and recopied.
     msvc_dir = sln.parent
-    clean_dirs = [msvc_dir / configuration]
+    out_dir = msvc_dir / configuration
+    clean_dirs = [out_dir]
     if args.clean:
         clean_dirs.append(msvc_dir / f"{configuration}{args.platform}")
+    if args.sanitize:
+        # A sanitized build gets its own folder, so the normal output (which release.py
+        # packages) is never overwritten. It's never packaged, so it isn't emptied first
+        # and builds incrementally; its object files are in it, and --clean removes it all.
+        out_dir = msvc_dir / f"build-{args.sanitize}"
+        clean_dirs = [out_dir] if args.clean else []
     for d in clean_dirs:
         if d.is_dir():
             print_blue(f"Removing {d} ...")
@@ -306,6 +337,16 @@ def main() -> None:
         f"/p:Platform={args.platform}",
         f"/p:EdreamVersion={embed_version}",
     ]
+    if args.sanitize:
+        # /fsanitize=address through MSBuild's own switch, with the rest in asan.targets.
+        # The ASan runtime DLL is copied next to the exe, so it starts from anywhere.
+        build_cmd += [
+            "/p:EnableASAN=true",
+            "/p:CopyAsanBinariesToOutDir=true",
+            f"/p:OutDir={out_dir}\\",
+            f"/p:IntDir={out_dir / 'obj'}\\",
+            f"/p:ForceImportAfterCppTargets={Path(__file__).resolve().parent / 'asan.targets'}",
+        ]
     if not args.no_restore:
         build_cmd.append("/restore")
     build_cmd.append(f"/t:{args.target}")
@@ -320,9 +361,18 @@ def main() -> None:
         print_red("MSBuild failed.")
         sys.exit(1)
 
-    out_dir = sln.parent / configuration
     print_green("Build succeeded.")
-    print_green(f"Output directory (typical): {out_dir}")
+    if args.sanitize:
+        exe = out_dir / "infinidream.exe"
+        runtime = list(out_dir.glob("clang_rt.asan_dynamic-*.dll"))
+        if not exe.is_file() or not runtime:
+            print_red(f"Expected {exe} and the ASan runtime DLL (clang_rt.asan_dynamic-*.dll) in {out_dir}.")
+            sys.exit(1)
+        print_green(f"Sanitized build complete ({args.sanitize}), app only, unsigned.")
+        print("For the mock-server tests (client_generic/tests/mock-server):")
+        print(rf'  venv\Scripts\python run_all.py --app "{exe}"')
+    else:
+        print_green(f"Output directory (typical): {out_dir}")
 
 
 if __name__ == "__main__":

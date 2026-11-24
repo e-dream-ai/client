@@ -418,6 +418,7 @@ Defaults: **Release**, **x64**, runs MSBuild **restore** then **build** (uses `M
 | `--triplet TRIPLET` | Triplet for `--run-vcpkg`. |
 | `--no-restore` | Skip MSBuild `/restore`. |
 | `--msbuild PATH` | Force a specific `MSBuild.exe`. |
+| `--sanitize asan` | Test build with AddressSanitizer (see below). |
 
 **MSBuild discovery:** uses the `MSBUILD` env var if set; otherwise **vswhere** (`%ProgramFiles(x86)%\Microsoft Visual Studio\Installer\vswhere.exe`) to locate `MSBuild.exe`. You can also add the MSBuild `Bin` folder to `PATH` so `msbuild.exe` resolves without vswhere.
 
@@ -429,6 +430,19 @@ python build.py
 python build.py -d --platform x64
 python build.py --run-vcpkg --triplet x64-windows
 ```
+
+### AddressSanitizer build
+
+```bat
+python build.py --sanitize asan
+```
+
+Builds only `infinidream.exe`, with `/fsanitize=address`, unoptimized and unsigned, into
+`client_generic\MSVC\build-asan\` with the ASan runtime DLL and a `.pdb` next to it, and prints
+the path for the mock-server tests' `--app`. It never touches `MSVC\Release\`, makes no `.scr`,
+and can't be combined with `-v`, so it can't be packaged. MSVC has ASan only: for
+ThreadSanitizer, UBSan or leak checking use the Mac or Linux build. See
+[`tests/mock-server/README.md`](client_generic/tests/mock-server/README.md) "Sanitizers".
 
 ### Release installer
 
