@@ -15,8 +15,14 @@ Cases:
                        play history doubles as the back stack and is reset at the wrap.
   previous-two-dreams  2 dreams, A next B next A next B: previous must go back to A, not
                        restart B.
+  switch-as-dream-ends play_dream an uncached dream over a slow link about 2 s before the
+                       current dream ends, so the current one runs out of frames while the new
+                       one buffers. The new dream must still fade in, not cut in: its crossfade
+                       starts and then jumps to the end on the next frame ("Crossfade to
+                       ... cut short at 2%: outgoing clip ... finished", #890).
 """
 import argparse
+import re
 import sys
 import tempfile
 import time
@@ -121,11 +127,69 @@ def previous_after_nexts(run, nexts):
             + ("" if went == order[-2] else f", expected {letter.get(order[-2])}"))
 
 
+SWITCH_LEAD_SECONDS = 2.0  # how long before the current dream's end to send play_dream
+SWITCH_SLOW_RATE = 8 * 1024  # bytes a second: the new dream's first frames take far longer
+
+
+def switch_as_dream_ends(run):
+    """With zero quota only the streamed first dream A is cached. Near A's end, slows the link
+    and sends play_dream for uncached B, so A runs out of frames while B buffers. Then restores
+    the link so B can start, and checks B's crossfade wasn't cut short."""
+    run.wait_until_ready()
+    a = full(run, run.wait_until_playing()["current"])
+    b = next(u for u in run.dreams if u != a)
+    frames = run.dream_frames[a]
+
+    def frame_of(beat):
+        return int(beat["frame"].split("/")[0])
+
+    def rate_and_frame():
+        beats = [x for x in run.heartbeats() if full(run, x.get("current")) == a and "frame" in x]
+        if len(beats) < 3 or beats[-1]["time"] - beats[0]["time"] < 2:
+            return None
+        rate = (frame_of(beats[-1]) - frame_of(beats[0])) / (beats[-1]["time"] - beats[0]["time"])
+        return (rate, beats[-1]) if rate > 0 else None
+    rate, _ = h.wait_for(f"{a[:8]}'s frame rate", lambda: run.require_alive() or rate_and_frame(), 30)
+    near = frames - int(SWITCH_LEAD_SECONDS * rate)
+    print(f"{a[:8]} plays at {rate:.0f} frames/s; waiting for frame {near} of {frames}", flush=True)
+    def near_end():
+        found = run.require_alive() or rate_and_frame()
+        return found and frame_of(found[1]) >= near
+    h.wait_for(f"{a[:8]} to near its end", near_end, frames / rate + 10)
+
+    offset = len(run.log_text())
+    run.set_media_rate(SWITCH_SLOW_RATE)
+    print(f"play_dream {b[:8]} (uncached) at {SWITCH_SLOW_RATE // 1024} KB/s", flush=True)
+    run.send("play_dream", uuid=b)
+    log = lambda: run.require_alive() or run.log_text()[offset:]
+    ran_out = f"marking dream {a} as finished"
+    started = f"starting playback for {b}"
+    try:
+        h.wait_for(f"{a[:8]} to run out of frames", lambda: ran_out in log() or started in log(),
+                   SWITCH_LEAD_SECONDS + 10)
+    finally:
+        run.set_media_rate(0)
+    h.wait_for(f"{b[:8]} to start", lambda: started in log(), COMMAND_TIMEOUT)
+    text = log()
+    h.check(f"{a[:8]} ran out of frames while {b[:8]} buffered (the setup)",
+            0 <= text.find(ran_out) < text.find(started),
+            "it did" if 0 <= text.find(ran_out) < text.find(started) else
+            f"{b[:8]} was ready first, so this run didn't reproduce the case")
+    time.sleep(3)  # for the crossfade to finish
+    cut = re.search(r"Crossfade to " + re.escape(b) + r" cut short at (\d+)%", log())
+    h.check(f"{b[:8]} faded in rather than cutting in", not cut,
+            f"crossfade cut short at {cut[1]}% because {a[:8]} had finished" if cut else "")
+    wait_for_dream(run, f"the client to settle on {b[:8]}", lambda u: u == b)
+
+
+# name: (dreams served, scenario, extra server options)
 CASES = {
-    "seek-past-end": (3, lambda run: seek(run, -50)),
-    "seek-near-end": (3, lambda run: seek(run, 10)),
-    "previous-after-wrap": (3, lambda run: previous_after_nexts(run, 4)),
-    "previous-two-dreams": (2, lambda run: previous_after_nexts(run, 3)),
+    "seek-past-end": (3, lambda run: seek(run, -50), ()),
+    "seek-near-end": (3, lambda run: seek(run, 10), ()),
+    "previous-after-wrap": (3, lambda run: previous_after_nexts(run, 4), ()),
+    "previous-two-dreams": (2, lambda run: previous_after_nexts(run, 3), ()),
+    # Zero quota, so the background downloader leaves B uncached.
+    "switch-as-dream-ends": (3, switch_as_dream_ends, ("--quota", "0")),
 }
 
 
@@ -151,7 +215,7 @@ def main():
     print(f"Run folder: {root}", flush=True)
     before = h.snapshot_real_installs()
     for name in args.case or list(CASES):
-        dreams, body = CASES[name]
+        dreams, body, server_args = CASES[name]
         print(f"\n== {name}", flush=True)
         # The previous-* cases count on exactly this many dreams, so the nexts wrap around.
         # --playlist serves the whole playlist instead.
@@ -161,7 +225,7 @@ def main():
             continue
         # A stuck frame is what seek-past-end looks for, so give the hang check room.
         run = h.Run(root / name, args.app, args.media_dir, screenshots=False,
-                    max_stuck=MOVE_ON_TIMEOUT + 10, server_args=("--dreams", str(dreams)))
+                    max_stuck=MOVE_ON_TIMEOUT + 10, server_args=("--dreams", str(dreams), *server_args))
         try:
             run.start()
             body(run)
